@@ -90,22 +90,25 @@ def duplicate_selected_objects():
     return (dup_source, dup_result)
 
 def add_suffix(obj):
-    newname = obj.name + EXPORT_TEMP_SUFFIX
-    print("Add Suffix (Object name): [" + obj.name + "] -> [" + newname + "]")
-    obj.name = newname
+    if not EXPORT_TEMP_SUFFIX in obj.name:
+        newname = obj.name + EXPORT_TEMP_SUFFIX
+        print("Add Suffix (Object name): [" + obj.name + "] -> [" + newname + "]")
+        obj.name = newname
 
-    if obj.data != None:
+    # インスタンス化されたメッシュがあるとインスタンスの個数分だけ関数が呼ばれるため、suffixが多重追加されないように対策しておく
+    if obj.data != None and not EXPORT_TEMP_SUFFIX in obj.data.name:
         newname = obj.data.name + EXPORT_TEMP_SUFFIX
         print("Add Suffix (Data name): [" + obj.data.name + "] -> [" + newname + "]")
         obj.data.name = newname
 
 def remove_suffix(obj):
-    oldname =  obj.name
-    newname = oldname[0:oldname.rfind(EXPORT_TEMP_SUFFIX)]
-    print("Remove Suffix (Object name): [" + oldname + "] -> [" + newname + "]")
-    obj.name = newname
+    if EXPORT_TEMP_SUFFIX in obj.name:
+        oldname =  obj.name
+        newname = oldname[0:oldname.rfind(EXPORT_TEMP_SUFFIX)]
+        print("Remove Suffix (Object name): [" + oldname + "] -> [" + newname + "]")
+        obj.name = newname
 
-    if obj.data != None:
+    if obj.data != None and EXPORT_TEMP_SUFFIX in obj.data.name:
         oldname = obj.data.name
         newname = oldname[0:oldname.rfind(EXPORT_TEMP_SUFFIX)]
         print("Remove Suffix (Object name): [" + oldname + "] -> [" + newname + "]")
