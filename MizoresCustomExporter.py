@@ -752,7 +752,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         if self.batch_mode == 'SCENE':
             self.report({'ERROR'}, "未実装 WIP")
         elif self.batch_mode == 'COLLECTION':
-            ignore_collections_name=[ALWAYS_EXPORT_GROUP_NAME]
+            ignore_collections_name=[ALWAYS_EXPORT_GROUP_NAME, DONT_EXPORT_GROUP_NAME]
             try:
                 from AutoMerge import PARENTS_GROUP_NAME
                 ignore_collections_name.append(PARENTS_GROUP_NAME)
