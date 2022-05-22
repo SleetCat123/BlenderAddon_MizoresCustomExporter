@@ -736,10 +736,38 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         # use_selectionなどに該当する処理をこの関数内で行っており追加で何かをする必要はないため、エクスポート関数の処理を固定化しておく
         keywords["use_selection"]=True
         keywords["use_active_collection"]=False
+        keywords["batch_mode"] = 'OFF'
         #
 
         from io_scene_fbx import export_fbx_bin
-        export_fbx_bin.save(self, context, **keywords)
+        # BatchMode用処理
+        if self.batch_mode == 'SCENE':
+            self.report({'ERROR'}, "未実装 WIP")
+        elif self.batch_mode == 'COLLECTION':
+            ignore_collections=[ALWAYS_EXPORT_GROUP_NAME]
+            try:
+                from AutoMerge import PARENTS_GROUP_NAME
+                ignore_collections.append(PARENTS_GROUP_NAME)
+            except ImportError:
+                pass
+
+            targets = bpy.context.selected_objects
+            for collection in bpy.data.collections:
+                if collection.name in ignore_collections:
+                    continue
+                deselect_all_objects()
+                objects = list(set(collection.objects) & set(targets))
+                select_objects(objects, True)
+                path = f"{self.filepath}_{collection.name}.fbx"
+                keywords["filepath"] = path
+                print("export: " + path)
+                export_fbx_bin.save(self, context, **keywords)
+        elif self.batch_mode == 'SCENE_COLLECTION':
+            self.report({'ERROR'}, "未実装 WIP")
+        elif self.batch_mode == 'ACTIVE_SCENE_COLLECTION':
+            self.report({'ERROR'}, "未実装 WIP")
+        else:
+            export_fbx_bin.save(self, context, **keywords)
         # endregion
 
         # 複製されたオブジェクトを削除
@@ -815,11 +843,10 @@ class MIZORE_FBX_PT_export_main(bpy.types.Panel):
         sub.enabled = (operator.path_mode == 'COPY')
         sub.prop(operator, "embed_textures", text="", icon='PACKAGE' if operator.embed_textures else 'UGLYPACKAGE')
 
-        # batch_modeは処理の見直しが要りそうなので一旦使えないようにしておく
-        # row = layout.row(align=True)
-        # row.prop(operator, "batch_mode")
-        # sub = row.row(align=True)
-        # sub.prop(operator, "use_batch_own_dir", text="", icon='NEWFOLDER')
+        row = layout.row(align=True)
+        row.prop(operator, "batch_mode")
+        sub = row.row(align=True)
+        sub.prop(operator, "use_batch_own_dir", text="", icon='NEWFOLDER')
 
 
 class MIZORE_FBX_PT_export_include(bpy.types.Panel):
