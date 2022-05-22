@@ -505,6 +505,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
     save_prefs: BoolProperty(name="Save Settings", default=True)
 
+    batch_filename_contains_extension: BoolProperty(name="Contains Extension", default=False)
+
     use_selection_children: BoolProperty(name="Selected Objects  (Include Children)", default=False)
     use_active_collection_children: BoolProperty(name="Active Collection (Include Children)", default=False)
 
@@ -758,7 +760,10 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 deselect_all_objects()
                 objects = list(set(collection.objects) & set(targets))
                 select_objects(objects, True)
-                path = f"{self.filepath}_{collection.name}.fbx"
+                if (self.batch_filename_contains_extension):
+                    path = f"{self.filepath}_{collection.name}.fbx"
+                else:
+                    path = f"{os.path.splitext(self.filepath)[0]}_{collection.name}.fbx"
                 keywords["filepath"] = path
                 print("export: " + path)
                 export_fbx_bin.save(self, context, **keywords)
@@ -847,6 +852,9 @@ class MIZORE_FBX_PT_export_main(bpy.types.Panel):
         row.prop(operator, "batch_mode")
         sub = row.row(align=True)
         sub.prop(operator, "use_batch_own_dir", text="", icon='NEWFOLDER')
+        row = layout.row(align=True)
+        row.enabled = (operator.batch_mode != 'OFF')
+        row.prop(operator, "batch_filename_contains_extension")
 
 
 class MIZORE_FBX_PT_export_include(bpy.types.Panel):
