@@ -493,8 +493,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     use_batch_own_dir: BoolProperty(
         name="Batch Own Dir",
         description="Create a dir for each exported file",
-        default=True,
-    )
+        default=False,
+    ) # デフォルト値をFalseに変更
     use_metadata: BoolProperty(
         name="Use Metadata",
         default=True,
