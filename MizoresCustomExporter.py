@@ -71,6 +71,10 @@ def get_active_object():
 def set_active_object(obj):
     bpy.context.view_layer.objects.active = obj
 
+def select_all_objects():
+    targets = bpy.context.scene.collection.all_objects
+    for obj in targets:
+        select_object(obj, True)
 def deselect_all_objects():
     targets = bpy.context.selected_objects
     for obj in targets:
@@ -80,6 +84,11 @@ def deselect_all_objects():
 def get_children(obj):
     allobjects = bpy.data.objects
     return [child for child in allobjects if child.parent == obj]
+
+def find_collection(name):
+    return next((c for c in bpy.context.scene.collection.children if name in c.name), None)
+def find_layer_collection(name):
+    return next((c for c in bpy.context.view_layer.layer_collection.children if name in c.name), None)
 
 def duplicate_selected_objects():
     dup_source = bpy.context.selected_objects
@@ -172,21 +181,20 @@ def deselect_collection(collection):
 
 # 選択オブジェクトを指定名のグループに入れたり外したり
 def assign_object_group(group_name, assign=True):
-    if not group_name in bpy.data.collections:
+    collection = find_collection(group_name)
+    if not collection:
         if assign == True:
             # コレクションが存在しなければ新規作成
             collection = bpy.data.collections.new(name=group_name)
-            # bpy.context.scene.collection.children.link(collection)
+            bpy.context.scene.collection.children.link(collection)
         else:
             # コレクションが存在せず、割り当てがfalseなら何もせず終了
             return
-    else:
-        collection = bpy.data.collections[group_name]
 
-    if not collection.name in bpy.context.scene.collection.children.keys():
+    # if not collection.name in bpy.context.scene.collection.children.keys():
         # コレクションをLinkする。
         # Unlink状態のコレクションでもPythonからは参照できてしまう場合があるようなので、確実にLink状態になるようにしておく
-        bpy.context.scene.collection.children.link(collection)
+        # bpy.context.scene.collection.children.link(collection)
 
     active = get_active_object()
     targets = bpy.context.selected_objects
@@ -209,8 +217,8 @@ def assign_object_group(group_name, assign=True):
     set_active_object(active)
 
 def hide_collection(context, group_name, hide=True):
-    if group_name in context.view_layer.layer_collection.children:
-        layer_col = context.view_layer.layer_collection.children[group_name]
+    layer_col = find_layer_collection(group_name)
+    if layer_col:
         layer_col.hide_viewport = hide
 
 ### endregion ###
@@ -585,14 +593,13 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         # 常時エクスポートするオブジェクトを表示
         hide_temp_always_export = {}
-        layer_col_always_export = None
-        if ALWAYS_EXPORT_GROUP_NAME in context.view_layer.layer_collection.children:
-            layer_col_always_export = context.view_layer.layer_collection.children[ALWAYS_EXPORT_GROUP_NAME]
+        layer_col_always_export = find_layer_collection(ALWAYS_EXPORT_GROUP_NAME)
+        if layer_col_always_export:
             # layer_col_always_export.exclude = False
             # コレクションを表示
             layer_col_always_export.hide_viewport = False
             # オブジェクトの表示状態を記憶してから表示
-            collection = bpy.data.collections[layer_col_always_export.name]
+            collection = find_collection(ALWAYS_EXPORT_GROUP_NAME)
             for obj in collection.objects:
                 hide_temp_always_export[obj] = obj.hide_get()
                 obj.hide_set(False)
@@ -600,7 +607,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         if self.use_selection == False and self.use_selection_children == False:
             # Selected Objectsにチェックがついていないなら全オブジェクトを選択
-            bpy.ops.object.select_all(action="SELECT")
+            select_all_objects()
 
         if self.use_selection_children:
             current_selected = bpy.context.selected_objects
@@ -614,13 +621,12 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         if self.use_active_collection or self.use_active_collection_children:
             active_layer_collection = bpy.context.view_layer.active_layer_collection
             print("Active Collection: " + active_layer_collection.name)
-            active_collection = bpy.data.collections[active_layer_collection.name]
+            active_collection = bpy.context.scene.collection.children[active_layer_collection.name]
             select_collection_only(collection=active_collection, include_children=self.use_active_collection_children)
 
         # エクスポート除外コレクションを取得
-        ignore_collection = None
-        if DONT_EXPORT_GROUP_NAME in bpy.data.collections:
-            ignore_collection = bpy.data.collections[DONT_EXPORT_GROUP_NAME]
+        ignore_collection = find_collection(DONT_EXPORT_GROUP_NAME)
+        if ignore_collection:
             # 処理から除外するオブジェクトの選択を外す
             deselect_collection(ignore_collection)
 
@@ -746,16 +752,16 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         if self.batch_mode == 'SCENE':
             self.report({'ERROR'}, "未実装 WIP")
         elif self.batch_mode == 'COLLECTION':
-            ignore_collections=[ALWAYS_EXPORT_GROUP_NAME]
+            ignore_collections_name=[ALWAYS_EXPORT_GROUP_NAME]
             try:
                 from AutoMerge import PARENTS_GROUP_NAME
-                ignore_collections.append(PARENTS_GROUP_NAME)
+                ignore_collections_name.append(PARENTS_GROUP_NAME)
             except ImportError:
                 pass
 
             targets = bpy.context.selected_objects
-            for collection in bpy.data.collections:
-                if collection.name in ignore_collections:
+            for collection in bpy.context.scene.collection.children:
+                if any(collection.name in n for n in ignore_collections_name):
                     continue
                 deselect_all_objects()
                 objects = list(set(collection.objects) & set(targets))
