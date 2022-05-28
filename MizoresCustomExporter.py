@@ -90,6 +90,17 @@ def find_collection(name):
 def find_layer_collection(name):
     return next((c for c in bpy.context.view_layer.layer_collection.children if name in c.name), None)
 
+def recursive_get_collections(collection):
+    def recursive_get_collections_main(collection, result):
+        result.append(collection)
+        for child in collection.children:
+            result = recursive_get_collections_main(child, result)
+        return result
+    return recursive_get_collections_main(collection, [])
+def get_all_collections():
+    result = recursive_get_collections(bpy.context.scene.collection)
+    return result
+
 def duplicate_selected_objects():
     dup_source = bpy.context.selected_objects
     # 対象オブジェクトを複製
@@ -123,16 +134,23 @@ def remove_suffix(obj):
         print("Remove Suffix (Object name): [" + oldname + "] -> [" + newname + "]")
         obj.data.name = newname
 
-
+def get_collection_objects(collection, include_children_collections):
+    if collection == None: return[]
+    result = set(collection.objects)
+    if include_children_collections:
+        cols = recursive_get_collections(collection)
+        for c in cols[1:]:
+            result = result | set(c.objects)
+    return result
 
 # 現在選択中のオブジェクトのうち指定コレクションに属するものだけを選択した状態にする
-def select_collection_only(collection, include_children):
+def select_collection_only(collection, include_children_objects):
     if collection == None: return
     targets = bpy.context.selected_objects
     # 対象コレクションに属するオブジェクトと選択中オブジェクトの積集合
     assigned_objs = list(set(collection.objects) & set(targets))
     result = assigned_objs
-    if include_children:
+    if include_children_objects:
         for obj in assigned_objs:
             deselect_all_objects()
             select_object(obj, True)
@@ -148,6 +166,7 @@ def select_collection_only(collection, include_children):
                     result.append(child)
     deselect_all_objects()
     select_objects(result, True)
+    return result
 
 
 def deselect_collection(collection):
@@ -518,6 +537,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     use_selection_children: BoolProperty(name="Selected Objects  (Include Children)", default=False)
     use_active_collection_children: BoolProperty(name="Active Collection (Include Children)", default=False)
 
+    only_root_collection: BoolProperty(name="Only Root Collections", default=False)
+
     enable_auto_merge: BoolProperty(name="Enable Auto Merge", default=True)
 
     enable_apply_modifiers_with_shapekeys: BoolProperty(name="Apply Modifier with Shape Keys", default=True)
@@ -568,6 +589,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         sfile = context.space_data
         operator = sfile.active_operator
 
+        layout.label(text=self.bl_label)
         layout.prop(operator, "save_prefs")
 
     def invoke(self, context, event):
@@ -575,7 +597,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         self.load_scene_prefs()
         return super().invoke(context, event)
 
-    def execute(self, context):
+    def execute_main(self, context):
         # # 実行前のシーンをtempディレクトリに保存
         # temp_blend_path=bpy.app.tempdir+"sc_automerge_temp.blend"
         # print("Create temp: " + temp_blend_path)
@@ -622,7 +644,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             active_layer_collection = bpy.context.view_layer.active_layer_collection
             print("Active Collection: " + active_layer_collection.name)
             active_collection = bpy.context.scene.collection.children[active_layer_collection.name]
-            select_collection_only(collection=active_collection, include_children=self.use_active_collection_children)
+            select_collection_only(collection=active_collection, include_children_objects=self.use_active_collection_children)
 
         # エクスポート除外コレクションを取得
         ignore_collection = find_collection(DONT_EXPORT_GROUP_NAME)
@@ -749,9 +771,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         from io_scene_fbx import export_fbx_bin
         # BatchMode用処理
-        if self.batch_mode == 'SCENE':
-            self.report({'ERROR'}, "未実装 WIP")
-        elif self.batch_mode == 'COLLECTION':
+        if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE_COLLECTION' or self.batch_mode == 'ACTIVE_SCENE_COLLECTION':
             ignore_collections_name=[ALWAYS_EXPORT_GROUP_NAME, DONT_EXPORT_GROUP_NAME]
             try:
                 from AutoMerge import PARENTS_GROUP_NAME
@@ -759,26 +779,57 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             except ImportError:
                 pass
 
+            # ファイル名の途中に.fbxを入れるかどうか
+            if (self.batch_filename_contains_extension):
+                path_format = self.filepath+"_{0}.fbx"
+            else:
+                path_format = os.path.splitext(self.filepath)[0] + "_{0}.fbx"
             targets = bpy.context.selected_objects
-            for collection in bpy.context.scene.collection.children:
+            if self.only_root_collection:
+                # Scene Collection直下だけを対象とする
+                target_collections = bpy.context.scene.collection.children
+            else:
+                # [0]はシーンコレクションなのでスキップ
+                target_collections = get_all_collections()[1:]
+            for collection in target_collections:
                 if any(collection.name in n for n in ignore_collections_name):
                     continue
+                objects = get_collection_objects(collection=collection, include_children_collections=self.only_root_collection)
+                objects = objects & set(targets)
+                if not objects:
+                    continue
                 deselect_all_objects()
-                objects = list(set(collection.objects) & set(targets))
                 select_objects(objects, True)
-                if (self.batch_filename_contains_extension):
-                    path = f"{self.filepath}_{collection.name}.fbx"
-                else:
-                    path = f"{os.path.splitext(self.filepath)[0]}_{collection.name}.fbx"
+                # パス設定
+                path = path_format.format(collection.name)
+                path.replace(' ', '_')
                 keywords["filepath"] = path
                 print("export: " + path)
                 export_fbx_bin.save(self, context, **keywords)
-        elif self.batch_mode == 'SCENE_COLLECTION':
-            self.report({'ERROR'}, "未実装 WIP")
-        elif self.batch_mode == 'ACTIVE_SCENE_COLLECTION':
-            self.report({'ERROR'}, "未実装 WIP")
-        else:
+            # Scene Collection書き出し
+            if self.batch_mode == 'SCENE_COLLECTION' or self.batch_mode == 'ACTIVE_SCENE_COLLECTION':
+                # パス設定
+                path = path_format.format(f"{bpy.context.scene.name}_Scene_Collection")
+                path.replace(' ', '_')
+                keywords["filepath"] = path
+                print("export: " + path)
+                deselect_all_objects()
+                select_objects(targets, True)
+                export_fbx_bin.save(self, context, **keywords)
+        elif self.batch_mode == 'OFF' or self.batch_mode == 'SCENE':
+            path = self.filepath
+            if self.batch_mode == 'SCENE':
+                # ファイル名にシーン名を追加
+                if (self.batch_filename_contains_extension):
+                    path = f"{self.filepath}_{bpy.context.scene.name}.fbx"
+                else:
+                    path = f"{os.path.splitext(self.filepath)[0]}_{bpy.context.scene.name}.fbx"
+                path.replace(' ', '_')
+                keywords["filepath"] = path
+            print("export: " + path)
             export_fbx_bin.save(self, context, **keywords)
+        else:
+            self.report({'ERROR'}, str(self.batch_mode)+" は未定義です。")
         # endregion
 
         # 複製されたオブジェクトを削除
@@ -824,6 +875,17 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             self.save_scene_prefs()
 
         return {'FINISHED'}
+    def execute(self, context):
+        if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE' or self.batch_mode == 'SCENE_COLLECTION':
+            temp_scene = bpy.context.window.scene
+            for scene in bpy.data.scenes:
+                bpy.context.window.scene = scene
+                print("Scene: " + scene.name)
+                self.execute_main(context)
+            bpy.context.window.scene = temp_scene
+            return {'FINISHED'}
+        else:
+            return self.execute_main(context)
 
 
 class MIZORE_FBX_PT_export_main(bpy.types.Panel):
@@ -858,9 +920,14 @@ class MIZORE_FBX_PT_export_main(bpy.types.Panel):
         row.prop(operator, "batch_mode")
         sub = row.row(align=True)
         sub.prop(operator, "use_batch_own_dir", text="", icon='NEWFOLDER')
+
         row = layout.row(align=True)
         row.enabled = (operator.batch_mode != 'OFF')
         row.prop(operator, "batch_filename_contains_extension")
+
+        row = layout.row(align=True)
+        row.enabled = (operator.batch_mode == 'COLLECTION' or operator.batch_mode == 'SCENE_COLLECTION' or operator.batch_mode == 'ACTIVE_SCENE_COLLECTION')
+        row.prop(operator, "only_root_collection")
 
 
 class MIZORE_FBX_PT_export_include(bpy.types.Panel):
