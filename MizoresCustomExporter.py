@@ -164,7 +164,7 @@ def remove_suffix(obj):
     if obj.data != None and EXPORT_TEMP_SUFFIX in obj.data.name:
         oldname = obj.data.name
         newname = oldname[0:oldname.rfind(EXPORT_TEMP_SUFFIX)]
-        print("Remove Suffix (Object name): [" + oldname + "] -> [" + newname + "]")
+        print("Remove Suffix (Data name): [" + oldname + "] -> [" + newname + "]")
         obj.data.name = newname
 
 def get_collection_objects(collection, include_children_collections):
@@ -907,7 +907,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 )
                 self.report({'ERROR'}, t)
                 return False
-            if ACTUAL_MAX_NAME_LENGTH < len(obj.data.name):
+            if obj.data and ACTUAL_MAX_NAME_LENGTH < len(obj.data.name):
                 t = bpy.app.translations.pgettext("error_longname_data").format(
                     str(ACTUAL_MAX_NAME_LENGTH),
                     obj.name,
