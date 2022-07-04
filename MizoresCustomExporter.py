@@ -96,6 +96,28 @@ def deselect_all_objects():
         select_object(obj, False)
     #bpy.context.view_layer.objects.active = None
 
+def delete_objects(targets, use_global:bool=False, remove_completely:bool=True):
+    meshes_name = []
+    deselect_all_objects()
+    for obj in targets:
+        try:
+            obj.select_set(True)
+            if obj.type=='MESH':
+                meshes_name.append(obj.data.name)
+        except ReferenceError:
+            pass
+    bpy.ops.object.delete(use_global=use_global)
+
+    if remove_completely==False:return
+    # データを完全に削除
+    for name in meshes_name:
+        if not name in bpy.data.meshes:continue
+        block = bpy.data.meshes[name]
+        if block.users == 0:
+            print("Remove Mesh Data: "+name)
+            bpy.data.meshes.remove(block)
+
+
 def find_collection(name):
     return next((c for c in bpy.context.scene.collection.children if name in c.name), None)
 def find_layer_collection(name):
@@ -714,9 +736,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 # 結合処理失敗
                 if result_tuple == False:
                     # 複製されたオブジェクトを削除
-                    deselect_all_objects()
-                    select_objects(targets_dup, True)
-                    bpy.ops.object.delete()
+                    delete_objects(targets_dup)
                     return {'FAILED'}
             except ImportError:
                 t = "!!! Failed to load AutoMerge !!!"
@@ -844,13 +864,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         # endregion
 
         # 複製されたオブジェクトを削除
-        deselect_all_objects()
-        for obj in targets_dup:
-            try:
-                obj.select_set(True)
-            except ReferenceError:
-                pass
-        bpy.ops.object.delete()
+        delete_objects(targets_dup)
 
         # 複製前オブジェクト名から接尾辞を削除
         for obj in targets_source:
