@@ -261,7 +261,7 @@ def shapekey_util_is_found():
     except ImportError:
         t="!!! Failed to load ShapeKeysUtil !!! - on shapekey_util_is_found"
         print(t)
-        self.report({'ERROR'}, t)
+        #self.report({'ERROR'}, t)
     return False
 ### endregion ###
 
@@ -273,7 +273,7 @@ def auto_merge_is_found():
     except ImportError:
         t = "!!! Failed to load AutoMerge !!!"
         print(t)
-        self.report({'ERROR'}, t)
+        #self.report({'ERROR'}, t)
     return False
 ### endregion ###
 
