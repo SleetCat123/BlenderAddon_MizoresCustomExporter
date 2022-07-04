@@ -40,7 +40,9 @@ bl_info = {
 DONT_EXPORT_GROUP_NAME = "DontExport" # エクスポートから除外するオブジェクトのグループ名
 ALWAYS_EXPORT_GROUP_NAME = "AlwaysExport" # 非表示状態であっても常にエクスポートさせるオブジェクトのグループ名
 
-EXPORT_TEMP_SUFFIX = ".#MizoreCEx#"
+EXPORT_TEMP_SUFFIX = ".#MizoreCEx#" # エクスポート処理時、一時的にオブジェクト名に付加する接尾辞
+MAX_NAME_LENGTH=63 # オブジェクト名などの最大文字数
+ACTUAL_MAX_NAME_LENGTH=MAX_NAME_LENGTH-len(EXPORT_TEMP_SUFFIX) # オブジェクトなどの名前として実際に使用可能な最大文字数
 
 ### region Translation ###
 translations_dict = {
@@ -48,12 +50,25 @@ translations_dict = {
             ("*", "box_warning_slow_method_1") : "Warning: ",
             ("*", "box_warning_slow_method_2") : "If using this setting",
             ("*", "box_warning_slow_method_3") : "may take a while in progress.",
+
+            # {0}=最大文字数
+            # {1}=オブジェクト名
+            # {2}=オブジェクト名の文字数
+            ("*", "error_longname_object"): "The object name is too long so must be {0} characters or less.\nName: {1}\n({2}characters)",
+            # {0}=最大文字数
+            # {1}=オブジェクト名
+            # {2}=オブジェクトデータ名
+            # {3}=オブジェクトデータ名の文字数
+            ("*", "error_longname_data"): "The object data name is too long so must be {0} characters or less.\nObject: {1}\nData Name: {2}\n({3}characters)",
         },
     "ja_JP" : {
             ("*", "box_warning_slow_method_1") : "注意：",
             ("*", "box_warning_slow_method_2") : "この項目を有効にすると",
             ("*", "box_warning_slow_method_3") : "処理に時間がかかる場合があります。",
-        },
+
+            ("*", "error_longname_object") : "オブジェクト名が長すぎます。\nエクスポートするオブジェクトの名前は{0}文字以下である必要があります。\n{1}\n（{2}文字）",
+            ("*", "error_longname_data"): "オブジェクトのデータ名が長すぎます。\nエクスポートするオブジェクトのデータの名前は{0}文字以下である必要があります。\nオブジェクト: {1}\n{2}\n（{3}文字）",
+    },
 }
 ### endregion ###
 
@@ -80,10 +95,6 @@ def deselect_all_objects():
     for obj in targets:
         select_object(obj, False)
     #bpy.context.view_layer.objects.active = None
-
-def get_children(obj):
-    allobjects = bpy.data.objects
-    return [child for child in allobjects if child.parent == obj]
 
 def find_collection(name):
     return next((c for c in bpy.context.scene.collection.children if name in c.name), None)
@@ -870,12 +881,37 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             # 開始時のモードを復元
             bpy.ops.object.mode_set(mode=modeTemp)
 
+        return {'FINISHED'}
+    def isvalid(self):
+        for obj in bpy.context.view_layer.objects:
+            # 接尾辞をつけたときに名前の文字数が63文字（Blenderの最大文字数）を超えるオブジェクトがあるならエラー
+            if ACTUAL_MAX_NAME_LENGTH < len(obj.name):
+                t = bpy.app.translations.pgettext("error_longname_object").format(
+                    str(ACTUAL_MAX_NAME_LENGTH),
+                    obj.name,
+                    str(len(obj.name))
+                )
+                self.report({'ERROR'}, t)
+                return False
+            if ACTUAL_MAX_NAME_LENGTH < len(obj.data.name):
+                t = bpy.app.translations.pgettext("error_longname_data").format(
+                    str(ACTUAL_MAX_NAME_LENGTH),
+                    obj.name,
+                    obj.data.name,
+                    str(len(obj.data.name))
+                )
+                self.report({'ERROR'}, t)
+                return False
+        return True
+
+    def execute(self, context):
         # シーンに設定を保存
         if self.save_prefs:
             self.save_scene_prefs()
 
-        return {'FINISHED'}
-    def execute(self, context):
+        if self.isvalid()==False:
+            return {'CANCELLED'}
+
         if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE' or self.batch_mode == 'SCENE_COLLECTION':
             temp_scene = bpy.context.window.scene
             for scene in bpy.data.scenes:
