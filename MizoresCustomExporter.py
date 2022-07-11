@@ -91,31 +91,44 @@ def select_all_objects():
     for obj in targets:
         select_object(obj, True)
 def deselect_all_objects():
+    print("deselect_all_objects")
     targets = bpy.context.selected_objects
     for obj in targets:
         select_object(obj, False)
     #bpy.context.view_layer.objects.active = None
 
-def delete_objects(targets, use_global:bool=False, remove_completely:bool=True):
-    meshes_name = []
-    deselect_all_objects()
+def remove_objects(targets=None):
+    print("remove_objects")
+    if targets==None:
+        targets = bpy.context.selected_objects
+
+    data_list = []
+    # オブジェクトを削除
     for obj in targets:
         try:
-            obj.select_set(True)
-            if obj.type=='MESH':
-                meshes_name.append(obj.data.name)
+            if obj.data:
+                data_list.append(obj.data)
+            print("remove: " + str(obj))
+            bpy.data.objects.remove(obj)
         except ReferenceError:
-            pass
-    bpy.ops.object.delete(use_global=use_global)
+            continue
 
-    if remove_completely==False:return
-    # データを完全に削除
-    for name in meshes_name:
-        if not name in bpy.data.meshes:continue
-        block = bpy.data.meshes[name]
-        if block.users == 0:
-            print("Remove Mesh Data: "+name)
-            bpy.data.meshes.remove(block)
+    # オブジェクトのデータを削除
+    for data in data_list:
+        blocks = None
+        data_type = type(data)
+        if data_type == bpy.types.Mesh: blocks = bpy.data.meshes
+        elif data_type == bpy.types.Armature: blocks = bpy.data.armatures
+        elif data_type == bpy.types.Curve: blocks = bpy.data.curves
+        elif data_type == bpy.types.Lattice: blocks = bpy.data.lattices
+        elif data_type == bpy.types.Light: blocks = bpy.data.lights
+        elif data_type == bpy.types.Camera: blocks = bpy.data.cameras
+        elif data_type == bpy.types.MetaBall: blocks = bpy.data.metaballs
+        elif data_type == bpy.types.GreasePencil: blocks = bpy.data.grease_pencils
+
+        if blocks and data.users == 0:
+            print("remove: " + str(data))
+            blocks.remove(data)
 
 
 def find_collection(name):
@@ -736,7 +749,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 # 結合処理失敗
                 if result_tuple == False:
                     # 複製されたオブジェクトを削除
-                    delete_objects(targets_dup)
+                    remove_objects(targets_dup)
                     return {'FAILED'}
             except ImportError:
                 t = "!!! Failed to load AutoMerge !!!"
@@ -864,7 +877,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         # endregion
 
         # 複製されたオブジェクトを削除
-        delete_objects(targets_dup)
+        remove_objects(targets_dup)
 
         # 複製前オブジェクト名から接尾辞を削除
         for obj in targets_source:
