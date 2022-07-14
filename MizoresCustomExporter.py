@@ -689,7 +689,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         if self.use_active_collection or self.use_active_collection_children:
             active_layer_collection = bpy.context.view_layer.active_layer_collection
             print("Active Collection: " + active_layer_collection.name)
-            active_collection = bpy.context.scene.collection.children[active_layer_collection.name]
+            active_collection = active_layer_collection.collection
             select_collection_only(collection=active_collection, include_children_objects=self.use_active_collection_children)
 
         # エクスポート除外コレクションを取得
