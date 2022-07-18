@@ -208,11 +208,21 @@ def get_collection_objects(collection, include_children_collections):
     return result
 
 # 現在選択中のオブジェクトのうち指定コレクションに属するものだけを選択した状態にする
-def select_collection_only(collection, include_children_objects):
+def select_collection_only(collection, include_children_objects, include_children_collections):
     if collection == None: return
     targets = bpy.context.selected_objects
-    # 対象コレクションに属するオブジェクトと選択中オブジェクトの積集合
-    assigned_objs = list(set(collection.objects) & set(targets))
+    if include_children_collections:
+        # コレクションと子以下のコレクションにあるオブジェクトだけを選択する
+        assigned_objs_set=set()
+        cols = recursive_get_collections(collection)
+        for c in cols:
+            assigned_objs_set=assigned_objs_set | set(c.objects)
+        # 対象コレクション（子階層以下のコレクションを含む）に属するオブジェクトと選択中オブジェクトの積集合
+        assigned_objs_set = assigned_objs_set & set(targets)
+    else:
+        # 対象コレクションに属するオブジェクトと選択中オブジェクトの積集合
+        assigned_objs_set = set(collection.objects) & set(targets)
+    assigned_objs = list(assigned_objs_set)
     result = assigned_objs
     if include_children_objects:
         for obj in assigned_objs:
@@ -598,8 +608,9 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
     batch_filename_contains_extension: BoolProperty(name="Contains Extension", default=False)
 
-    use_selection_children: BoolProperty(name="Selected Objects  (Include Children)", default=False)
-    use_active_collection_children_object: BoolProperty(name="Active Collection (Include Children)", default=False)
+    use_selection_children_objects: BoolProperty(name="Include Children Objects", default=False)
+    use_active_collection_children_objects: BoolProperty(name="Include Children Objects", default=False)
+    use_active_collection_children_collections: BoolProperty(name="Include Children Collections", default=False)
 
     only_root_collection: BoolProperty(name="Only Root Collections", default=False)
 
@@ -691,11 +702,11 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 obj.hide_set(False)
 
 
-        if self.use_selection == False and self.use_selection_children == False:
+        if self.use_selection == False:
             # Selected Objectsにチェックがついていないなら全オブジェクトを選択
             select_all_objects()
 
-        if self.use_selection_children:
+        if self.use_selection and self.use_selection_children_objects:
             current_selected = bpy.context.selected_objects
             for obj in current_selected:
                 set_active_object(obj)
@@ -704,11 +715,15 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                     bpy.ops.object.mode_set(mode='OBJECT')
                 select_children_recursive()
 
-        if self.use_active_collection or self.use_active_collection_children_object:
+        if self.use_active_collection:
             active_layer_collection = bpy.context.view_layer.active_layer_collection
             print("Active Collection: " + active_layer_collection.name)
             active_collection = active_layer_collection.collection
-            select_collection_only(collection=active_collection, include_children_objects=self.use_active_collection_children_object)
+            select_collection_only(
+                collection=active_collection,
+                include_children_objects=self.use_active_collection_children_objects,
+                include_children_collections=self.use_active_collection_children_collections
+            )
 
         # エクスポート除外コレクションを取得
         ignore_collection = find_collection(DONT_EXPORT_GROUP_NAME)
@@ -1032,12 +1047,22 @@ class MIZORE_FBX_PT_export_include(bpy.types.Panel):
         sfile = context.space_data
         operator = sfile.active_operator
 
-        sublayout = layout.column(heading="Limit to")
+        sublayout = layout.column(heading="Limit to (Objects)")
         sublayout.enabled = (operator.batch_mode == 'OFF')
         sublayout.prop(operator, "use_selection")
-        sublayout.prop(operator, "use_selection_children")
+        row = sublayout.row(align=True)
+        row.enabled = operator.use_selection
+        row.prop(operator, "use_selection_children_objects")
+
+        sublayout = layout.column(heading="Limit to (Collections)")
+        sublayout.enabled = (operator.batch_mode == 'OFF')
         sublayout.prop(operator, "use_active_collection")
-        sublayout.prop(operator, "use_active_collection_children_object")
+        row = sublayout.row(align=True)
+        row.enabled = operator.use_active_collection
+        row.prop(operator, "use_active_collection_children_objects")
+        row = sublayout.row(align=True)
+        row.enabled = operator.use_active_collection
+        row.prop(operator, "use_active_collection_children_collections")
 
         layout.column().prop(operator, "object_types")
         layout.prop(operator, "use_custom_props")
