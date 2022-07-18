@@ -86,6 +86,24 @@ def get_active_object():
 def set_active_object(obj):
     bpy.context.view_layer.objects.active = obj
 
+def get_children_objects(obj):
+    result = []
+    for ob in bpy.data.objects:
+        if ob.parent == obj:
+            result.append(ob)
+    return result
+def select_children_recursive(targets=None):
+    def recursive(obj):
+        select_object(obj, True)
+        children = get_children_objects(obj)
+        for child in children:
+            recursive(child)
+
+    if targets==None:
+        targets = bpy.context.selected_objects
+    for obj in targets:
+        recursive(obj)
+
 def select_all_objects():
     targets = bpy.context.scene.collection.all_objects
     for obj in targets:
@@ -205,7 +223,7 @@ def select_collection_only(collection, include_children_objects):
                 # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
                 bpy.ops.object.mode_set(mode='OBJECT')
             # オブジェクトの子も対象に含める
-            bpy.ops.object.select_grouped(extend=True, type='CHILDREN_RECURSIVE')
+            select_children_recursive()
             children = bpy.context.selected_objects;
             for child in children:
                 if (obj != child) and (child in targets):
@@ -231,7 +249,7 @@ def deselect_collection(collection):
             # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
             bpy.ops.object.mode_set(mode='OBJECT')
         # オブジェクトの子も除外対象に含める
-        bpy.ops.object.select_grouped(extend=True, type='CHILDREN_RECURSIVE')
+        select_children_recursive()
         children = bpy.context.selected_objects;
         for child in children:
             if child in targets:
@@ -581,7 +599,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     batch_filename_contains_extension: BoolProperty(name="Contains Extension", default=False)
 
     use_selection_children: BoolProperty(name="Selected Objects  (Include Children)", default=False)
-    use_active_collection_children: BoolProperty(name="Active Collection (Include Children)", default=False)
+    use_active_collection_children_object: BoolProperty(name="Active Collection (Include Children)", default=False)
 
     only_root_collection: BoolProperty(name="Only Root Collections", default=False)
 
@@ -684,13 +702,13 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 if bpy.context.object.mode != 'OBJECT':
                     # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
                     bpy.ops.object.mode_set(mode='OBJECT')
-                bpy.ops.object.select_grouped(extend=True, type='CHILDREN_RECURSIVE')
+                select_children_recursive()
 
-        if self.use_active_collection or self.use_active_collection_children:
+        if self.use_active_collection or self.use_active_collection_children_object:
             active_layer_collection = bpy.context.view_layer.active_layer_collection
             print("Active Collection: " + active_layer_collection.name)
             active_collection = active_layer_collection.collection
-            select_collection_only(collection=active_collection, include_children_objects=self.use_active_collection_children)
+            select_collection_only(collection=active_collection, include_children_objects=self.use_active_collection_children_object)
 
         # エクスポート除外コレクションを取得
         ignore_collection = find_collection(DONT_EXPORT_GROUP_NAME)
@@ -1019,7 +1037,7 @@ class MIZORE_FBX_PT_export_include(bpy.types.Panel):
         sublayout.prop(operator, "use_selection")
         sublayout.prop(operator, "use_selection_children")
         sublayout.prop(operator, "use_active_collection")
-        sublayout.prop(operator, "use_active_collection_children")
+        sublayout.prop(operator, "use_active_collection_children_object")
 
         layout.column().prop(operator, "object_types")
         layout.prop(operator, "use_custom_props")
