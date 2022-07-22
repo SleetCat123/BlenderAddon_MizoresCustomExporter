@@ -110,7 +110,7 @@ def select_all_objects():
         select_object(obj, True)
 def deselect_all_objects():
     print("deselect_all_objects")
-    targets = bpy.context.selected_objects
+    targets = bpy.context.scene.collection.all_objects
     for obj in targets:
         select_object(obj, False)
     #bpy.context.view_layer.objects.active = None
