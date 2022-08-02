@@ -73,18 +73,24 @@ translations_dict = {
 ### endregion ###
 
 ### region Func ###
+
+
 def select_object(obj, value=True):
     obj.select_set(value)
+
 
 def select_objects(objects, value=True):
     for obj in objects:
         obj.select_set(value)
 
+
 def get_active_object():
     return bpy.context.view_layer.objects.active
 
+
 def set_active_object(obj):
     bpy.context.view_layer.objects.active = obj
+
 
 def get_children_objects(obj):
     result = []
@@ -92,6 +98,8 @@ def get_children_objects(obj):
         if ob.parent == obj:
             result.append(ob)
     return result
+
+
 def select_children_recursive(targets=None):
     def recursive(obj):
         select_object(obj, True)
@@ -99,15 +107,18 @@ def select_children_recursive(targets=None):
         for child in children:
             recursive(child)
 
-    if targets==None:
+    if targets is None:
         targets = bpy.context.selected_objects
     for obj in targets:
         recursive(obj)
+
 
 def select_all_objects():
     targets = bpy.context.scene.collection.all_objects
     for obj in targets:
         select_object(obj, True)
+
+
 def deselect_all_objects():
     print("deselect_all_objects")
     targets = bpy.context.scene.collection.all_objects
@@ -115,9 +126,10 @@ def deselect_all_objects():
         select_object(obj, False)
     #bpy.context.view_layer.objects.active = None
 
+
 def remove_objects(targets=None):
     print("remove_objects")
-    if targets==None:
+    if targets is None:
         targets = bpy.context.selected_objects
 
     data_list = []
@@ -151,8 +163,11 @@ def remove_objects(targets=None):
 
 def find_collection(name):
     return next((c for c in bpy.context.scene.collection.children if name in c.name), None)
+
+
 def find_layer_collection(name):
     return next((c for c in bpy.context.view_layer.layer_collection.children if name in c.name), None)
+
 
 def recursive_get_collections(collection):
     def recursive_get_collections_main(collection, result):
@@ -161,9 +176,12 @@ def recursive_get_collections(collection):
             result = recursive_get_collections_main(child, result)
         return result
     return recursive_get_collections_main(collection, [])
+
+
 def get_all_collections():
     result = recursive_get_collections(bpy.context.scene.collection)
     return result
+
 
 def duplicate_selected_objects():
     dup_source = bpy.context.selected_objects
@@ -173,6 +191,7 @@ def duplicate_selected_objects():
 
     return (dup_source, dup_result)
 
+
 def add_suffix(obj):
     if not EXPORT_TEMP_SUFFIX in obj.name:
         newname = obj.name + EXPORT_TEMP_SUFFIX
@@ -180,10 +199,11 @@ def add_suffix(obj):
         obj.name = newname
 
     # インスタンス化されたメッシュがあるとインスタンスの個数分だけ関数が呼ばれるため、suffixが多重追加されないように対策しておく
-    if obj.data != None and not EXPORT_TEMP_SUFFIX in obj.data.name:
+    if obj.data is not None and not EXPORT_TEMP_SUFFIX in obj.data.name:
         newname = obj.data.name + EXPORT_TEMP_SUFFIX
         print("Add Suffix (Data name): [" + obj.data.name + "] -> [" + newname + "]")
         obj.data.name = newname
+
 
 def remove_suffix(obj):
     if EXPORT_TEMP_SUFFIX in obj.name:
@@ -192,14 +212,15 @@ def remove_suffix(obj):
         print("Remove Suffix (Object name): [" + oldname + "] -> [" + newname + "]")
         obj.name = newname
 
-    if obj.data != None and EXPORT_TEMP_SUFFIX in obj.data.name:
+    if obj.data is not None and EXPORT_TEMP_SUFFIX in obj.data.name:
         oldname = obj.data.name
         newname = oldname[0:oldname.rfind(EXPORT_TEMP_SUFFIX)]
         print("Remove Suffix (Data name): [" + oldname + "] -> [" + newname + "]")
         obj.data.name = newname
 
+
 def get_collection_objects(collection, include_children_collections):
-    if collection == None: return[]
+    if collection is None: return[]
     result = set(collection.objects)
     if include_children_collections:
         cols = recursive_get_collections(collection)
@@ -207,9 +228,10 @@ def get_collection_objects(collection, include_children_collections):
             result = result | set(c.objects)
     return result
 
+
 # 現在選択中のオブジェクトのうち指定コレクションに属するものだけを選択した状態にする
 def select_collection_only(collection, include_children_objects, include_children_collections):
-    if collection == None: return
+    if collection is None: return
     targets = bpy.context.selected_objects
     if include_children_collections:
         # コレクションと子以下のコレクションにあるオブジェクトだけを選択する
@@ -244,7 +266,7 @@ def select_collection_only(collection, include_children_objects, include_childre
 
 
 def deselect_collection(collection):
-    if collection == None: return
+    if collection is None: return
     print("Deselect Collection: " + collection.name)
     active = get_active_object()
     targets = bpy.context.selected_objects
@@ -269,14 +291,15 @@ def deselect_collection(collection):
             print("Deselect: " + child.name)
     deselect_all_objects()
     select_objects(targets, True)
-    if active != None:
+    if active is not None:
         set_active_object(active)
+
 
 # 選択オブジェクトを指定名のグループに入れたり外したり
 def assign_object_group(group_name, assign=True):
     collection = find_collection(group_name)
     if not collection:
-        if assign == True:
+        if assign:
             # コレクションが存在しなければ新規作成
             collection = bpy.data.collections.new(name=group_name)
             bpy.context.scene.collection.children.link(collection)
@@ -343,7 +366,7 @@ def auto_merge_is_found():
 ### region AddonPreferences ###
 def set_prop_col_value(prop, key, value):
     el = prop.get(key)
-    if el == None:
+    if el is None:
         el = prop.add()
         el.name = key
     el.value = value
@@ -679,7 +702,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         # bpy.ops.wm.save_as_mainfile(filepath=temp_blend_path, copy=True)
 
         modeTemp = None
-        if bpy.context.object != None:
+        if bpy.context.object is not None:
             # 開始時のモードを記憶しオブジェクトモードに
             modeTemp = bpy.context.object.mode
             bpy.ops.object.mode_set(mode='OBJECT')
@@ -815,7 +838,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             try:
                 from ShapeKeysUtil import separate_lr_shapekey_all
                 for obj in bpy.context.selected_objects:
-                    if obj.type == 'MESH' and obj.data.shape_keys != None and len(obj.data.shape_keys.key_blocks) != 0:
+                    if obj.type == 'MESH' and obj.data.shape_keys is not None and len(obj.data.shape_keys.key_blocks) != 0:
                         set_active_object(obj)
                         separate_lr_shapekey_all(duplicate=False, enable_sort=False, auto_detect=True)
             except ImportError:
@@ -937,7 +960,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 bpy.ops.object.mode_set(mode=m)
         set_active_object(activeTemp)
 
-        if modeTemp != None:
+        if modeTemp is not None:
             # 開始時のモードを復元
             bpy.ops.object.mode_set(mode=modeTemp)
 
