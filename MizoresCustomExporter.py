@@ -76,12 +76,18 @@ translations_dict = {
 
 
 def select_object(obj, value=True):
-    obj.select_set(value)
+    try:
+        obj.select_set(value)
+    except RuntimeError as e:
+        print(e)
 
 
 def select_objects(objects, value=True):
     for obj in objects:
-        obj.select_set(value)
+        try:
+            obj.select_set(value)
+        except RuntimeError as e:
+            print(e)
 
 
 def get_active_object():
