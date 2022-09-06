@@ -236,7 +236,7 @@ def get_collection_objects(collection, include_children_collections):
 
 
 # 現在選択中のオブジェクトのうち指定コレクションに属するものだけを選択した状態にする
-def select_collection_only(collection, include_children_objects, include_children_collections):
+def select_collection_only(collection, include_children_objects, include_children_collections, set_visible):
     if collection is None: return
     targets = bpy.context.selected_objects
     if include_children_collections:
@@ -255,6 +255,8 @@ def select_collection_only(collection, include_children_objects, include_childre
     if include_children_objects:
         for obj in assigned_objs:
             deselect_all_objects()
+            if set_visible:
+                obj.hide_set(False)
             select_object(obj, True)
             set_active_object(obj)
             if bpy.context.object.mode != 'OBJECT':
@@ -272,7 +274,8 @@ def select_collection_only(collection, include_children_objects, include_childre
 
 
 def deselect_collection(collection):
-    if collection is None: return
+    if collection is None:
+        return
     print("Deselect Collection: " + collection.name)
     active = get_active_object()
     targets = bpy.context.selected_objects
@@ -281,6 +284,8 @@ def deselect_collection(collection):
     assigned_objs = list(set(collection.objects) & set(targets))
     for obj in assigned_objs:
         deselect_all_objects()
+        temp_hide = obj.hide_get()
+        obj.hide_set(False)
         select_object(obj, True)
         set_active_object(obj)
         if bpy.context.object.mode != 'OBJECT':
@@ -288,13 +293,14 @@ def deselect_collection(collection):
             bpy.ops.object.mode_set(mode='OBJECT')
         # オブジェクトの子も除外対象に含める
         select_children_recursive()
-        children = bpy.context.selected_objects;
+        children = bpy.context.selected_objects
         for child in children:
             if child in targets:
                 targets.remove(child)
             if child == active:
                 active = None
             print("Deselect: " + child.name)
+        obj.hide_set(temp_hide)
     deselect_all_objects()
     select_objects(targets, True)
     if active is not None:
@@ -751,14 +757,15 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             select_collection_only(
                 collection=active_collection,
                 include_children_objects=self.use_active_collection_children_objects,
-                include_children_collections=self.use_active_collection_children_collections
+                include_children_collections=self.use_active_collection_children_collections,
+                set_visible=False
             )
 
         # エクスポート除外コレクションを取得
         ignore_collection = find_collection(DONT_EXPORT_GROUP_NAME)
         if ignore_collection:
             # 処理から除外するオブジェクトの選択を外す
-            deselect_collection(ignore_collection)
+            deselect_collection(collection=ignore_collection)
 
         # 選択中オブジェクトを取得
         targets_source = bpy.context.selected_objects
