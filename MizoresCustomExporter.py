@@ -137,7 +137,7 @@ def remove_objects(targets=None):
     # オブジェクトを削除
     for obj in targets:
         try:
-            if obj.data:
+            if obj.data and obj.data not in data_list:
                 data_list.append(obj.data)
             print("remove: " + str(obj))
             bpy.data.objects.remove(obj)
