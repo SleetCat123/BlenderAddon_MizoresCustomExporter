@@ -27,16 +27,6 @@ from bpy_extras.io_utils import (
         axis_conversion,
         )
 
-bl_info = {
-    "name" : "MizoresCustomExporter",
-    "author" : "@sleetcat123(Twitter)",
-    "version" : (1,0,0),
-    "blender" : (2, 80, 0),
-    "location": "File > Export > Mizore's Custom Exporter",
-    "description" : "Custom exporter by Mizore Nekoyanagi",
-    "category" : "Import-Export"
-}
-
 DONT_EXPORT_GROUP_NAME = "DontExport" # エクスポートから除外するオブジェクトのグループ名
 ALWAYS_EXPORT_GROUP_NAME = "AlwaysExport" # 非表示状態であっても常にエクスポートさせるオブジェクトのグループ名
 
