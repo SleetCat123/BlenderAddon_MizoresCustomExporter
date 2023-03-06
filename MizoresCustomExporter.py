@@ -358,33 +358,19 @@ def hide_collection(context, group_name, hide=True):
 
 ### endregion ###
 
-### region ShapeKeysUtil連携 ###
 def shapekey_util_is_found():
     try:
-        from ShapeKeysUtil import apply_modifiers_with_shapekeys
-        return True
-    except ImportError:
-        t = "!!! Failed to load ShapeKeysUtil !!! - on shapekey_util_is_found"
-        print(t)
-        # self.report({'ERROR'}, t)
-    return False
+        return hasattr(bpy.types, bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon.idname())
+    except AttributeError:
+        return False
 
 
-### endregion ###
-
-### region AutoMerge連携 ###
 def auto_merge_is_found():
     try:
-        from AutoMerge import apply_modifier_and_merge_children_grouped
-        return True
-    except ImportError:
-        t = "!!! Failed to load AutoMerge !!!"
-        print(t)
-        # self.report({'ERROR'}, t)
-    return False
+        return hasattr(bpy.types, bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon.idname())
+    except AttributeError:
+        return False
 
-
-### endregion ###
 
 ### region AddonPreferences ###
 def set_prop_col_value(prop, key, value):
@@ -726,11 +712,6 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         return super().invoke(context, event)
 
     def execute_main(self, context):
-        # # 実行前のシーンをtempディレクトリに保存
-        # temp_blend_path=bpy.app.tempdir+"sc_automerge_temp.blend"
-        # print("Create temp: " + temp_blend_path)
-        # bpy.ops.wm.save_as_mainfile(filepath=temp_blend_path, copy=True)
-
         modeTemp = None
         if bpy.context.object is not None:
             # 開始時のモードを記憶しオブジェクトモードに
@@ -827,55 +808,49 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         if self.enable_auto_merge:
             try:
                 # オブジェクトを結合
-                from AutoMerge import apply_modifier_and_merge_children_grouped
-                result_tuple = apply_modifier_and_merge_children_grouped(
-                    self, context, ignore_collection, self.enable_apply_modifiers_with_shapekeys,
-                    duplicate=False, apply_parentobj_modifier=True, ignore_armature=True)
-
+                bpy.types.WindowManager.mizore_automerge_temp_ignore_collection = ignore_collection
+                b = bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon(
+                    enable_apply_modifiers_with_shapekeys=self.enable_apply_modifiers_with_shapekeys
+                )
                 # 結合処理失敗
-                if result_tuple == False:
+                if 'FINISHED' not in b:
                     # 複製されたオブジェクトを削除
                     remove_objects(targets_dup)
                     return {'FAILED'}
-            except ImportError:
+            except AttributeError as e:
                 t = "!!! Failed to load AutoMerge !!!"
                 print(t)
+                print(str(e))
         # ↑ AutoMergeアドオン連携
 
         print("xxxxxx Export Targets xxxxxx\n" + '\n'.join(
             [obj.name for obj in bpy.context.selected_objects]) + "\nxxxxxxxxxxxxxxx")
 
         # ShapeKeysUtil連携
-        if self.enable_apply_modifiers_with_shapekeys == True and self.use_mesh_modifiers:
-            try:
-                from ShapeKeysUtil import apply_modifiers_with_shapekeys
+        if shapekey_util_is_found():
+            if self.enable_apply_modifiers_with_shapekeys and self.use_mesh_modifiers:
                 active = get_active_object()
                 selected_objects = bpy.context.selected_objects
                 targets = [d for d in selected_objects if d.type == 'MESH']
                 for obj in targets:
                     set_active_object(obj)
-                    b = apply_modifiers_with_shapekeys(self, context.object, False, False)
-                    if b == False: self.report({'ERROR'}, t)
+                    b = bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon()
+                    if 'FINISHED' not in b:
+                        self.report({'ERROR'}, t)
                 # 選択オブジェクトを復元
                 for obj in selected_objects:
                     obj.select_set(True)
                 set_active_object(active)
-            except ImportError:
-                t = "!!! Failed to load ShapeKeysUtil !!! - apply_modifiers_with_shapekeys"
-                print(t)
-                self.report({'ERROR'}, t)
-        if self.enable_separate_lr_shapekey == True:
-            try:
-                from ShapeKeysUtil import separate_lr_shapekey_all
+            if self.enable_separate_lr_shapekey:
                 for obj in bpy.context.selected_objects:
                     if obj.type == 'MESH' and obj.data.shape_keys is not None and len(
                             obj.data.shape_keys.key_blocks) != 0:
                         set_active_object(obj)
-                        separate_lr_shapekey_all(duplicate=False, enable_sort=False, auto_detect=True)
-            except ImportError:
-                t = "!!! Failed to load ShapeKeysUtil !!! - separate_lr_shapekey_all"
-                print(t)
-                self.report({'ERROR'}, t)
+                        bpy.ops.object.shapekeys_util_separate_lr_shapekey_for_exporter()
+        else:
+            t = "!!! Failed to load ShapeKeysUtil !!! - apply_modifiers_with_shapekeys"
+            print(t)
+            self.report({'ERROR'}, t)
 
         # region # Export based on io_scene_fbx
         from mathutils import Matrix
@@ -904,11 +879,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         # BatchMode用処理
         if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE_COLLECTION' or self.batch_mode == 'ACTIVE_SCENE_COLLECTION':
             ignore_collections_name = [ALWAYS_EXPORT_GROUP_NAME, DONT_EXPORT_GROUP_NAME]
-            try:
-                from AutoMerge import PARENTS_GROUP_NAME
-                ignore_collections_name.append(PARENTS_GROUP_NAME)
-            except ImportError:
-                pass
+            if auto_merge_is_found():
+                ignore_collections_name.append(bpy.types.WindowManager.mizore_automerge_collection_name)
 
             # ファイル名の途中に.fbxを入れるかどうか
             if (self.batch_filename_contains_extension):
