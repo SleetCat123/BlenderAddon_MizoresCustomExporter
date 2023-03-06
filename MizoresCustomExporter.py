@@ -1390,7 +1390,7 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.app.translations.register(__name__, translations_dict)
+    bpy.app.translations.register(__package__, translations_dict)
 
     bpy.types.Scene.mizore_exporter_prefs = bpy.props.PointerProperty(type=PR_MizoreExporter_ScenePref)
     bpy.types.TOPBAR_MT_file_export.append(INFO_MT_file_custom_export_mizore_menu)
@@ -1401,13 +1401,10 @@ def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
-    bpy.app.translations.unregister(__name__)
+    bpy.app.translations.unregister(__package__)
 
     bpy.types.Scene.mizore_exporter_prefs = None
     bpy.types.TOPBAR_MT_file_export.remove(INFO_MT_file_custom_export_mizore_menu)
     bpy.types.VIEW3D_MT_object_context_menu.remove(INFO_MT_object_mizores_exporter_menu)
 
-
-if __name__ == "__main__":
-    register()
 ### endregion ###
