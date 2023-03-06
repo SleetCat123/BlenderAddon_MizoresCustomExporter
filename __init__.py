@@ -30,7 +30,7 @@ bl_info = {
 }
 
 imports = [
-    "AutoMerge",
+    "MizoresCustomExporter",
 ]
 
 

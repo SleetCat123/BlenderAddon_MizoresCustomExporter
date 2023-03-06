@@ -20,46 +20,51 @@ import bpy
 import os
 from bpy.props import (StringProperty, BoolProperty, IntProperty, FloatProperty, EnumProperty, CollectionProperty)
 from bpy_extras.io_utils import (
-        ImportHelper,
-        ExportHelper,
-        orientation_helper,
-        path_reference_mode,
-        axis_conversion,
-        )
+    ImportHelper,
+    ExportHelper,
+    orientation_helper,
+    path_reference_mode,
+    axis_conversion,
+)
 
-DONT_EXPORT_GROUP_NAME = "DontExport" # エクスポートから除外するオブジェクトのグループ名
-ALWAYS_EXPORT_GROUP_NAME = "AlwaysExport" # 非表示状態であっても常にエクスポートさせるオブジェクトのグループ名
+DONT_EXPORT_GROUP_NAME = "DontExport"  # エクスポートから除外するオブジェクトのグループ名
+ALWAYS_EXPORT_GROUP_NAME = "AlwaysExport"  # 非表示状態であっても常にエクスポートさせるオブジェクトのグループ名
 
-EXPORT_TEMP_SUFFIX = ".#MizoreCEx#" # エクスポート処理時、一時的にオブジェクト名に付加する接尾辞
-MAX_NAME_LENGTH=63 # オブジェクト名などの最大文字数
-ACTUAL_MAX_NAME_LENGTH=MAX_NAME_LENGTH-len(EXPORT_TEMP_SUFFIX) # オブジェクトなどの名前として実際に使用可能な最大文字数
+EXPORT_TEMP_SUFFIX = ".#MizoreCEx#"  # エクスポート処理時、一時的にオブジェクト名に付加する接尾辞
+MAX_NAME_LENGTH = 63  # オブジェクト名などの最大文字数
+ACTUAL_MAX_NAME_LENGTH = MAX_NAME_LENGTH - len(EXPORT_TEMP_SUFFIX)  # オブジェクトなどの名前として実際に使用可能な最大文字数
 
 ### region Translation ###
 translations_dict = {
-    "en_US" : {
-            ("*", "box_warning_slow_method_1") : "Warning: ",
-            ("*", "box_warning_slow_method_2") : "If using this setting",
-            ("*", "box_warning_slow_method_3") : "may take a while in progress.",
+    "en_US": {
+        ("*", "box_warning_slow_method_1"): "Warning: ",
+        ("*", "box_warning_slow_method_2"): "If using this setting",
+        ("*", "box_warning_slow_method_3"): "may take a while in progress.",
 
-            # {0}=最大文字数
-            # {1}=オブジェクト名
-            # {2}=オブジェクト名の文字数
-            ("*", "error_longname_object"): "The object name is too long so must be {0} characters or less.\nName: {1}\n({2}characters)",
-            # {0}=最大文字数
-            # {1}=オブジェクト名
-            # {2}=オブジェクトデータ名
-            # {3}=オブジェクトデータ名の文字数
-            ("*", "error_longname_data"): "The object data name is too long so must be {0} characters or less.\nObject: {1}\nData Name: {2}\n({3}characters)",
-        },
-    "ja_JP" : {
-            ("*", "box_warning_slow_method_1") : "注意：",
-            ("*", "box_warning_slow_method_2") : "この項目を有効にすると",
-            ("*", "box_warning_slow_method_3") : "処理に時間がかかる場合があります。",
+        # {0}=最大文字数
+        # {1}=オブジェクト名
+        # {2}=オブジェクト名の文字数
+        ("*",
+         "error_longname_object"): "The object name is too long so must be {0} characters or less.\nName: {1}\n({2}characters)",
+        # {0}=最大文字数
+        # {1}=オブジェクト名
+        # {2}=オブジェクトデータ名
+        # {3}=オブジェクトデータ名の文字数
+        ("*",
+         "error_longname_data"): "The object data name is too long so must be {0} characters or less.\nObject: {1}\nData Name: {2}\n({3}characters)",
+    },
+    "ja_JP": {
+        ("*", "box_warning_slow_method_1"): "注意：",
+        ("*", "box_warning_slow_method_2"): "この項目を有効にすると",
+        ("*", "box_warning_slow_method_3"): "処理に時間がかかる場合があります。",
 
-            ("*", "error_longname_object") : "オブジェクト名が長すぎます。\nエクスポートするオブジェクトの名前は{0}文字以下である必要があります。\n{1}\n（{2}文字）",
-            ("*", "error_longname_data"): "オブジェクトのデータ名が長すぎます。\nエクスポートするオブジェクトのデータの名前は{0}文字以下である必要があります。\nオブジェクト: {1}\n{2}\n（{3}文字）",
+        ("*", "error_longname_object"): "オブジェクト名が長すぎます。\nエクスポートするオブジェクトの名前は{0}文字以下である必要があります。\n{1}\n（{2}文字）",
+        ("*",
+         "error_longname_data"): "オブジェクトのデータ名が長すぎます。\nエクスポートするオブジェクトのデータの名前は{0}文字以下である必要があります。\nオブジェクト: {1}\n{2}\n（{3}文字）",
     },
 }
+
+
 ### endregion ###
 
 ### region Func ###
@@ -120,7 +125,7 @@ def deselect_all_objects():
     targets = bpy.context.scene.collection.all_objects
     for obj in targets:
         select_object(obj, False)
-    #bpy.context.view_layer.objects.active = None
+    # bpy.context.view_layer.objects.active = None
 
 
 def remove_objects(targets=None):
@@ -143,14 +148,22 @@ def remove_objects(targets=None):
     for data in data_list:
         blocks = None
         data_type = type(data)
-        if data_type == bpy.types.Mesh: blocks = bpy.data.meshes
-        elif data_type == bpy.types.Armature: blocks = bpy.data.armatures
-        elif data_type == bpy.types.Curve: blocks = bpy.data.curves
-        elif data_type == bpy.types.Lattice: blocks = bpy.data.lattices
-        elif data_type == bpy.types.Light: blocks = bpy.data.lights
-        elif data_type == bpy.types.Camera: blocks = bpy.data.cameras
-        elif data_type == bpy.types.MetaBall: blocks = bpy.data.metaballs
-        elif data_type == bpy.types.GreasePencil: blocks = bpy.data.grease_pencils
+        if data_type == bpy.types.Mesh:
+            blocks = bpy.data.meshes
+        elif data_type == bpy.types.Armature:
+            blocks = bpy.data.armatures
+        elif data_type == bpy.types.Curve:
+            blocks = bpy.data.curves
+        elif data_type == bpy.types.Lattice:
+            blocks = bpy.data.lattices
+        elif data_type == bpy.types.Light:
+            blocks = bpy.data.lights
+        elif data_type == bpy.types.Camera:
+            blocks = bpy.data.cameras
+        elif data_type == bpy.types.MetaBall:
+            blocks = bpy.data.metaballs
+        elif data_type == bpy.types.GreasePencil:
+            blocks = bpy.data.grease_pencils
 
         if blocks and data.users == 0:
             print("remove: " + str(data))
@@ -166,11 +179,12 @@ def find_layer_collection(name):
 
 
 def recursive_get_collections(collection):
-    def recursive_get_collections_main(collection, result):
-        result.append(collection)
-        for child in collection.children:
+    def recursive_get_collections_main(col, result):
+        result.append(col)
+        for child in col.children:
             result = recursive_get_collections_main(child, result)
         return result
+
     return recursive_get_collections_main(collection, [])
 
 
@@ -185,11 +199,11 @@ def duplicate_selected_objects():
     bpy.ops.object.duplicate()
     dup_result = bpy.context.selected_objects
 
-    return (dup_source, dup_result)
+    return dup_source, dup_result
 
 
 def add_suffix(obj):
-    if not EXPORT_TEMP_SUFFIX in obj.name:
+    if EXPORT_TEMP_SUFFIX not in obj.name:
         newname = obj.name + EXPORT_TEMP_SUFFIX
         print("Add Suffix (Object name): [" + obj.name + "] -> [" + newname + "]")
         obj.name = newname
@@ -203,7 +217,7 @@ def add_suffix(obj):
 
 def remove_suffix(obj):
     if EXPORT_TEMP_SUFFIX in obj.name:
-        oldname =  obj.name
+        oldname = obj.name
         newname = oldname[0:oldname.rfind(EXPORT_TEMP_SUFFIX)]
         print("Remove Suffix (Object name): [" + oldname + "] -> [" + newname + "]")
         obj.name = newname
@@ -216,7 +230,7 @@ def remove_suffix(obj):
 
 
 def get_collection_objects(collection, include_children_collections):
-    if collection is None: return[]
+    if collection is None: return []
     result = set(collection.objects)
     if include_children_collections:
         cols = recursive_get_collections(collection)
@@ -227,14 +241,15 @@ def get_collection_objects(collection, include_children_collections):
 
 # 現在選択中のオブジェクトのうち指定コレクションに属するものだけを選択した状態にする
 def select_collection_only(collection, include_children_objects, include_children_collections, set_visible):
-    if collection is None: return
+    if collection is None:
+        return
     targets = bpy.context.selected_objects
     if include_children_collections:
         # コレクションと子以下のコレクションにあるオブジェクトだけを選択する
-        assigned_objs_set=set()
+        assigned_objs_set = set()
         cols = recursive_get_collections(collection)
         for c in cols:
-            assigned_objs_set=assigned_objs_set | set(c.objects)
+            assigned_objs_set = assigned_objs_set | set(c.objects)
         # 対象コレクション（子階層以下のコレクションを含む）に属するオブジェクトと選択中オブジェクトの積集合
         assigned_objs_set = assigned_objs_set & set(targets)
     else:
@@ -310,16 +325,16 @@ def assign_object_group(group_name, assign=True):
             return
 
     # if not collection.name in bpy.context.scene.collection.children.keys():
-        # コレクションをLinkする。
-        # Unlink状態のコレクションでもPythonからは参照できてしまう場合があるようなので、確実にLink状態になるようにしておく
-        # bpy.context.scene.collection.children.link(collection)
+    # コレクションをLinkする。
+    # Unlink状態のコレクションでもPythonからは参照できてしまう場合があるようなので、確実にLink状態になるようにしておく
+    # bpy.context.scene.collection.children.link(collection)
 
     active = get_active_object()
     targets = bpy.context.selected_objects
     for obj in targets:
-        if assign == True:
+        if assign:
             set_active_object(obj)
-            if not obj.name in collection.objects:
+            if obj.name not in collection.objects:
                 # コレクションに追加
                 collection.objects.link(obj)
         else:
@@ -327,17 +342,19 @@ def assign_object_group(group_name, assign=True):
                 # コレクションから外す
                 collection.objects.unlink(obj)
 
-    if collection.objects == False:
+    if not collection.objects:
         # コレクションが空なら削除する
         bpy.context.scene.collection.children.unlink(collection)
 
     # アクティブオブジェクトを元に戻す
     set_active_object(active)
 
+
 def hide_collection(context, group_name, hide=True):
     layer_col = find_layer_collection(group_name)
     if layer_col:
         layer_col.hide_viewport = hide
+
 
 ### endregion ###
 
@@ -347,10 +364,12 @@ def shapekey_util_is_found():
         from ShapeKeysUtil import apply_modifiers_with_shapekeys
         return True
     except ImportError:
-        t="!!! Failed to load ShapeKeysUtil !!! - on shapekey_util_is_found"
+        t = "!!! Failed to load ShapeKeysUtil !!! - on shapekey_util_is_found"
         print(t)
-        #self.report({'ERROR'}, t)
+        # self.report({'ERROR'}, t)
     return False
+
+
 ### endregion ###
 
 ### region AutoMerge連携 ###
@@ -361,8 +380,10 @@ def auto_merge_is_found():
     except ImportError:
         t = "!!! Failed to load AutoMerge !!!"
         print(t)
-        #self.report({'ERROR'}, t)
+        # self.report({'ERROR'}, t)
     return False
+
+
 ### endregion ###
 
 ### region AddonPreferences ###
@@ -373,13 +394,20 @@ def set_prop_col_value(prop, key, value):
         el.name = key
     el.value = value
 
+
 class PR_IntPropertyCollection(bpy.types.PropertyGroup):
     value: IntProperty(name="", default=0)
+
+
 class PR_StringPropertyCollection(bpy.types.PropertyGroup):
     value: StringProperty(name="", default="")
+
+
 class PR_MizoreExporter_ScenePref(bpy.types.PropertyGroup):
     export_str_props: CollectionProperty(type=PR_StringPropertyCollection)
     export_int_props: CollectionProperty(type=PR_IntPropertyCollection)
+
+
 ### endregion ###
 
 ### region Export Operator ###
@@ -436,7 +464,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                     "(Blender uses FBX scale to detect units on import, "
                     "but many other applications do not handle the same way)",
         default='FBX_SCALE_UNITS'
-    )# デフォルト値をFBX_SCALE_UNITSに変更
+    )  # デフォルト値をFBX_SCALE_UNITSに変更
 
     use_space_transform: BoolProperty(
         name="Use Space Transform",
@@ -450,7 +478,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                     "target space is not aligned with Blender's space "
                     "(WARNING! experimental option, use at own risks, known broken with armatures/animations)",
         default=True,
-    ) # デフォルト値をTrueに変更
+    )  # デフォルト値をTrueに変更
 
     object_types: EnumProperty(
         name="Object Types",
@@ -464,7 +492,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                ),
         description="Which kind of object to export",
         default={'ARMATURE', 'MESH'},
-    ) # デフォルト値を{'ARMATURE', 'MESH'}に変更
+    )  # デフォルト値を{'ARMATURE', 'MESH'}に変更
 
     use_mesh_modifiers: BoolProperty(
         name="Apply Modifiers",
@@ -620,7 +648,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         name="Batch Own Dir",
         description="Create a dir for each exported file",
         default=False,
-    ) # デフォルト値をFalseに変更
+    )  # デフォルト値をFalseに変更
     use_metadata: BoolProperty(
         name="Use Metadata",
         default=True,
@@ -725,7 +753,6 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             for obj in collection.objects:
                 hide_temp_always_export[obj] = obj.hide_get()
                 obj.hide_set(False)
-
 
         if self.use_selection == False:
             # Selected Objectsにチェックがついていないなら全オブジェクトを選択
@@ -841,7 +868,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             try:
                 from ShapeKeysUtil import separate_lr_shapekey_all
                 for obj in bpy.context.selected_objects:
-                    if obj.type == 'MESH' and obj.data.shape_keys is not None and len(obj.data.shape_keys.key_blocks) != 0:
+                    if obj.type == 'MESH' and obj.data.shape_keys is not None and len(
+                            obj.data.shape_keys.key_blocks) != 0:
                         set_active_object(obj)
                         separate_lr_shapekey_all(duplicate=False, enable_sort=False, auto_detect=True)
             except ImportError:
@@ -867,15 +895,15 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         keywords["global_matrix"] = global_matrix
 
         # use_selectionなどに該当する処理をこの関数内で行っており追加で何かをする必要はないため、エクスポート関数の処理を固定化しておく
-        keywords["use_selection"]=True
-        keywords["use_active_collection"]=False
+        keywords["use_selection"] = True
+        keywords["use_active_collection"] = False
         keywords["batch_mode"] = 'OFF'
         #
 
         from io_scene_fbx import export_fbx_bin
         # BatchMode用処理
         if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE_COLLECTION' or self.batch_mode == 'ACTIVE_SCENE_COLLECTION':
-            ignore_collections_name=[ALWAYS_EXPORT_GROUP_NAME, DONT_EXPORT_GROUP_NAME]
+            ignore_collections_name = [ALWAYS_EXPORT_GROUP_NAME, DONT_EXPORT_GROUP_NAME]
             try:
                 from AutoMerge import PARENTS_GROUP_NAME
                 ignore_collections_name.append(PARENTS_GROUP_NAME)
@@ -884,7 +912,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
             # ファイル名の途中に.fbxを入れるかどうか
             if (self.batch_filename_contains_extension):
-                path_format = self.filepath+"_{0}.fbx"
+                path_format = self.filepath + "_{0}.fbx"
             else:
                 path_format = os.path.splitext(self.filepath)[0] + "_{0}.fbx"
             targets = bpy.context.selected_objects
@@ -897,7 +925,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             for collection in target_collections:
                 if any(collection.name in n for n in ignore_collections_name):
                     continue
-                objects = get_collection_objects(collection=collection, include_children_collections=self.only_root_collection)
+                objects = get_collection_objects(collection=collection,
+                                                 include_children_collections=self.only_root_collection)
                 objects = objects & set(targets)
                 if not objects:
                     continue
@@ -932,7 +961,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             print("export: " + path)
             export_fbx_bin.save(self, context, **keywords)
         else:
-            self.report({'ERROR'}, str(self.batch_mode)+" は未定義です。")
+            self.report({'ERROR'}, str(self.batch_mode) + " は未定義です。")
         # endregion
 
         # 複製されたオブジェクトを削除
@@ -968,6 +997,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             bpy.ops.object.mode_set(mode=modeTemp)
 
         return {'FINISHED'}
+
     def isvalid(self):
         for obj in bpy.context.view_layer.objects:
             # 接尾辞をつけたときに名前の文字数が63文字（Blenderの最大文字数）を超えるオブジェクトがあるならエラー
@@ -995,7 +1025,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         if self.save_prefs:
             self.save_scene_prefs()
 
-        if self.isvalid()==False:
+        if self.isvalid() == False:
             return {'CANCELLED'}
 
         if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE' or self.batch_mode == 'SCENE_COLLECTION':
@@ -1048,7 +1078,8 @@ class MIZORE_FBX_PT_export_main(bpy.types.Panel):
         row.prop(operator, "batch_filename_contains_extension")
 
         row = layout.row(align=True)
-        row.enabled = (operator.batch_mode == 'COLLECTION' or operator.batch_mode == 'SCENE_COLLECTION' or operator.batch_mode == 'ACTIVE_SCENE_COLLECTION')
+        row.enabled = (
+                operator.batch_mode == 'COLLECTION' or operator.batch_mode == 'SCENE_COLLECTION' or operator.batch_mode == 'ACTIVE_SCENE_COLLECTION')
         row.prop(operator, "only_root_collection")
 
 
@@ -1227,6 +1258,7 @@ class MIZORE_FBX_PT_export_transform(bpy.types.Panel):
         row.prop(operator, "bake_space_transform")
         row.label(text="", icon='ERROR')
 
+
 class MIZORE_FBX_PT_export_automerge(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
     bl_region_type = 'TOOL_PROPS'
@@ -1249,6 +1281,7 @@ class MIZORE_FBX_PT_export_automerge(bpy.types.Panel):
         operator = sfile.active_operator
 
         layout.prop(operator, "enable_auto_merge")
+
 
 class MIZORE_FBX_PT_export_shapekeysutil(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
@@ -1279,11 +1312,12 @@ class MIZORE_FBX_PT_export_shapekeysutil(bpy.types.Panel):
         box.label(text=bpy.app.translations.pgettext("box_warning_slow_method_2"))
         box.label(text=bpy.app.translations.pgettext("box_warning_slow_method_3"))
 
+
 # 選択オブジェクトをDontExportグループに入れたり外したりするクラス
 class OBJECT_OT_specials_assign_dont_export_group(bpy.types.Operator):
     bl_idname = "object.assign_dont_export_group"
     bl_label = "Assign Don't-Export Group"
-    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“"+DONT_EXPORT_GROUP_NAME+"”に入れたり外したりします"
+    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + DONT_EXPORT_GROUP_NAME + "”に入れたり外したりします"
     bl_options = {'REGISTER', 'UNDO'}
 
     assign: bpy.props.BoolProperty(name="Assign", default=True)
@@ -1299,7 +1333,7 @@ class OBJECT_OT_specials_assign_dont_export_group(bpy.types.Operator):
 class OBJECT_OT_specials_assign_always_export_group(bpy.types.Operator):
     bl_idname = "object.assign_always_export_group"
     bl_label = "Assign Always-Export Group"
-    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“"+ALWAYS_EXPORT_GROUP_NAME+"”に入れたり外したりします"
+    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + ALWAYS_EXPORT_GROUP_NAME + "”に入れたり外したりします"
     bl_options = {'REGISTER', 'UNDO'}
 
     assign: bpy.props.BoolProperty(name="Assign", default=True)
@@ -1309,6 +1343,8 @@ class OBJECT_OT_specials_assign_always_export_group(bpy.types.Operator):
         # exclude_collection(context=context, group_name=ALWAYS_EXPORT_GROUP_NAME, exclude=True)
         hide_collection(context=context, group_name=ALWAYS_EXPORT_GROUP_NAME, hide=True)
         return {'FINISHED'}
+
+
 ### endregion ###
 
 ### region Init Menu ###
@@ -1320,6 +1356,8 @@ def INFO_MT_file_custom_export_mizore_menu(self, context):
 # 右クリックメニューにOperatorを登録
 def INFO_MT_object_mizores_exporter_menu(self, context):
     self.layout.menu(VIEW3D_MT_object_mizores_exporter.bl_idname)
+
+
 class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
     bl_label = "Mizore's Custom Exporter"
     bl_idname = "VIEW3D_MT_object_mizores_exporter"
@@ -1327,6 +1365,8 @@ class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
     def draw(self, context):
         self.layout.operator(OBJECT_OT_specials_assign_dont_export_group.bl_idname)
         self.layout.operator(OBJECT_OT_specials_assign_always_export_group.bl_idname)
+
+
 ### endregion ###
 
 ### region Init ###
