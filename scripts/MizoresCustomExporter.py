@@ -26,14 +26,9 @@ from bpy_extras.io_utils import (
     path_reference_mode,
     axis_conversion,
 )
-from . import func_object_utils
+from . import consts, func_object_utils, func_name_utils
 
-DONT_EXPORT_GROUP_NAME = "DontExport"  # エクスポートから除外するオブジェクトのグループ名
-ALWAYS_EXPORT_GROUP_NAME = "AlwaysExport"  # 非表示状態であっても常にエクスポートさせるオブジェクトのグループ名
 
-EXPORT_TEMP_SUFFIX = ".#MizoreCEx#"  # エクスポート処理時、一時的にオブジェクト名に付加する接尾辞
-MAX_NAME_LENGTH = 63  # オブジェクト名などの最大文字数
-ACTUAL_MAX_NAME_LENGTH = MAX_NAME_LENGTH - len(EXPORT_TEMP_SUFFIX)  # オブジェクトなどの名前として実際に使用可能な最大文字数
 
 
 ### region Func ###
@@ -71,31 +66,7 @@ def duplicate_selected_objects():
     return dup_source, dup_result
 
 
-def add_suffix(obj):
-    if EXPORT_TEMP_SUFFIX not in obj.name:
-        newname = obj.name + EXPORT_TEMP_SUFFIX
-        print("Add Suffix (Object name): [" + obj.name + "] -> [" + newname + "]")
-        obj.name = newname
 
-    # インスタンス化されたメッシュがあるとインスタンスの個数分だけ関数が呼ばれるため、suffixが多重追加されないように対策しておく
-    if obj.data is not None and not EXPORT_TEMP_SUFFIX in obj.data.name:
-        newname = obj.data.name + EXPORT_TEMP_SUFFIX
-        print("Add Suffix (Data name): [" + obj.data.name + "] -> [" + newname + "]")
-        obj.data.name = newname
-
-
-def remove_suffix(obj):
-    if EXPORT_TEMP_SUFFIX in obj.name:
-        oldname = obj.name
-        newname = oldname[0:oldname.rfind(EXPORT_TEMP_SUFFIX)]
-        print("Remove Suffix (Object name): [" + oldname + "] -> [" + newname + "]")
-        obj.name = newname
-
-    if obj.data is not None and EXPORT_TEMP_SUFFIX in obj.data.name:
-        oldname = obj.data.name
-        newname = oldname[0:oldname.rfind(EXPORT_TEMP_SUFFIX)]
-        print("Remove Suffix (Data name): [" + oldname + "] -> [" + newname + "]")
-        obj.data.name = newname
 
 
 def get_collection_objects(collection, include_children_collections):
@@ -593,13 +564,13 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         # 常時エクスポートするオブジェクトを表示
         hide_temp_always_export = {}
-        layer_col_always_export = find_layer_collection(ALWAYS_EXPORT_GROUP_NAME)
+        layer_col_always_export = find_layer_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
         if layer_col_always_export:
             # layer_col_always_export.exclude = False
             # コレクションを表示
             layer_col_always_export.hide_viewport = False
             # オブジェクトの表示状態を記憶してから表示
-            collection = find_collection(ALWAYS_EXPORT_GROUP_NAME)
+            collection = find_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
             for obj in collection.objects:
                 hide_temp_always_export[obj] = obj.hide_get()
                 obj.hide_set(False)
@@ -629,7 +600,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             )
 
         # エクスポート除外コレクションを取得
-        ignore_collection = find_collection(DONT_EXPORT_GROUP_NAME)
+        ignore_collection = find_collection(consts.DONT_EXPORT_GROUP_NAME)
         if ignore_collection:
             # 処理から除外するオブジェクトの選択を外す
             deselect_collection(collection=ignore_collection)
@@ -652,7 +623,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         # オブジェクト名に接尾辞を付ける
         # （名前の末尾が xxx.001 のように数字になっている場合にオブジェクトを複製すると名前がxxx.002 のようにカウントアップされてしまい、オブジェクト名の復元時に問題が起きるのでその対策）
         for obj in targets_source:
-            add_suffix(obj)
+            func_name_utils.add_suffix(obj)
 
         # オブジェクトを複製
         bpy.ops.object.duplicate()
@@ -661,7 +632,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         # 複製したオブジェクトの名前から接尾辞を削除
         for obj in targets_dup:
-            remove_suffix(obj)
+            func_name_utils.remove_suffix(obj)
 
         # Debug
         print("Source: [")
@@ -745,7 +716,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         from io_scene_fbx import export_fbx_bin
         # BatchMode用処理
         if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE_COLLECTION' or self.batch_mode == 'ACTIVE_SCENE_COLLECTION':
-            ignore_collections_name = [ALWAYS_EXPORT_GROUP_NAME, DONT_EXPORT_GROUP_NAME]
+            ignore_collections_name = [consts.ALWAYS_EXPORT_GROUP_NAME, consts.DONT_EXPORT_GROUP_NAME]
             if auto_merge_is_found():
                 ignore_collections_name.append(bpy.types.WindowManager.mizore_automerge_collection_name)
 
@@ -808,7 +779,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         # 複製前オブジェクト名から接尾辞を削除
         for obj in targets_source:
-            remove_suffix(obj)
+            func_name_utils.remove_suffix(obj)
 
         # AlwaysExportを非表示
         if layer_col_always_export:
@@ -840,17 +811,17 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     def isvalid(self):
         for obj in bpy.context.view_layer.objects:
             # 接尾辞をつけたときに名前の文字数が63文字（Blenderの最大文字数）を超えるオブジェクトがあるならエラー
-            if ACTUAL_MAX_NAME_LENGTH < len(obj.name):
+            if consts.ACTUAL_MAX_NAME_LENGTH < len(obj.name):
                 t = bpy.app.translations.pgettext("error_longname_object").format(
-                    str(ACTUAL_MAX_NAME_LENGTH),
+                    str(consts.ACTUAL_MAX_NAME_LENGTH),
                     obj.name,
                     str(len(obj.name))
                 )
                 self.report({'ERROR'}, t)
                 return False
-            if obj.data and ACTUAL_MAX_NAME_LENGTH < len(obj.data.name):
+            if obj.data and consts.ACTUAL_MAX_NAME_LENGTH < len(obj.data.name):
                 t = bpy.app.translations.pgettext("error_longname_data").format(
-                    str(ACTUAL_MAX_NAME_LENGTH),
+                    str(consts.ACTUAL_MAX_NAME_LENGTH),
                     obj.name,
                     obj.data.name,
                     str(len(obj.data.name))
@@ -937,15 +908,15 @@ class MIZORE_FBX_PT_export_shapekeysutil(bpy.types.Panel):
 class OBJECT_OT_specials_assign_dont_export_group(bpy.types.Operator):
     bl_idname = "object.assign_dont_export_group"
     bl_label = "Assign Don't-Export Group"
-    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + DONT_EXPORT_GROUP_NAME + "”に入れたり外したりします"
+    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + consts.DONT_EXPORT_GROUP_NAME + "”に入れたり外したりします"
     bl_options = {'REGISTER', 'UNDO'}
 
     assign: bpy.props.BoolProperty(name="Assign", default=True)
 
     def execute(self, context):
-        assign_object_group(group_name=DONT_EXPORT_GROUP_NAME, assign=self.assign)
+        assign_object_group(group_name=consts.DONT_EXPORT_GROUP_NAME, assign=self.assign)
         # exclude_collection(context=context, group_name=DONT_EXPORT_GROUP_NAME, exclude=True)
-        hide_collection(context=context, group_name=DONT_EXPORT_GROUP_NAME, hide=True)
+        hide_collection(context=context, group_name=consts.DONT_EXPORT_GROUP_NAME, hide=True)
         return {'FINISHED'}
 
 
@@ -953,15 +924,15 @@ class OBJECT_OT_specials_assign_dont_export_group(bpy.types.Operator):
 class OBJECT_OT_specials_assign_always_export_group(bpy.types.Operator):
     bl_idname = "object.assign_always_export_group"
     bl_label = "Assign Always-Export Group"
-    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + ALWAYS_EXPORT_GROUP_NAME + "”に入れたり外したりします"
+    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + consts.ALWAYS_EXPORT_GROUP_NAME + "”に入れたり外したりします"
     bl_options = {'REGISTER', 'UNDO'}
 
     assign: bpy.props.BoolProperty(name="Assign", default=True)
 
     def execute(self, context):
-        assign_object_group(group_name=ALWAYS_EXPORT_GROUP_NAME, assign=self.assign)
+        assign_object_group(group_name=consts.ALWAYS_EXPORT_GROUP_NAME, assign=self.assign)
         # exclude_collection(context=context, group_name=ALWAYS_EXPORT_GROUP_NAME, exclude=True)
-        hide_collection(context=context, group_name=ALWAYS_EXPORT_GROUP_NAME, hide=True)
+        hide_collection(context=context, group_name=consts.ALWAYS_EXPORT_GROUP_NAME, hide=True)
         return {'FINISHED'}
 
 
