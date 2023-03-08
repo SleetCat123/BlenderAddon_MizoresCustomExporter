@@ -26,6 +26,7 @@ from bpy_extras.io_utils import (
     path_reference_mode,
     axis_conversion,
 )
+from . import func_object_utils
 
 DONT_EXPORT_GROUP_NAME = "DontExport"  # エクスポートから除外するオブジェクトのグループ名
 ALWAYS_EXPORT_GROUP_NAME = "AlwaysExport"  # 非表示状態であっても常にエクスポートさせるオブジェクトのグループ名
@@ -34,140 +35,8 @@ EXPORT_TEMP_SUFFIX = ".#MizoreCEx#"  # エクスポート処理時、一時的�
 MAX_NAME_LENGTH = 63  # オブジェクト名などの最大文字数
 ACTUAL_MAX_NAME_LENGTH = MAX_NAME_LENGTH - len(EXPORT_TEMP_SUFFIX)  # オブジェクトなどの名前として実際に使用可能な最大文字数
 
-### region Translation ###
-translations_dict = {
-    "en_US": {
-        ("*", "box_warning_slow_method_1"): "Warning: ",
-        ("*", "box_warning_slow_method_2"): "If using this setting",
-        ("*", "box_warning_slow_method_3"): "may take a while in progress.",
-
-        # {0}=最大文字数
-        # {1}=オブジェクト名
-        # {2}=オブジェクト名の文字数
-        ("*",
-         "error_longname_object"): "The object name is too long so must be {0} characters or less.\nName: {1}\n({2}characters)",
-        # {0}=最大文字数
-        # {1}=オブジェクト名
-        # {2}=オブジェクトデータ名
-        # {3}=オブジェクトデータ名の文字数
-        ("*",
-         "error_longname_data"): "The object data name is too long so must be {0} characters or less.\nObject: {1}\nData Name: {2}\n({3}characters)",
-    },
-    "ja_JP": {
-        ("*", "box_warning_slow_method_1"): "注意：",
-        ("*", "box_warning_slow_method_2"): "この項目を有効にすると",
-        ("*", "box_warning_slow_method_3"): "処理に時間がかかる場合があります。",
-
-        ("*", "error_longname_object"): "オブジェクト名が長すぎます。\nエクスポートするオブジェクトの名前は{0}文字以下である必要があります。\n{1}\n（{2}文字）",
-        ("*",
-         "error_longname_data"): "オブジェクトのデータ名が長すぎます。\nエクスポートするオブジェクトのデータの名前は{0}文字以下である必要があります。\nオブジェクト: {1}\n{2}\n（{3}文字）",
-    },
-}
-
-
-### endregion ###
 
 ### region Func ###
-
-
-def select_object(obj, value=True):
-    try:
-        obj.select_set(value)
-    except RuntimeError as e:
-        print(e)
-
-
-def select_objects(objects, value=True):
-    for obj in objects:
-        try:
-            obj.select_set(value)
-        except RuntimeError as e:
-            print(e)
-
-
-def get_active_object():
-    return bpy.context.view_layer.objects.active
-
-
-def set_active_object(obj):
-    bpy.context.view_layer.objects.active = obj
-
-
-def get_children_objects(obj):
-    result = []
-    for ob in bpy.data.objects:
-        if ob.parent == obj:
-            result.append(ob)
-    return result
-
-
-def select_children_recursive(targets=None):
-    def recursive(obj):
-        select_object(obj, True)
-        children = get_children_objects(obj)
-        for child in children:
-            recursive(child)
-
-    if targets is None:
-        targets = bpy.context.selected_objects
-    for obj in targets:
-        recursive(obj)
-
-
-def select_all_objects():
-    targets = bpy.context.scene.collection.all_objects
-    for obj in targets:
-        select_object(obj, True)
-
-
-def deselect_all_objects():
-    print("deselect_all_objects")
-    targets = bpy.context.scene.collection.all_objects
-    for obj in targets:
-        select_object(obj, False)
-    # bpy.context.view_layer.objects.active = None
-
-
-def remove_objects(targets=None):
-    print("remove_objects")
-    if targets is None:
-        targets = bpy.context.selected_objects
-
-    data_list = []
-    # オブジェクトを削除
-    for obj in targets:
-        try:
-            if obj.data and obj.data not in data_list:
-                data_list.append(obj.data)
-            print("remove: " + str(obj))
-            bpy.data.objects.remove(obj)
-        except ReferenceError:
-            continue
-
-    # オブジェクトのデータを削除
-    for data in data_list:
-        blocks = None
-        data_type = type(data)
-        if data_type == bpy.types.Mesh:
-            blocks = bpy.data.meshes
-        elif data_type == bpy.types.Armature:
-            blocks = bpy.data.armatures
-        elif data_type == bpy.types.Curve:
-            blocks = bpy.data.curves
-        elif data_type == bpy.types.Lattice:
-            blocks = bpy.data.lattices
-        elif data_type == bpy.types.Light:
-            blocks = bpy.data.lights
-        elif data_type == bpy.types.Camera:
-            blocks = bpy.data.cameras
-        elif data_type == bpy.types.MetaBall:
-            blocks = bpy.data.metaballs
-        elif data_type == bpy.types.GreasePencil:
-            blocks = bpy.data.grease_pencils
-
-        if blocks and data.users == 0:
-            print("remove: " + str(data))
-            blocks.remove(data)
 
 
 def find_collection(name):
@@ -259,22 +128,22 @@ def select_collection_only(collection, include_children_objects, include_childre
     result = assigned_objs
     if include_children_objects:
         for obj in assigned_objs:
-            deselect_all_objects()
+            func_object_utils.deselect_all_objects()
             if set_visible:
                 obj.hide_set(False)
-            select_object(obj, True)
-            set_active_object(obj)
+            func_object_utils.select_object(obj, True)
+            func_object_utils.set_active_object(obj)
             if bpy.context.object.mode != 'OBJECT':
                 # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
                 bpy.ops.object.mode_set(mode='OBJECT')
             # オブジェクトの子も対象に含める
-            select_children_recursive()
-            children = bpy.context.selected_objects;
+            func_object_utils.select_children_recursive()
+            children = bpy.context.selected_objects
             for child in children:
                 if (obj != child) and (child in targets):
                     result.append(child)
-    deselect_all_objects()
-    select_objects(result, True)
+    func_object_utils.deselect_all_objects()
+    func_object_utils.select_objects(result, True)
     return result
 
 
@@ -282,22 +151,22 @@ def deselect_collection(collection):
     if collection is None:
         return
     print("Deselect Collection: " + collection.name)
-    active = get_active_object()
+    active = func_object_utils.get_active_object()
     targets = bpy.context.selected_objects
     # 処理targetsから除外するオブジェクトの選択を外す
     # 対象コレクションに属するオブジェクトと選択中オブジェクトの積集合
     assigned_objs = list(set(collection.objects) & set(targets))
     for obj in assigned_objs:
-        deselect_all_objects()
+        func_object_utils.deselect_all_objects()
         temp_hide = obj.hide_get()
         obj.hide_set(False)
-        select_object(obj, True)
-        set_active_object(obj)
+        func_object_utils.select_object(obj, True)
+        func_object_utils.set_active_object(obj)
         if bpy.context.object.mode != 'OBJECT':
             # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
             bpy.ops.object.mode_set(mode='OBJECT')
         # オブジェクトの子も除外対象に含める
-        select_children_recursive()
+        func_object_utils.select_children_recursive()
         children = bpy.context.selected_objects
         for child in children:
             if child in targets:
@@ -306,10 +175,10 @@ def deselect_collection(collection):
                 active = None
             print("Deselect: " + child.name)
         obj.hide_set(temp_hide)
-    deselect_all_objects()
-    select_objects(targets, True)
+    func_object_utils.deselect_all_objects()
+    func_object_utils.select_objects(targets, True)
     if active is not None:
-        set_active_object(active)
+        func_object_utils.set_active_object(active)
 
 
 # 選択オブジェクトを指定名のグループに入れたり外したり
@@ -329,11 +198,11 @@ def assign_object_group(group_name, assign=True):
     # Unlink状態のコレクションでもPythonからは参照できてしまう場合があるようなので、確実にLink状態になるようにしておく
     # bpy.context.scene.collection.children.link(collection)
 
-    active = get_active_object()
+    active = func_object_utils.get_active_object()
     targets = bpy.context.selected_objects
     for obj in targets:
         if assign:
-            set_active_object(obj)
+            func_object_utils.set_active_object(obj)
             if obj.name not in collection.objects:
                 # コレクションに追加
                 collection.objects.link(obj)
@@ -347,7 +216,7 @@ def assign_object_group(group_name, assign=True):
         bpy.context.scene.collection.children.unlink(collection)
 
     # アクティブオブジェクトを元に戻す
-    set_active_object(active)
+    func_object_utils.set_active_object(active)
 
 
 def hide_collection(context, group_name, hide=True):
@@ -719,7 +588,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             bpy.ops.object.mode_set(mode='OBJECT')
 
         # 現在の選択状況を記憶
-        activeTemp = get_active_object()
+        activeTemp = func_object_utils.get_active_object()
         selectedTemp = bpy.context.selected_objects
 
         # 常時エクスポートするオブジェクトを表示
@@ -737,16 +606,16 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         if self.use_selection == False:
             # Selected Objectsにチェックがついていないなら全オブジェクトを選択
-            select_all_objects()
+            func_object_utils.select_all_objects()
 
         if self.use_selection and self.use_selection_children_objects:
             current_selected = bpy.context.selected_objects
             for obj in current_selected:
-                set_active_object(obj)
+                func_object_utils.set_active_object(obj)
                 if bpy.context.object.mode != 'OBJECT':
                     # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
                     bpy.ops.object.mode_set(mode='OBJECT')
-                select_children_recursive()
+                func_object_utils.select_children_recursive()
 
         if self.use_active_collection:
             active_layer_collection = bpy.context.view_layer.active_layer_collection
@@ -775,7 +644,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             o = targets_source[i]
             if o.mode == 'POSE':
                 targets_source_mode[i] = o.mode
-                set_active_object(o)
+                func_object_utils.set_active_object(o)
                 bpy.ops.object.mode_set(mode='OBJECT')
             else:
                 targets_source_mode[i] = None
@@ -815,7 +684,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 # 結合処理失敗
                 if 'FINISHED' not in b:
                     # 複製されたオブジェクトを削除
-                    remove_objects(targets_dup)
+                    func_object_utils.remove_objects(targets_dup)
                     return {'FAILED'}
             except AttributeError as e:
                 t = "!!! Failed to load AutoMerge !!!"
@@ -829,23 +698,21 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         # ShapeKeysUtil連携
         if shapekey_util_is_found():
             if self.enable_apply_modifiers_with_shapekeys and self.use_mesh_modifiers:
-                active = get_active_object()
+                active = func_object_utils.get_active_object()
                 selected_objects = bpy.context.selected_objects
                 targets = [d for d in selected_objects if d.type == 'MESH']
                 for obj in targets:
-                    set_active_object(obj)
-                    b = bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon()
-                    if 'FINISHED' not in b:
-                        self.report({'ERROR'}, t)
+                    func_object_utils.set_active_object(obj)
+                    bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon()
                 # 選択オブジェクトを復元
                 for obj in selected_objects:
                     obj.select_set(True)
-                set_active_object(active)
+                func_object_utils.set_active_object(active)
             if self.enable_separate_lr_shapekey:
                 for obj in bpy.context.selected_objects:
                     if obj.type == 'MESH' and obj.data.shape_keys is not None and len(
                             obj.data.shape_keys.key_blocks) != 0:
-                        set_active_object(obj)
+                        func_object_utils.set_active_object(obj)
                         bpy.ops.object.shapekeys_util_separate_lr_shapekey_for_exporter()
         else:
             t = "!!! Failed to load ShapeKeysUtil !!! - apply_modifiers_with_shapekeys"
@@ -902,8 +769,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 objects = objects & set(targets)
                 if not objects:
                     continue
-                deselect_all_objects()
-                select_objects(objects, True)
+                func_object_utils.deselect_all_objects()
+                func_object_utils.select_objects(objects, True)
                 # パス設定
                 path = path_format.format(collection.name)
                 path.replace(' ', '_')
@@ -917,8 +784,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 path.replace(' ', '_')
                 keywords["filepath"] = path
                 print("export: " + path)
-                deselect_all_objects()
-                select_objects(targets, True)
+                func_object_utils.deselect_all_objects()
+                func_object_utils.select_objects(targets, True)
                 export_fbx_bin.save(self, context, **keywords)
         elif self.batch_mode == 'OFF' or self.batch_mode == 'SCENE':
             path = self.filepath
@@ -937,7 +804,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         # endregion
 
         # 複製されたオブジェクトを削除
-        remove_objects(targets_dup)
+        func_object_utils.remove_objects(targets_dup)
 
         # 複製前オブジェクト名から接尾辞を削除
         for obj in targets_source:
@@ -952,17 +819,17 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 obj.hide_set(value)
 
         # 選択状況を処理前の状態に復元
-        deselect_all_objects()
-        select_objects(selectedTemp, True)
+        func_object_utils.deselect_all_objects()
+        func_object_utils.select_objects(selectedTemp, True)
         # set_active_object(activeTemp)
 
         # オブジェクトのモードを復元
         for i in range(len(targets_source)):
             m = targets_source_mode[i]
             if m is not None:
-                set_active_object(targets_source[i])
+                func_object_utils.set_active_object(targets_source[i])
                 bpy.ops.object.mode_set(mode=m)
-        set_active_object(activeTemp)
+        func_object_utils.set_active_object(activeTemp)
 
         if modeTemp is not None:
             # 開始時のモードを復元
@@ -1010,225 +877,6 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             return {'FINISHED'}
         else:
             return self.execute_main(context)
-
-
-class MIZORE_FBX_PT_export_main(bpy.types.Panel):
-    bl_space_type = 'FILE_BROWSER'
-    bl_region_type = 'TOOL_PROPS'
-    bl_label = ""
-    bl_parent_id = "FILE_PT_operator"
-    bl_options = {'HIDE_HEADER'}
-
-    @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False  # No animation.
-
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        row = layout.row(align=True)
-        row.prop(operator, "path_mode")
-        sub = row.row(align=True)
-        sub.enabled = (operator.path_mode == 'COPY')
-        sub.prop(operator, "embed_textures", text="", icon='PACKAGE' if operator.embed_textures else 'UGLYPACKAGE')
-
-        row = layout.row(align=True)
-        row.prop(operator, "batch_mode")
-        sub = row.row(align=True)
-        sub.prop(operator, "use_batch_own_dir", text="", icon='NEWFOLDER')
-
-        row = layout.row(align=True)
-        row.enabled = (operator.batch_mode != 'OFF')
-        row.prop(operator, "batch_filename_contains_extension")
-
-        row = layout.row(align=True)
-        row.enabled = (
-                operator.batch_mode == 'COLLECTION' or operator.batch_mode == 'SCENE_COLLECTION' or operator.batch_mode == 'ACTIVE_SCENE_COLLECTION')
-        row.prop(operator, "only_root_collection")
-
-
-class MIZORE_FBX_PT_export_include(bpy.types.Panel):
-    bl_space_type = 'FILE_BROWSER'
-    bl_region_type = 'TOOL_PROPS'
-    bl_label = "Include"
-    bl_parent_id = "FILE_PT_operator"
-
-    @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False  # No animation.
-
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        sublayout = layout.column(heading="Limit to (Objects)")
-        sublayout.enabled = (operator.batch_mode == 'OFF')
-        sublayout.prop(operator, "use_selection")
-        row = sublayout.row(align=True)
-        row.enabled = operator.use_selection
-        row.prop(operator, "use_selection_children_objects")
-
-        sublayout = layout.column(heading="Limit to (Collections)")
-        sublayout.enabled = (operator.batch_mode == 'OFF')
-        sublayout.prop(operator, "use_active_collection")
-        row = sublayout.row(align=True)
-        row.enabled = operator.use_active_collection
-        row.prop(operator, "use_active_collection_children_objects")
-        row = sublayout.row(align=True)
-        row.enabled = operator.use_active_collection
-        row.prop(operator, "use_active_collection_children_collections")
-
-        layout.column().prop(operator, "object_types")
-        layout.prop(operator, "use_custom_props")
-
-
-class MIZORE_FBX_PT_export_geometry(bpy.types.Panel):
-    bl_space_type = 'FILE_BROWSER'
-    bl_region_type = 'TOOL_PROPS'
-    bl_label = "Geometry"
-    bl_parent_id = "FILE_PT_operator"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False  # No animation.
-
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        layout.prop(operator, "mesh_smooth_type")
-        layout.prop(operator, "use_subsurf")
-        layout.prop(operator, "use_mesh_modifiers")
-        # sub = layout.row()
-        # sub.enabled = operator.use_mesh_modifiers and False  # disabled in 2.8...
-        # sub.prop(operator, "use_mesh_modifiers_render")
-        layout.prop(operator, "use_mesh_edges")
-        sub = layout.row()
-        # ~ sub.enabled = operator.mesh_smooth_type in {'OFF'}
-        sub.prop(operator, "use_tspace")
-
-
-class MIZORE_FBX_PT_export_armature(bpy.types.Panel):
-    bl_space_type = 'FILE_BROWSER'
-    bl_region_type = 'TOOL_PROPS'
-    bl_label = "Armature"
-    bl_parent_id = "FILE_PT_operator"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False  # No animation.
-
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        layout.prop(operator, "primary_bone_axis")
-        layout.prop(operator, "secondary_bone_axis")
-        layout.prop(operator, "armature_nodetype")
-        layout.prop(operator, "use_armature_deform_only")
-        layout.prop(operator, "add_leaf_bones")
-
-
-class MIZORE_FBX_PT_export_bake_animation(bpy.types.Panel):
-    bl_space_type = 'FILE_BROWSER'
-    bl_region_type = 'TOOL_PROPS'
-    bl_label = "Bake Animation"
-    bl_parent_id = "FILE_PT_operator"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx"
-
-    def draw_header(self, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        self.layout.prop(operator, "bake_anim", text="")
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False  # No animation.
-
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        layout.enabled = operator.bake_anim
-        layout.prop(operator, "bake_anim_use_all_bones")
-        layout.prop(operator, "bake_anim_use_nla_strips")
-        layout.prop(operator, "bake_anim_use_all_actions")
-        layout.prop(operator, "bake_anim_force_startend_keying")
-        layout.prop(operator, "bake_anim_step")
-        layout.prop(operator, "bake_anim_simplify_factor")
-
-
-class MIZORE_FBX_PT_export_transform(bpy.types.Panel):
-    bl_space_type = 'FILE_BROWSER'
-    bl_region_type = 'TOOL_PROPS'
-    bl_label = "Transform"
-    bl_parent_id = "FILE_PT_operator"
-
-    @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False  # No animation.
-
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        layout.prop(operator, "global_scale")
-        layout.prop(operator, "apply_scale_options")
-
-        layout.prop(operator, "axis_forward")
-        layout.prop(operator, "axis_up")
-
-        layout.prop(operator, "apply_unit_scale")
-        layout.prop(operator, "use_space_transform")
-        row = layout.row()
-        row.prop(operator, "bake_space_transform")
-        row.label(text="", icon='ERROR')
 
 
 class MIZORE_FBX_PT_export_automerge(bpy.types.Panel):
@@ -1345,8 +993,6 @@ class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
 classes = [
     VIEW3D_MT_object_mizores_exporter,
     INFO_MT_file_custom_export_mizore_fbx,
-    MIZORE_FBX_PT_export_main, MIZORE_FBX_PT_export_include, MIZORE_FBX_PT_export_transform,
-    MIZORE_FBX_PT_export_geometry, MIZORE_FBX_PT_export_armature, MIZORE_FBX_PT_export_bake_animation,
 
     MIZORE_FBX_PT_export_automerge, MIZORE_FBX_PT_export_shapekeysutil,
 
@@ -1362,8 +1008,6 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.app.translations.register(__package__, translations_dict)
-
     bpy.types.Scene.mizore_exporter_prefs = bpy.props.PointerProperty(type=PR_MizoreExporter_ScenePref)
     bpy.types.TOPBAR_MT_file_export.append(INFO_MT_file_custom_export_mizore_menu)
     bpy.types.VIEW3D_MT_object_context_menu.append(INFO_MT_object_mizores_exporter_menu)
@@ -1372,8 +1016,6 @@ def register():
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
-
-    bpy.app.translations.unregister(__package__)
 
     bpy.types.Scene.mizore_exporter_prefs = None
     bpy.types.TOPBAR_MT_file_export.remove(INFO_MT_file_custom_export_mizore_menu)

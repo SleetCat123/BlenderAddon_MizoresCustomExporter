@@ -30,7 +30,14 @@ bl_info = {
 }
 
 imports = [
+    "translations",
     "MizoresCustomExporter",
+    "panel_export_main",
+    "panel_export_include",
+    "panel_export_transform",
+    "panel_export_geometry",
+    "panel_export_armature",
+    "panel_export_bake_animation",
 ]
 
 
