@@ -26,177 +26,8 @@ from bpy_extras.io_utils import (
     path_reference_mode,
     axis_conversion,
 )
-from . import consts, func_object_utils, func_name_utils
+from . import consts, func_object_utils, func_name_utils, func_collection_utils
 
-
-
-
-### region Func ###
-
-
-def find_collection(name):
-    return next((c for c in bpy.context.scene.collection.children if name in c.name), None)
-
-
-def find_layer_collection(name):
-    return next((c for c in bpy.context.view_layer.layer_collection.children if name in c.name), None)
-
-
-def recursive_get_collections(collection):
-    def recursive_get_collections_main(col, result):
-        result.append(col)
-        for child in col.children:
-            result = recursive_get_collections_main(child, result)
-        return result
-
-    return recursive_get_collections_main(collection, [])
-
-
-def get_all_collections():
-    result = recursive_get_collections(bpy.context.scene.collection)
-    return result
-
-
-def duplicate_selected_objects():
-    dup_source = bpy.context.selected_objects
-    # 対象オブジェクトを複製
-    bpy.ops.object.duplicate()
-    dup_result = bpy.context.selected_objects
-
-    return dup_source, dup_result
-
-
-
-
-
-def get_collection_objects(collection, include_children_collections):
-    if collection is None: return []
-    result = set(collection.objects)
-    if include_children_collections:
-        cols = recursive_get_collections(collection)
-        for c in cols[1:]:
-            result = result | set(c.objects)
-    return result
-
-
-# 現在選択中のオブジェクトのうち指定コレクションに属するものだけを選択した状態にする
-def select_collection_only(collection, include_children_objects, include_children_collections, set_visible):
-    if collection is None:
-        return
-    targets = bpy.context.selected_objects
-    if include_children_collections:
-        # コレクションと子以下のコレクションにあるオブジェクトだけを選択する
-        assigned_objs_set = set()
-        cols = recursive_get_collections(collection)
-        for c in cols:
-            assigned_objs_set = assigned_objs_set | set(c.objects)
-        # 対象コレクション（子階層以下のコレクションを含む）に属するオブジェクトと選択中オブジェクトの積集合
-        assigned_objs_set = assigned_objs_set & set(targets)
-    else:
-        # 対象コレクションに属するオブジェクトと選択中オブジェクトの積集合
-        assigned_objs_set = set(collection.objects) & set(targets)
-    assigned_objs = list(assigned_objs_set)
-    result = assigned_objs
-    if include_children_objects:
-        for obj in assigned_objs:
-            func_object_utils.deselect_all_objects()
-            if set_visible:
-                obj.hide_set(False)
-            func_object_utils.select_object(obj, True)
-            func_object_utils.set_active_object(obj)
-            if bpy.context.object.mode != 'OBJECT':
-                # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
-                bpy.ops.object.mode_set(mode='OBJECT')
-            # オブジェクトの子も対象に含める
-            func_object_utils.select_children_recursive()
-            children = bpy.context.selected_objects
-            for child in children:
-                if (obj != child) and (child in targets):
-                    result.append(child)
-    func_object_utils.deselect_all_objects()
-    func_object_utils.select_objects(result, True)
-    return result
-
-
-def deselect_collection(collection):
-    if collection is None:
-        return
-    print("Deselect Collection: " + collection.name)
-    active = func_object_utils.get_active_object()
-    targets = bpy.context.selected_objects
-    # 処理targetsから除外するオブジェクトの選択を外す
-    # 対象コレクションに属するオブジェクトと選択中オブジェクトの積集合
-    assigned_objs = list(set(collection.objects) & set(targets))
-    for obj in assigned_objs:
-        func_object_utils.deselect_all_objects()
-        temp_hide = obj.hide_get()
-        obj.hide_set(False)
-        func_object_utils.select_object(obj, True)
-        func_object_utils.set_active_object(obj)
-        if bpy.context.object.mode != 'OBJECT':
-            # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
-            bpy.ops.object.mode_set(mode='OBJECT')
-        # オブジェクトの子も除外対象に含める
-        func_object_utils.select_children_recursive()
-        children = bpy.context.selected_objects
-        for child in children:
-            if child in targets:
-                targets.remove(child)
-            if child == active:
-                active = None
-            print("Deselect: " + child.name)
-        obj.hide_set(temp_hide)
-    func_object_utils.deselect_all_objects()
-    func_object_utils.select_objects(targets, True)
-    if active is not None:
-        func_object_utils.set_active_object(active)
-
-
-# 選択オブジェクトを指定名のグループに入れたり外したり
-def assign_object_group(group_name, assign=True):
-    collection = find_collection(group_name)
-    if not collection:
-        if assign:
-            # コレクションが存在しなければ新規作成
-            collection = bpy.data.collections.new(name=group_name)
-            bpy.context.scene.collection.children.link(collection)
-        else:
-            # コレクションが存在せず、割り当てがfalseなら何もせず終了
-            return
-
-    # if not collection.name in bpy.context.scene.collection.children.keys():
-    # コレクションをLinkする。
-    # Unlink状態のコレクションでもPythonからは参照できてしまう場合があるようなので、確実にLink状態になるようにしておく
-    # bpy.context.scene.collection.children.link(collection)
-
-    active = func_object_utils.get_active_object()
-    targets = bpy.context.selected_objects
-    for obj in targets:
-        if assign:
-            func_object_utils.set_active_object(obj)
-            if obj.name not in collection.objects:
-                # コレクションに追加
-                collection.objects.link(obj)
-        else:
-            if obj.name in collection.objects:
-                # コレクションから外す
-                collection.objects.unlink(obj)
-
-    if not collection.objects:
-        # コレクションが空なら削除する
-        bpy.context.scene.collection.children.unlink(collection)
-
-    # アクティブオブジェクトを元に戻す
-    func_object_utils.set_active_object(active)
-
-
-def hide_collection(context, group_name, hide=True):
-    layer_col = find_layer_collection(group_name)
-    if layer_col:
-        layer_col.hide_viewport = hide
-
-
-### endregion ###
 
 def shapekey_util_is_found():
     try:
@@ -564,13 +395,13 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         # 常時エクスポートするオブジェクトを表示
         hide_temp_always_export = {}
-        layer_col_always_export = find_layer_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
+        layer_col_always_export = func_collection_utils.find_layer_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
         if layer_col_always_export:
             # layer_col_always_export.exclude = False
             # コレクションを表示
             layer_col_always_export.hide_viewport = False
             # オブジェクトの表示状態を記憶してから表示
-            collection = find_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
+            collection = func_collection_utils.find_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
             for obj in collection.objects:
                 hide_temp_always_export[obj] = obj.hide_get()
                 obj.hide_set(False)
@@ -592,7 +423,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             active_layer_collection = bpy.context.view_layer.active_layer_collection
             print("Active Collection: " + active_layer_collection.name)
             active_collection = active_layer_collection.collection
-            select_collection_only(
+            func_collection_utils.select_collection_only(
                 collection=active_collection,
                 include_children_objects=self.use_active_collection_children_objects,
                 include_children_collections=self.use_active_collection_children_collections,
@@ -600,10 +431,10 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             )
 
         # エクスポート除外コレクションを取得
-        ignore_collection = find_collection(consts.DONT_EXPORT_GROUP_NAME)
+        ignore_collection = func_collection_utils.find_collection(consts.DONT_EXPORT_GROUP_NAME)
         if ignore_collection:
             # 処理から除外するオブジェクトの選択を外す
-            deselect_collection(collection=ignore_collection)
+            func_collection_utils.deselect_collection(collection=ignore_collection)
 
         # 選択中オブジェクトを取得
         targets_source = bpy.context.selected_objects
@@ -731,11 +562,11 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 target_collections = bpy.context.scene.collection.children
             else:
                 # [0]はシーンコレクションなのでスキップ
-                target_collections = get_all_collections()[1:]
+                target_collections = func_collection_utils.get_all_collections()[1:]
             for collection in target_collections:
                 if any(collection.name in n for n in ignore_collections_name):
                     continue
-                objects = get_collection_objects(collection=collection,
+                objects = func_collection_utils.get_collection_objects(collection=collection,
                                                  include_children_collections=self.only_root_collection)
                 objects = objects & set(targets)
                 if not objects:
@@ -914,9 +745,9 @@ class OBJECT_OT_specials_assign_dont_export_group(bpy.types.Operator):
     assign: bpy.props.BoolProperty(name="Assign", default=True)
 
     def execute(self, context):
-        assign_object_group(group_name=consts.DONT_EXPORT_GROUP_NAME, assign=self.assign)
+        func_collection_utils.assign_object_group(group_name=consts.DONT_EXPORT_GROUP_NAME, assign=self.assign)
         # exclude_collection(context=context, group_name=DONT_EXPORT_GROUP_NAME, exclude=True)
-        hide_collection(context=context, group_name=consts.DONT_EXPORT_GROUP_NAME, hide=True)
+        func_collection_utils.hide_collection(context=context, group_name=consts.DONT_EXPORT_GROUP_NAME, hide=True)
         return {'FINISHED'}
 
 
@@ -930,9 +761,9 @@ class OBJECT_OT_specials_assign_always_export_group(bpy.types.Operator):
     assign: bpy.props.BoolProperty(name="Assign", default=True)
 
     def execute(self, context):
-        assign_object_group(group_name=consts.ALWAYS_EXPORT_GROUP_NAME, assign=self.assign)
+        func_collection_utils.assign_object_group(group_name=consts.ALWAYS_EXPORT_GROUP_NAME, assign=self.assign)
         # exclude_collection(context=context, group_name=ALWAYS_EXPORT_GROUP_NAME, exclude=True)
-        hide_collection(context=context, group_name=consts.ALWAYS_EXPORT_GROUP_NAME, hide=True)
+        func_collection_utils.hide_collection(context=context, group_name=consts.ALWAYS_EXPORT_GROUP_NAME, hide=True)
         return {'FINISHED'}
 
 
