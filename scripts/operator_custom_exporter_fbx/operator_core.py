@@ -313,11 +313,21 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             for scene in bpy.data.scenes:
                 bpy.context.window.scene = scene
                 print("Scene: " + scene.name)
-                func_execute_main.execute_main(self, context)
+                b = func_execute_main.execute_main(self, context)
+                if 'FINISHED' not in b:
+                    self.report({'ERROR'}, "エクスポートが中断されました。")
+                    return {'CANCELLED'}
             bpy.context.window.scene = temp_scene
+            self.report({'INFO'}, "エクスポートが完了しました。")
             return {'FINISHED'}
         else:
-            return func_execute_main.execute_main(self, context)
+            b = func_execute_main.execute_main(self, context)
+            if 'FINISHED' in b:
+                self.report({'INFO'}, "エクスポートが完了しました。")
+                return {'FINISHED'}
+            else:
+                self.report({'ERROR'}, "エクスポートが中断されました。")
+                return {'CANCELLED'}
 
 
 # ExportメニューにOperatorを登録
