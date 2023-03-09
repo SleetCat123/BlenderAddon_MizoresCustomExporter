@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from . import func_addon_link
+from .. import func_addon_link
 
 
 class MIZORE_FBX_PT_export_automerge(bpy.types.Panel):
