@@ -26,21 +26,7 @@ from bpy_extras.io_utils import (
     path_reference_mode,
     axis_conversion,
 )
-from . import consts, func_object_utils, func_name_utils, func_collection_utils
-
-
-def shapekey_util_is_found():
-    try:
-        return hasattr(bpy.types, bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon.idname())
-    except AttributeError:
-        return False
-
-
-def auto_merge_is_found():
-    try:
-        return hasattr(bpy.types, bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon.idname())
-    except AttributeError:
-        return False
+from . import consts, func_object_utils, func_name_utils, func_collection_utils, func_addon_link
 
 
 ### region AddonPreferences ###
@@ -498,7 +484,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             [obj.name for obj in bpy.context.selected_objects]) + "\nxxxxxxxxxxxxxxx")
 
         # ShapeKeysUtil連携
-        if shapekey_util_is_found():
+        if func_addon_link.shapekey_util_is_found():
             if self.enable_apply_modifiers_with_shapekeys and self.use_mesh_modifiers:
                 active = func_object_utils.get_active_object()
                 selected_objects = bpy.context.selected_objects
@@ -548,11 +534,11 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         # BatchMode用処理
         if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE_COLLECTION' or self.batch_mode == 'ACTIVE_SCENE_COLLECTION':
             ignore_collections_name = [consts.ALWAYS_EXPORT_GROUP_NAME, consts.DONT_EXPORT_GROUP_NAME]
-            if auto_merge_is_found():
+            if func_addon_link.auto_merge_is_found():
                 ignore_collections_name.append(bpy.types.WindowManager.mizore_automerge_collection_name)
 
             # ファイル名の途中に.fbxを入れるかどうか
-            if (self.batch_filename_contains_extension):
+            if self.batch_filename_contains_extension:
                 path_format = self.filepath + "_{0}.fbx"
             else:
                 path_format = os.path.splitext(self.filepath)[0] + "_{0}.fbx"
@@ -692,7 +678,7 @@ class MIZORE_FBX_PT_export_automerge(bpy.types.Panel):
         sfile = context.space_data
         operator = sfile.active_operator
 
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx" and auto_merge_is_found()
+        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx" and func_addon_link.auto_merge_is_found()
 
     def draw(self, context):
         layout = self.layout
@@ -716,7 +702,7 @@ class MIZORE_FBX_PT_export_shapekeysutil(bpy.types.Panel):
         sfile = context.space_data
         operator = sfile.active_operator
 
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx" and shapekey_util_is_found()
+        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx" and func_addon_link.shapekey_util_is_found()
 
     def draw(self, context):
         layout = self.layout
