@@ -24,7 +24,7 @@ class MIZORE_FBX_PT_export_armature(bpy.types.Panel):
     bl_region_type = 'TOOL_PROPS'
     bl_label = "Armature"
     bl_parent_id = "FILE_PT_operator"
-    bl_options = {'DEFAULT_CLOSED'}
+    # bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(cls, context):
