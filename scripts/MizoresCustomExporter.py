@@ -26,34 +26,9 @@ from bpy_extras.io_utils import (
     path_reference_mode,
     axis_conversion,
 )
-from . import consts, func_object_utils, func_name_utils, func_collection_utils, func_addon_link
+from . import consts, func_object_utils, func_name_utils, func_collection_utils, func_addon_link, preferences_scene
 
 
-### region AddonPreferences ###
-def set_prop_col_value(prop, key, value):
-    el = prop.get(key)
-    if el is None:
-        el = prop.add()
-        el.name = key
-    el.value = value
-
-
-class PR_IntPropertyCollection(bpy.types.PropertyGroup):
-    value: IntProperty(name="", default=0)
-
-
-class PR_StringPropertyCollection(bpy.types.PropertyGroup):
-    value: StringProperty(name="", default="")
-
-
-class PR_MizoreExporter_ScenePref(bpy.types.PropertyGroup):
-    export_str_props: CollectionProperty(type=PR_StringPropertyCollection)
-    export_int_props: CollectionProperty(type=PR_IntPropertyCollection)
-
-
-### endregion ###
-
-### region Export Operator ###
 # エクスポート
 @orientation_helper(axis_forward='-Z', axis_up='Y')
 class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
@@ -315,43 +290,6 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     enable_apply_modifiers_with_shapekeys: BoolProperty(name="Apply Modifier with Shape Keys", default=True)
     enable_separate_lr_shapekey: BoolProperty(name="Separate Shape Keys LR", default=True)
 
-    def load_scene_prefs(self):
-        # シーンから設定を読み込み
-        p_str = bpy.context.scene.mizore_exporter_prefs.export_str_props
-        print("prop(str): " + str(len(p_str)))
-        for i in range(len(p_str)):
-            prop = p_str[i]
-            key = prop.name
-            value = prop.value
-            print("load prop: " + key + ", " + str(value))
-            self.properties[key] = value
-
-        p_int = bpy.context.scene.mizore_exporter_prefs.export_int_props
-        print("prop(int): " + str(len(p_int)))
-        for i in range(len(p_int)):
-            prop = p_int[i]
-            key = prop.name
-            value = prop.value
-            print("load prop: " + key + ", " + str(value))
-            self.properties[key] = value
-
-    def save_scene_prefs(self):
-        # シーンに設定を保存
-        p_str = bpy.context.scene.mizore_exporter_prefs.export_str_props
-        p_int = bpy.context.scene.mizore_exporter_prefs.export_int_props
-        for key, value in self.properties.items():
-            t = type(value)
-            if t is str:
-                print("save prop: " + key + ", " + str(value) + ", " + str(type(value)))
-                set_prop_col_value(p_str, key, value)
-            elif t is int:
-                print("save prop: " + key + ", " + str(value) + ", " + str(type(value)))
-                set_prop_col_value(p_int, key, value)
-            else:
-                print("!!! save prop failed: " + key + ", " + str(value) + ", " + str(type(value)))
-        print("prop(str): " + str(len(p_str)))
-        print("prop(int): " + str(len(p_int)))
-
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
@@ -365,7 +303,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
     def invoke(self, context, event):
         # シーンから設定を読み込み
-        self.load_scene_prefs()
+        preferences_scene.load_scene_prefs(self)
         return super().invoke(context, event)
 
     def execute_main(self, context):
@@ -650,7 +588,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     def execute(self, context):
         # シーンに設定を保存
         if self.save_prefs:
-            self.save_scene_prefs()
+            preferences_scene.save_scene_prefs(self)
 
         if self.isvalid() == False:
             return {'CANCELLED'}
@@ -667,22 +605,13 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             return self.execute_main(context)
 
 
-### endregion ###
-
-### region Init Menu ###
 # ExportメニューにOperatorを登録
 def INFO_MT_file_custom_export_mizore_menu(self, context):
     self.layout.operator(INFO_MT_file_custom_export_mizore_fbx.bl_idname)
 
 
-### endregion ###
-
-### region Init ###
 classes = [
     INFO_MT_file_custom_export_mizore_fbx,
-
-    PR_StringPropertyCollection, PR_IntPropertyCollection,
-    PR_MizoreExporter_ScenePref,
 ]
 
 
@@ -690,7 +619,6 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.types.Scene.mizore_exporter_prefs = bpy.props.PointerProperty(type=PR_MizoreExporter_ScenePref)
     bpy.types.TOPBAR_MT_file_export.append(INFO_MT_file_custom_export_mizore_menu)
 
 
@@ -698,7 +626,5 @@ def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
-    bpy.types.Scene.mizore_exporter_prefs = None
     bpy.types.TOPBAR_MT_file_export.remove(INFO_MT_file_custom_export_mizore_menu)
 
-### endregion ###
