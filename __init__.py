@@ -32,7 +32,7 @@ bl_info = {
 imports = [
     "translations",
     "preferences_scene",
-    "MizoresCustomExporter",
+    "operator_custom_exporter_fbx",
     "panel_export_main",
     "panel_export_include",
     "panel_export_transform",
