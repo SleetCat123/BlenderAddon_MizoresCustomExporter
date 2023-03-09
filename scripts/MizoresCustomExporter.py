@@ -667,92 +667,6 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             return self.execute_main(context)
 
 
-class MIZORE_FBX_PT_export_automerge(bpy.types.Panel):
-    bl_space_type = 'FILE_BROWSER'
-    bl_region_type = 'TOOL_PROPS'
-    bl_label = "[Addon]Auto Merge"
-    bl_parent_id = "FILE_PT_operator"
-
-    @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx" and func_addon_link.auto_merge_is_found()
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
-
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        layout.prop(operator, "enable_auto_merge")
-
-
-class MIZORE_FBX_PT_export_shapekeysutil(bpy.types.Panel):
-    bl_space_type = 'FILE_BROWSER'
-    bl_region_type = 'TOOL_PROPS'
-    bl_label = "[Addon]ShapeKey Utils"
-    bl_parent_id = "FILE_PT_operator"
-
-    @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx" and func_addon_link.shapekey_util_is_found()
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
-
-        sfile = context.space_data
-        operator = sfile.active_operator
-
-        layout.prop(operator, "enable_apply_modifiers_with_shapekeys")
-        layout.prop(operator, "enable_separate_lr_shapekey")
-
-        box = layout.box()
-        box.label(text=bpy.app.translations.pgettext("box_warning_slow_method_1"))
-        box.label(text=bpy.app.translations.pgettext("box_warning_slow_method_2"))
-        box.label(text=bpy.app.translations.pgettext("box_warning_slow_method_3"))
-
-
-# 選択オブジェクトをDontExportグループに入れたり外したりするクラス
-class OBJECT_OT_specials_assign_dont_export_group(bpy.types.Operator):
-    bl_idname = "object.assign_dont_export_group"
-    bl_label = "Assign Don't-Export Group"
-    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + consts.DONT_EXPORT_GROUP_NAME + "”に入れたり外したりします"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    assign: bpy.props.BoolProperty(name="Assign", default=True)
-
-    def execute(self, context):
-        func_collection_utils.assign_object_group(group_name=consts.DONT_EXPORT_GROUP_NAME, assign=self.assign)
-        # exclude_collection(context=context, group_name=DONT_EXPORT_GROUP_NAME, exclude=True)
-        func_collection_utils.hide_collection(context=context, group_name=consts.DONT_EXPORT_GROUP_NAME, hide=True)
-        return {'FINISHED'}
-
-
-# 選択オブジェクトをAlwaysExportグループに入れたり外したりするクラス
-class OBJECT_OT_specials_assign_always_export_group(bpy.types.Operator):
-    bl_idname = "object.assign_always_export_group"
-    bl_label = "Assign Always-Export Group"
-    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + consts.ALWAYS_EXPORT_GROUP_NAME + "”に入れたり外したりします"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    assign: bpy.props.BoolProperty(name="Assign", default=True)
-
-    def execute(self, context):
-        func_collection_utils.assign_object_group(group_name=consts.ALWAYS_EXPORT_GROUP_NAME, assign=self.assign)
-        # exclude_collection(context=context, group_name=ALWAYS_EXPORT_GROUP_NAME, exclude=True)
-        func_collection_utils.hide_collection(context=context, group_name=consts.ALWAYS_EXPORT_GROUP_NAME, hide=True)
-        return {'FINISHED'}
-
-
 ### endregion ###
 
 ### region Init Menu ###
@@ -761,31 +675,11 @@ def INFO_MT_file_custom_export_mizore_menu(self, context):
     self.layout.operator(INFO_MT_file_custom_export_mizore_fbx.bl_idname)
 
 
-# 右クリックメニューにOperatorを登録
-def INFO_MT_object_mizores_exporter_menu(self, context):
-    self.layout.menu(VIEW3D_MT_object_mizores_exporter.bl_idname)
-
-
-class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
-    bl_label = "Mizore's Custom Exporter"
-    bl_idname = "VIEW3D_MT_object_mizores_exporter"
-
-    def draw(self, context):
-        self.layout.operator(OBJECT_OT_specials_assign_dont_export_group.bl_idname)
-        self.layout.operator(OBJECT_OT_specials_assign_always_export_group.bl_idname)
-
-
 ### endregion ###
 
 ### region Init ###
 classes = [
-    VIEW3D_MT_object_mizores_exporter,
     INFO_MT_file_custom_export_mizore_fbx,
-
-    MIZORE_FBX_PT_export_automerge, MIZORE_FBX_PT_export_shapekeysutil,
-
-    OBJECT_OT_specials_assign_dont_export_group,
-    OBJECT_OT_specials_assign_always_export_group,
 
     PR_StringPropertyCollection, PR_IntPropertyCollection,
     PR_MizoreExporter_ScenePref,
@@ -798,7 +692,6 @@ def register():
 
     bpy.types.Scene.mizore_exporter_prefs = bpy.props.PointerProperty(type=PR_MizoreExporter_ScenePref)
     bpy.types.TOPBAR_MT_file_export.append(INFO_MT_file_custom_export_mizore_menu)
-    bpy.types.VIEW3D_MT_object_context_menu.append(INFO_MT_object_mizores_exporter_menu)
 
 
 def unregister():
@@ -807,6 +700,5 @@ def unregister():
 
     bpy.types.Scene.mizore_exporter_prefs = None
     bpy.types.TOPBAR_MT_file_export.remove(INFO_MT_file_custom_export_mizore_menu)
-    bpy.types.VIEW3D_MT_object_context_menu.remove(INFO_MT_object_mizores_exporter_menu)
 
 ### endregion ###

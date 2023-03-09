@@ -38,6 +38,10 @@ imports = [
     "panel_export_geometry",
     "panel_export_armature",
     "panel_export_bake_animation",
+    "panel_export_automerge",
+    "panel_export_shapekeysutil",
+    "operator_assign_collection",
+    "menu_object_context",
 ]
 
 
