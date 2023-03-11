@@ -42,6 +42,7 @@ def get_all_collections():
     result = recursive_get_collections(bpy.context.scene.collection)
     return result
 
+
 def get_collection_objects(collection, include_children_collections):
     if collection is None: return []
     result = set(collection.objects)
@@ -99,7 +100,7 @@ def deselect_collection(collection):
     targets = bpy.context.selected_objects
     # 処理targetsから除外するオブジェクトの選択を外す
     # 対象コレクションに属するオブジェクトと選択中オブジェクトの積集合
-    assigned_objs = list(set(collection.objects) & set(targets))
+    assigned_objs = collection.objects
     for obj in assigned_objs:
         func_object_utils.deselect_all_objects()
         temp_hide = obj.hide_get()

@@ -51,9 +51,9 @@ def get_children_objects(obj):
 
 
 def select_children_recursive(targets=None):
-    def recursive(obj):
-        select_object(obj, True)
-        children = get_children_objects(obj)
+    def recursive(t):
+        select_object(t, True)
+        children = get_children_objects(t)
         for child in children:
             recursive(child)
 
