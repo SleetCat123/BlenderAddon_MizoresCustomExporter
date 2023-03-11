@@ -315,18 +315,26 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 print("Scene: " + scene.name)
                 b = func_execute_main.execute_main(self, context)
                 if 'FINISHED' not in b:
-                    self.report({'ERROR'}, "エクスポートが中断されました。")
+                    log = bpy.app.translations.pgettext("export_interrupted")
+                    print(log)
+                    self.report({'ERROR'}, log)
                     return {'CANCELLED'}
             bpy.context.window.scene = temp_scene
-            self.report({'INFO'}, "エクスポートが完了しました。")
+            log = bpy.app.translations.pgettext("export_completed")
+            print(log)
+            self.report({'INFO'}, log)
             return {'FINISHED'}
         else:
             b = func_execute_main.execute_main(self, context)
             if 'FINISHED' in b:
-                self.report({'INFO'}, "エクスポートが完了しました。")
+                log = bpy.app.translations.pgettext("export_completed")
+                print(log)
+                self.report({'INFO'}, log)
                 return {'FINISHED'}
             else:
-                self.report({'ERROR'}, "エクスポートが中断されました。")
+                log = bpy.app.translations.pgettext("export_interrupted")
+                print(log)
+                self.report({'ERROR'}, log)
                 return {'CANCELLED'}
 
 

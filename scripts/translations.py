@@ -42,6 +42,9 @@ translations_dict = {
                                  "Object: {1}\n"
                                  "Data Name: {2}\n"
                                  "({3}characters)",
+
+        ("*", "export_completed"): "Export completed.",
+        ("*", "export_interrupted"): "Export interrupted.",
     },
     "ja_JP": {
         ("*", "box_warning_slow_method_1"): "注意：",
@@ -58,6 +61,9 @@ translations_dict = {
                                  "オブジェクト: {1}\n"
                                  "{2}\n"
                                  "（{3}文字）",
+
+        ("*", "export_completed"): "エクスポートが完了しました。",
+        ("*", "export_interrupted"): "エクスポートが中断されました。",
     },
 }
 
