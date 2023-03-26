@@ -16,8 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import sys
-import importlib
 
 bl_info = {
     "name" : "MizoresCustomExporter",
@@ -29,47 +27,88 @@ bl_info = {
     "category" : "Import-Export"
 }
 
-imports = [
-    "translations",
-    "preferences_scene",
-    "operator_custom_exporter_fbx.operator_core",
-    "panel_export.panel_export_main",
-    "panel_export.panel_export_include",
-    "panel_export.panel_export_transform",
-    "panel_export.panel_export_geometry",
-    "panel_export.panel_export_armature",
-    "panel_export.panel_export_bake_animation",
-    "panel_export.panel_export_automerge",
-    "panel_export.panel_export_shapekeysutil",
-    "operator_assign_collection",
-    "menu_object_context",
+
+def reload():
+    import importlib
+    for file in files:
+        importlib.reload(file)
+
+
+try:
+    is_loaded
+    reload()
+except NameError:
+    from .scripts import (
+        consts,
+        func_addon_link,
+        func_collection_utils,
+        func_name_utils,
+        func_object_utils,
+        func_package_utils,
+        menu_object_context,
+        operator_assign_collection,
+        preferences_scene,
+        translations,
+    )
+    from .scripts.operator_custom_exporter_fbx import (
+        operator_core,
+        func_execute_main,
+        func_isvalid,
+    )
+    from .scripts.panel_export import (
+        panel_export_main,
+        panel_export_include,
+        panel_export_transform,
+        panel_export_geometry,
+        panel_export_armature,
+        panel_export_bake_animation,
+        panel_export_automerge,
+        panel_export_shapekeysutil,
+    )
+
+files = [
+    consts,
+    func_addon_link,
+    func_collection_utils,
+    func_name_utils,
+    func_object_utils,
+    func_package_utils,
+    menu_object_context,
+    operator_assign_collection,
+    preferences_scene,
+    translations,
+
+    operator_core,
+    func_execute_main,
+    func_isvalid,
+
+    panel_export_main,
+    panel_export_include,
+    panel_export_transform,
+    panel_export_geometry,
+    panel_export_armature,
+    panel_export_bake_animation,
+    panel_export_automerge,
+    panel_export_shapekeysutil,
 ]
 
-
-def reload_modules():
-    for name in imports:
-        module_full_name = f"{__package__}.scripts.{name}"
-        if module_full_name in sys.modules:
-            importlib.reload(sys.modules[module_full_name])
-        else:
-            importlib.import_module(module_full_name)
+is_loaded = False
 
 
 def register():
-    reload_modules()
-    for name in imports:
-        module_full_name = f"{__package__}.scripts.{name}"
-        module = sys.modules[module_full_name]
-        func = getattr(module, "register", None)
+    global is_loaded
+    if is_loaded:
+        reload()
+    for file in files:
+        func = getattr(file, "register", None)
         if callable(func):
             func()
+    is_loaded = True
 
 
 def unregister():
-    for name in imports:
-        module_full_name = f"{__package__}.scripts.{name}"
-        module = sys.modules[module_full_name]
-        func = getattr(module, "unregister", None)
+    for file in files:
+        func = getattr(file, "unregister", None)
         if callable(func):
             func()
 
