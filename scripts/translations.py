@@ -45,6 +45,9 @@ translations_dict = {
 
         ("*", "export_completed"): "Export completed.",
         ("*", "export_interrupted"): "Export interrupted.",
+        ("*", "custom_export_mizore_fbx.save_path.desc"):
+            "Export location is stored in the blend file.\n"
+            "!!! Please be careful if you plan to send blend file to others",
     },
     "ja_JP": {
         ("*", "box_warning_slow_method_1"): "注意：",
@@ -64,6 +67,9 @@ translations_dict = {
 
         ("*", "export_completed"): "エクスポートが完了しました。",
         ("*", "export_interrupted"): "エクスポートが中断されました。",
+        ("*", "custom_export_mizore_fbx.save_path.desc"):
+            "fbxの書き出し場所をblendファイルに記憶します。\n"
+            "!!! blendファイルを他人に送る予定がある方は注意して使用してください。",
     },
 }
 

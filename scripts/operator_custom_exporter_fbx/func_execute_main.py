@@ -25,15 +25,15 @@ from io_scene_fbx import export_fbx_bin
 
 
 def execute_main(operator, context):
-    modeTemp = None
+    mode_temp = None
     if bpy.context.object is not None:
         # 開始時のモードを記憶しオブジェクトモードに
-        modeTemp = bpy.context.object.mode
+        mode_temp = bpy.context.object.mode
         bpy.ops.object.mode_set(mode='OBJECT')
 
     # 現在の選択状況を記憶
-    activeTemp = func_object_utils.get_active_object()
-    selectedTemp = bpy.context.selected_objects
+    active_temp = func_object_utils.get_active_object()
+    selected_temp = bpy.context.selected_objects
 
     # 常時エクスポートするオブジェクトを表示
     hide_temp_always_export = {}
@@ -48,7 +48,7 @@ def execute_main(operator, context):
             hide_temp_always_export[obj] = obj.hide_get()
             obj.hide_set(False)
 
-    if operator.use_selection == False:
+    if not operator.use_selection:
         # Selected Objectsにチェックがついていないなら全オブジェクトを選択
         func_object_utils.select_all_objects()
 
@@ -233,7 +233,7 @@ def execute_main(operator, context):
         path = operator.filepath
         if operator.batch_mode == 'SCENE':
             # ファイル名にシーン名を追加
-            if (operator.batch_filename_contains_extension):
+            if operator.batch_filename_contains_extension:
                 path = f"{operator.filepath}_{bpy.context.scene.name}.fbx"
             else:
                 path = f"{os.path.splitext(operator.filepath)[0]}_{bpy.context.scene.name}.fbx"
@@ -262,8 +262,8 @@ def execute_main(operator, context):
 
     # 選択状況を処理前の状態に復元
     func_object_utils.deselect_all_objects()
-    func_object_utils.select_objects(selectedTemp, True)
-    # set_active_object(activeTemp)
+    func_object_utils.select_objects(selected_temp, True)
+    # set_active_object(active_temp)
 
     # オブジェクトのモードを復元
     for i in range(len(targets_source)):
@@ -271,10 +271,10 @@ def execute_main(operator, context):
         if m is not None:
             func_object_utils.set_active_object(targets_source[i])
             bpy.ops.object.mode_set(mode=m)
-    func_object_utils.set_active_object(activeTemp)
+    func_object_utils.set_active_object(active_temp)
 
-    if modeTemp is not None:
+    if mode_temp is not None:
         # 開始時のモードを復元
-        bpy.ops.object.mode_set(mode=modeTemp)
+        bpy.ops.object.mode_set(mode=mode_temp)
 
     return {'FINISHED'}

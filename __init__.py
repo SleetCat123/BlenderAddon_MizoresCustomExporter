@@ -47,6 +47,7 @@ except NameError:
         func_package_utils,
         menu_object_context,
         operator_assign_collection,
+        operator_remove_export_prefs,
         preferences_scene,
         translations,
     )
@@ -75,6 +76,7 @@ files = [
     func_package_utils,
     menu_object_context,
     operator_assign_collection,
+    operator_remove_export_prefs,
     preferences_scene,
     translations,
 

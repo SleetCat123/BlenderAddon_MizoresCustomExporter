@@ -270,6 +270,11 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     ######################################################
 
     save_prefs: BoolProperty(name="Save Settings", default=True)
+    save_path: BoolProperty(
+        name="Save Export Path",
+        default=False,
+        description=bpy.app.translations.pgettext("custom_export_mizore_fbx.save_path.desc")
+    )
 
     batch_filename_contains_extension: BoolProperty(name="Contains Extension", default=False)
 
@@ -284,6 +289,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     enable_apply_modifiers_with_shapekeys: BoolProperty(name="Apply Modifier with Shape Keys", default=True)
     enable_separate_lr_shapekey: BoolProperty(name="Separate Shape Keys LR", default=True)
 
+    scene = None
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
@@ -293,17 +300,27 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         operator = sfile.active_operator
 
         layout.label(text=self.bl_label)
+
         layout.prop(operator, "save_prefs")
+
+        row = layout.row(align=True)
+        row.enabled = operator.save_prefs
+        row.prop(operator, "save_path")
 
     def invoke(self, context, event):
         # シーンから設定を読み込み
         preferences_scene.load_scene_prefs(self)
+        self.scene = bpy.context.scene
         return super().invoke(context, event)
 
     def execute(self, context):
         # シーンに設定を保存
         if self.save_prefs:
-            preferences_scene.save_scene_prefs(self)
+            ignore_key = ["reset_path"]
+            if not self.save_path:
+                ignore_key.append("filepath")
+            preferences_scene.clear_export_props()
+            preferences_scene.save_scene_prefs(operator=self, ignore_key=ignore_key)
 
         if not func_isvalid.isvalid(self):
             return {'CANCELLED'}

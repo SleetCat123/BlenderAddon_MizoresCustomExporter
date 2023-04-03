@@ -41,6 +41,20 @@ def set_prop_col_value(prop, key, value):
     el.value = value
 
 
+def clear_export_props():
+    bpy.context.scene.mizore_exporter_prefs.export_str_props.clear()
+    bpy.context.scene.mizore_exporter_prefs.export_int_props.clear()
+    print("clear export props")
+
+
+def remove_str_prop(key: str):
+    prop = bpy.context.scene.mizore_exporter_prefs.export_str_props
+    index = prop.find(key)
+    if index != -1:
+        print("remove prop: " + key)
+        prop.remove(index)
+
+
 def load_scene_prefs(operator):
     # シーンから設定を読み込み
     p_str = bpy.context.scene.mizore_exporter_prefs.export_str_props
@@ -62,11 +76,14 @@ def load_scene_prefs(operator):
         operator.properties[key] = value
 
 
-def save_scene_prefs(operator):
+def save_scene_prefs(operator, ignore_key=[]):
     # シーンに設定を保存
     p_str = bpy.context.scene.mizore_exporter_prefs.export_str_props
     p_int = bpy.context.scene.mizore_exporter_prefs.export_int_props
     for key, value in operator.properties.items():
+        if key in ignore_key:
+            print("ignore prop: " + key)
+            continue
         t = type(value)
         if t is str:
             print("save prop: " + key + ", " + str(value) + ", " + str(type(value)))
