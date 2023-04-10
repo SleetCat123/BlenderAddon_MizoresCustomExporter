@@ -17,13 +17,13 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from . import preferences_scene
+from . import consts, preferences_scene
 
 
 class OBJECT_OT_mizore_remove_export_settings(bpy.types.Operator):
     bl_idname = "object.mizore_remove_export_settings"
     bl_label = "Remove Export Settings"
-    bl_description = ""
+    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -39,7 +39,7 @@ class OBJECT_OT_mizore_remove_export_settings(bpy.types.Operator):
 class OBJECT_OT_mizore_remove_export_path(bpy.types.Operator):
     bl_idname = "object.mizore_remove_export_path"
     bl_label = "Remove Export Path"
-    bl_description = ""
+    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):

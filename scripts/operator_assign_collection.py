@@ -24,7 +24,7 @@ from . import consts, func_collection_utils
 class OBJECT_OT_specials_assign_dont_export_group(bpy.types.Operator):
     bl_idname = "object.assign_dont_export_group"
     bl_label = "Assign Don't-Export Group"
-    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + consts.DONT_EXPORT_GROUP_NAME + "”に入れたり外したりします"
+    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
     bl_options = {'REGISTER', 'UNDO'}
 
     assign: bpy.props.BoolProperty(name="Assign", default=True)
@@ -40,7 +40,7 @@ class OBJECT_OT_specials_assign_dont_export_group(bpy.types.Operator):
 class OBJECT_OT_specials_assign_always_export_group(bpy.types.Operator):
     bl_idname = "object.assign_always_export_group"
     bl_label = "Assign Always-Export Group"
-    bl_description = "選択中のオブジェクトを\nオブジェクトグループ“" + consts.ALWAYS_EXPORT_GROUP_NAME + "”に入れたり外したりします"
+    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
     bl_options = {'REGISTER', 'UNDO'}
 
     assign: bpy.props.BoolProperty(name="Assign", default=True)
