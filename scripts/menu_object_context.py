@@ -33,6 +33,10 @@ class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
         layout = self.layout
         layout.operator(operator_assign_collection.OBJECT_OT_specials_assign_dont_export_group.bl_idname)
         layout.operator(operator_assign_collection.OBJECT_OT_specials_assign_always_export_group.bl_idname)
+        try:
+            layout.operator("object.automerge_assign_merge_group")
+        except:
+            pass
         layout.separator()
         layout.operator(operator_remove_export_prefs.OBJECT_OT_mizore_remove_export_settings.bl_idname)
         layout.operator(operator_remove_export_prefs.OBJECT_OT_mizore_remove_export_path.bl_idname)
