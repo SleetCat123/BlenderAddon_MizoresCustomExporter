@@ -138,11 +138,6 @@ def assign_object_group(group_name, assign=True):
             # コレクションが存在せず、割り当てがfalseなら何もせず終了
             return
 
-    # if not collection.name in bpy.context.scene.collection.children.keys():
-    # コレクションをLinkする。
-    # Unlink状態のコレクションでもPythonからは参照できてしまう場合があるようなので、確実にLink状態になるようにしておく
-    # bpy.context.scene.collection.children.link(collection)
-
     active = func_object_utils.get_active_object()
     targets = bpy.context.selected_objects
     for obj in targets:
@@ -159,6 +154,7 @@ def assign_object_group(group_name, assign=True):
     if not collection.objects:
         # コレクションが空なら削除する
         bpy.context.scene.collection.children.unlink(collection)
+        bpy.data.collections.remove(collection)
 
     # アクティブオブジェクトを元に戻す
     func_object_utils.set_active_object(active)
