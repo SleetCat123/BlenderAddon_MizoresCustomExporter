@@ -48,6 +48,7 @@ except NameError:
         menu_object_context,
         operator_assign_collection,
         operator_remove_export_prefs,
+        panel_assign_groups,
         preferences_scene,
         translations,
     )
@@ -77,6 +78,7 @@ files = [
     menu_object_context,
     operator_assign_collection,
     operator_remove_export_prefs,
+    panel_assign_groups,
     preferences_scene,
     translations,
 
