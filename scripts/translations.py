@@ -52,12 +52,12 @@ translations_dict = {
         ("*", "custom_export_mizore_fbx.save_path.desc"):
             "Export location is stored in the blend file.\n"
             "!!! Please be careful if you plan to send blend file to others",
-        ("*", assign_dont_export_group + consts.DESC):
-            f"Adds or removes currently selected objects to or from the collection {consts.DONT_EXPORT_GROUP_NAME}",
-        ("*", assign_always_export_group + consts.DESC):
-            f"Adds or removes currently selected objects to or from the collection {consts.ALWAYS_EXPORT_GROUP_NAME}",
-        ("*", remove_export_path + consts.DESC): "Remove export destination settings saved in this blend file",
-        ("*", remove_export_settings + consts.DESC): "Remove export settings saved in this blend file",
+        ("*", assign_dont_export_group.bl_idname + consts.DESC):
+            f"Assign or removes the selected object(s) to or from the collection \"{consts.DONT_EXPORT_GROUP_NAME}\"",
+        ("*", assign_always_export_group.bl_idname + consts.DESC):
+            f"Assign or removes the selected object(s) to or from the collection \"{consts.ALWAYS_EXPORT_GROUP_NAME}\"",
+        ("*", remove_export_path.bl_idname + consts.DESC): "Remove export destination settings saved in this blend file",
+        ("*", remove_export_settings.bl_idname + consts.DESC): "Remove export settings saved in this blend file",
     },
     "ja_JP": {
         ("*", "box_warning_slow_method_1"): "注意：",
@@ -80,12 +80,12 @@ translations_dict = {
         ("*", "custom_export_mizore_fbx.save_path.desc"):
             "fbxの書き出し場所をblendファイルに記憶します。\n"
             "!!! blendファイルを他人に送る予定がある方は注意して使用してください。",
-        ("*", assign_dont_export_group + consts.DESC):
+        ("*", assign_dont_export_group.bl_idname + consts.DESC):
             "選択中のオブジェクトを\nコレクション“" + consts.DONT_EXPORT_GROUP_NAME + "”に入れたり外したりします",
-        ("*", assign_always_export_group + consts.DESC):
+        ("*", assign_always_export_group.bl_idname + consts.DESC):
             "選択中のオブジェクトを\nコレクション" + consts.ALWAYS_EXPORT_GROUP_NAME + "”に入れたり外したりします",
-        ("*", remove_export_path + consts.DESC): "現在のblendファイルに保存されているエクスポート先の設定を削除します",
-        ("*", remove_export_settings + consts.DESC): "現在のblendファイルに保存されているエクスポート設定を削除します",
+        ("*", remove_export_path.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート先の設定を削除します",
+        ("*", remove_export_settings.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート設定を削除します",
     },
 }
 

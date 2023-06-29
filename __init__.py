@@ -49,6 +49,7 @@ except NameError:
         operator_assign_collection,
         operator_remove_export_prefs,
         panel_assign_groups,
+        panel_object_list,
         preferences_scene,
         translations,
     )
@@ -79,6 +80,7 @@ files = [
     operator_assign_collection,
     operator_remove_export_prefs,
     panel_assign_groups,
+    panel_object_list,
     preferences_scene,
     translations,
 
