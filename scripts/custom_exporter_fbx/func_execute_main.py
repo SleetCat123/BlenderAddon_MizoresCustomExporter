@@ -18,9 +18,9 @@
 
 import os
 import bpy
-from ... import consts
-from ..funcs.utils import func_object_utils, func_name_utils, func_collection_utils
-from ..funcs import func_addon_link
+from .. import consts
+from ..funcs.utils import func_object_utils, func_collection_utils
+from ..funcs import func_addon_link, func_name_utils
 from bpy_extras.io_utils import axis_conversion
 from mathutils import Matrix
 from io_scene_fbx import export_fbx_bin
