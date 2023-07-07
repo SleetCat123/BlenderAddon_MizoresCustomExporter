@@ -19,9 +19,19 @@
 import bpy
 
 
-def get_package_root():
-    return __package__[:__package__.find('.')]
+def shapekey_util_label(layout):
+    layout.label(text='ShapeKey Utils')
 
 
-def get_addon_prefs():
-    return bpy.context.preferences.addons[get_package_root()].preferences
+def box_warning_slow_method(layout):
+    box = layout.box()
+    box.label(text=bpy.app.translations.pgettext("box_warning_slow_method_1"))
+    box.label(text=bpy.app.translations.pgettext("box_warning_slow_method_2"))
+    box.label(text=bpy.app.translations.pgettext("box_warning_slow_method_3"))
+
+
+def box_warning_read_pref(layout):
+    box = layout.box()
+    box.label(text=bpy.app.translations.pgettext("box_warning_read_pref_1"))
+    box.label(text=bpy.app.translations.pgettext("box_warning_read_pref_2"))
+    box.label(text=bpy.app.translations.pgettext("box_warning_read_pref_3"))

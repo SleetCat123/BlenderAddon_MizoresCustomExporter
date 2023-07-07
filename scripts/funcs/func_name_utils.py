@@ -16,7 +16,7 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-from ... import consts
+from .. import consts
 
 
 def add_suffix(obj):

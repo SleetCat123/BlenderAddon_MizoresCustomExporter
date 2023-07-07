@@ -39,14 +39,33 @@ def get_active_object():
 
 
 def set_active_object(obj):
+    # try:
     bpy.context.view_layer.objects.active = obj
+    # except ReferenceError:
+    #    print("removed")
 
 
-def get_children_objects(obj):
+def get_children_objects(obj, only_current_view_layer: bool = True):
+    all_objects = bpy.data.objects
+    if only_current_view_layer:
+        current_layer_objects_name = bpy.context.window.view_layer.objects.keys()
+        return [child for child in all_objects if
+                child.parent == obj and child.name in current_layer_objects_name]
+    else:
+        return [child for child in all_objects if child.parent == obj]
+
+
+def get_children_recursive(targets, only_current_view_layer: bool = True):
     result = []
-    for ob in bpy.data.objects:
-        if ob.parent == obj:
-            result.append(ob)
+
+    def recursive(t):
+        result.append(t)
+        children = get_children_objects(t, only_current_view_layer)
+        for child in children:
+            recursive(child)
+
+    for obj in targets:
+        recursive(obj)
     return result
 
 
@@ -126,3 +145,24 @@ def remove_objects(targets=None):
 
     for obj in targets:
         remove_object(target=obj)
+
+
+def get_selected_root_objects():
+    selected_objects = bpy.context.selected_objects
+    not_root = []
+    root_objects = []
+    for obj in selected_objects:
+        if obj in not_root:
+            continue
+        parent = obj
+        while True:
+            parent = parent.parent
+            print(parent)
+            if parent is None:
+                # 親以上のオブジェクトに選択中オブジェクトが存在しなければ、そのオブジェクトはrootとなる
+                root_objects.append(obj)
+                break
+            if parent in selected_objects:
+                not_root.append(parent)
+                break
+    return root_objects

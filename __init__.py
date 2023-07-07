@@ -44,12 +44,15 @@ except NameError:
         preferences_scene,
         translations,
     )
-    from .scripts.funcs import (
-        func_addon_link,
+    from .scripts.funcs.utils import (
         func_collection_utils,
-        func_name_utils,
         func_object_utils,
         func_package_utils,
+        func_ui_utils,
+    )
+    from .scripts.funcs import (
+        func_addon_link,
+        func_name_utils,
     )
     from .scripts.ops import (
         op_assign_collection,
