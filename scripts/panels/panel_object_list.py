@@ -1,6 +1,6 @@
 import bpy, operator
 from bpy.props import StringProperty, PointerProperty, EnumProperty, BoolProperty
-from . import consts, func_object_utils, func_collection_utils
+from ..funcs import func_object_utils, func_collection_utils
 
 
 class OBJECT_OT_mizore_automerge_assign_group(bpy.types.Operator):

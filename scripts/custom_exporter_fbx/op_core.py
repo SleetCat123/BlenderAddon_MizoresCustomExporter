@@ -17,9 +17,9 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from bpy.props import StringProperty, BoolProperty, IntProperty, FloatProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty
 from bpy_extras.io_utils import ExportHelper, orientation_helper, path_reference_mode
-from .. import preferences_scene
+from ... import preferences_scene
 from . import func_execute_main, func_isvalid
 
 

@@ -40,25 +40,31 @@ try:
 except NameError:
     from .scripts import (
         consts,
+        menu_object_context,
+        preferences_scene,
+        translations,
+    )
+    from .scripts.funcs import (
         func_addon_link,
         func_collection_utils,
         func_name_utils,
         func_object_utils,
         func_package_utils,
-        menu_object_context,
-        operator_assign_collection,
-        operator_remove_export_prefs,
-        panel_assign_groups,
-        panel_object_list,
-        preferences_scene,
-        translations,
     )
-    from .scripts.operator_custom_exporter_fbx import (
-        operator_core,
+    from .scripts.ops import (
+        op_assign_collection,
+        op_remove_export_prefs,
+    )
+    from .scripts.panels import (
+        panel_object_list,
+        panel_assign_groups,
+    )
+    from .scripts.custom_exporter_fbx import (
+        op_core,
         func_execute_main,
         func_isvalid,
     )
-    from .scripts.panel_export import (
+    from .scripts.panels.export_fbx import (
         panel_export_main,
         panel_export_include,
         panel_export_transform,
@@ -77,14 +83,14 @@ files = [
     func_object_utils,
     func_package_utils,
     menu_object_context,
-    operator_assign_collection,
-    operator_remove_export_prefs,
+    op_assign_collection,
+    op_remove_export_prefs,
     panel_assign_groups,
     panel_object_list,
     preferences_scene,
     translations,
 
-    operator_core,
+    op_core,
     func_execute_main,
     func_isvalid,
 

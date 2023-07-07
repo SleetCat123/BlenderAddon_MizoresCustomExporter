@@ -44,7 +44,8 @@ def get_all_collections():
 
 
 def get_collection_objects(collection, include_children_collections):
-    if collection is None: return []
+    if collection is None:
+        return []
     result = set(collection.objects)
     if include_children_collections:
         cols = recursive_get_collections(collection)

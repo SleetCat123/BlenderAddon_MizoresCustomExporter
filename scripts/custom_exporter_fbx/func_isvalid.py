@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from .. import consts
+from ... import consts
 
 
 def isvalid(operator):

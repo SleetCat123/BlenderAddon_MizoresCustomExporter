@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import StringProperty, PointerProperty, EnumProperty, BoolProperty
-from . import operator_assign_collection
+from ..ops import op_assign_collection
 
 
 class OBJECT_PT_mizores_custom_exporter_group_panel(bpy.types.Panel):
@@ -13,16 +13,16 @@ class OBJECT_PT_mizores_custom_exporter_group_panel(bpy.types.Panel):
         layout = self.layout
 
         layout.label(text="Assign")
-        layout.operator(operator_assign_collection.OBJECT_OT_specials_assign_dont_export_group.bl_idname).assign = True
-        layout.operator(operator_assign_collection.OBJECT_OT_specials_assign_always_export_group.bl_idname).assign = True
+        layout.operator(op_assign_collection.OBJECT_OT_specials_assign_dont_export_group.bl_idname).assign = True
+        layout.operator(op_assign_collection.OBJECT_OT_specials_assign_always_export_group.bl_idname).assign = True
         try:
             layout.operator("object.automerge_assign_merge_group").assign = True
         except:
             pass
 
         layout.label(text="Remove")
-        layout.operator(operator_assign_collection.OBJECT_OT_specials_assign_dont_export_group.bl_idname).assign = False
-        layout.operator(operator_assign_collection.OBJECT_OT_specials_assign_always_export_group.bl_idname).assign = False
+        layout.operator(op_assign_collection.OBJECT_OT_specials_assign_dont_export_group.bl_idname).assign = False
+        layout.operator(op_assign_collection.OBJECT_OT_specials_assign_always_export_group.bl_idname).assign = False
         try:
             layout.operator("object.automerge_assign_merge_group").assign = False
         except:
