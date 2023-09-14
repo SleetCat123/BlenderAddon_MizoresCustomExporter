@@ -50,15 +50,24 @@ translations_dict = {
 
         ("*", "export_completed"): "Export completed.",
         ("*", "export_interrupted"): "Export interrupted.",
+
         ("*", "custom_export_mizore_fbx.save_path.desc"):
             "Export location is stored in the blend file.\n"
-            "!!! Please be careful if you plan to send blend file to others",
+            "!!! Please be careful if you plan to send blend file to others"
+            f"If you want to delete the saved path, execute {remove_export_path.bl_label}.\n",
+        ("*", "custom_export_mizore_fbx.save_prefs.desc"):
+            "Export settings are saved in a blend file.\n"
+            f"If you want to delete the saved settings, execute {remove_export_settings.bl_label}.\n",
+
         ("*", assign_dont_export_group.bl_idname + consts.DESC):
             f"Assign or removes the selected object(s) to or from the collection \"{consts.DONT_EXPORT_GROUP_NAME}\"",
         ("*", assign_always_export_group.bl_idname + consts.DESC):
             f"Assign or removes the selected object(s) to or from the collection \"{consts.ALWAYS_EXPORT_GROUP_NAME}\"",
         ("*", remove_export_path.bl_idname + consts.DESC): "Remove export destination settings saved in this blend file",
         ("*", remove_export_settings.bl_idname + consts.DESC): "Remove export settings saved in this blend file",
+
+        ("*", "mizores_custom_exporter_group_panel_assign"): "Add to group",
+        ("*", "mizores_custom_exporter_group_panel_remove"): "Remove from group",
     },
     "ja_JP": {
         ("*", "box_warning_slow_method_1"): "注意：",
@@ -78,15 +87,25 @@ translations_dict = {
 
         ("*", "export_completed"): "エクスポートが完了しました。",
         ("*", "export_interrupted"): "エクスポートが中断されました。",
+
         ("*", "custom_export_mizore_fbx.save_path.desc"):
             "fbxの書き出し場所をblendファイルに記憶します。\n"
-            "!!! blendファイルを他人に送る予定がある方は注意して使用してください。",
+            "!!! blendファイルを他人に送る予定がある方は注意して使用してください。"
+            f"保存された設定を削除したい場合は {remove_export_path.bl_label} を実行してください。\n",
+
+        ("*", "custom_export_mizore_fbx.save_prefs.desc"): 
+            "エクスポート設定をblendファイルに保存します。"
+            f"保存された設定を削除したい場合は {remove_export_settings.bl_label} を実行してください。\n",
+
         ("*", assign_dont_export_group.bl_idname + consts.DESC):
             "選択中のオブジェクトを\nコレクション“" + consts.DONT_EXPORT_GROUP_NAME + "”に入れたり外したりします",
         ("*", assign_always_export_group.bl_idname + consts.DESC):
             "選択中のオブジェクトを\nコレクション" + consts.ALWAYS_EXPORT_GROUP_NAME + "”に入れたり外したりします",
         ("*", remove_export_path.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート先の設定を削除します",
         ("*", remove_export_settings.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート設定を削除します",
+
+        ("*", "mizores_custom_exporter_group_panel_assign"): "グループに追加",
+        ("*", "mizores_custom_exporter_group_panel_remove"): "グループから削除",
     },
 }
 

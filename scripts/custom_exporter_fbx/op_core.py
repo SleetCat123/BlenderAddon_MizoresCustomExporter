@@ -269,7 +269,11 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     # endregion
     ######################################################
 
-    save_prefs: BoolProperty(name="Save Settings", default=True)
+    save_prefs: BoolProperty(
+        name="Save Settings",
+        default=True,
+        description=bpy.app.translations.pgettext("custom_export_mizore_fbx.save_prefs.desc")
+    )
     save_path: BoolProperty(
         name="Save Export Path",
         default=False,

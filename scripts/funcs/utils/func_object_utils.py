@@ -166,3 +166,21 @@ def get_selected_root_objects():
                 not_root.append(parent)
                 break
     return root_objects
+
+
+def duplicate_object(obj: bpy.types.Object):
+    temp_objects = bpy.context.selected_objects
+    temp_active = get_active_object()
+    deselect_all_objects()
+    select_object(obj, True)
+    bpy.ops.object.duplicate()
+    result = get_active_object()
+    set_active_object(temp_active)
+    select_objects(temp_objects, True)
+    return result
+
+
+def set_object_name(obj, name):
+    obj.name = name
+    if obj.data:
+        obj.data.name = name
