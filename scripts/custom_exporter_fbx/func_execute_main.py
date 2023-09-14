@@ -24,6 +24,7 @@ from ..funcs import func_addon_link, func_name_utils
 from bpy_extras.io_utils import axis_conversion
 from mathutils import Matrix
 from io_scene_fbx import export_fbx_bin
+from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 
 
 def execute_main(operator, context):
@@ -193,18 +194,14 @@ def execute_main(operator, context):
         if func_addon_link.auto_merge_is_found():
             ignore_collections_name.append(bpy.types.WindowManager.mizore_automerge_collection_name)
 
-        # ファイル名の途中に.fbxを入れるかどうか
-        if operator.batch_filename_contains_extension:
-            path_format = operator.filepath + "_{0}.fbx"
-        else:
-            path_format = os.path.splitext(operator.filepath)[0] + "_{0}.fbx"
-        targets = bpy.context.selected_objects
         if operator.only_root_collection:
             # Scene Collection直下だけを対象とする
             target_collections = bpy.context.scene.collection.children
         else:
             # [0]はシーンコレクションなのでスキップ
             target_collections = func_collection_utils.get_all_collections()[1:]
+
+        targets = bpy.context.selected_objects
         for collection in target_collections:
             if any(collection.name in n for n in ignore_collections_name):
                 continue
@@ -216,16 +213,22 @@ def execute_main(operator, context):
             func_object_utils.deselect_all_objects()
             func_object_utils.select_objects(objects, True)
             # パス設定
-            path = path_format.format(collection.name)
-            path.replace(' ', '_')
+            path = BatchExportFilepathFormatData.convert_filename_format(
+                format_str=operator.batch_filename_format,
+                file=operator.filepath,
+                batch=collection.name
+            )
             keywords["filepath"] = path
             print("export: " + path)
             export_fbx_bin.save(operator, context, **keywords)
         # Scene Collection書き出し
         if operator.batch_mode == 'SCENE_COLLECTION' or operator.batch_mode == 'ACTIVE_SCENE_COLLECTION':
             # パス設定
-            path = path_format.format(f"{bpy.context.scene.name}_Scene_Collection")
-            path.replace(' ', '_')
+            path = BatchExportFilepathFormatData.convert_filename_format(
+                format_str=operator.batch_filename_format,
+                file=operator.filepath,
+                batch=f"{bpy.context.scene.name}_Scene_Collection"
+            )
             keywords["filepath"] = path
             print("export: " + path)
             func_object_utils.deselect_all_objects()
@@ -234,12 +237,12 @@ def execute_main(operator, context):
     elif operator.batch_mode == 'OFF' or operator.batch_mode == 'SCENE':
         path = operator.filepath
         if operator.batch_mode == 'SCENE':
-            # ファイル名にシーン名を追加
-            if operator.batch_filename_contains_extension:
-                path = f"{operator.filepath}_{bpy.context.scene.name}.fbx"
-            else:
-                path = f"{os.path.splitext(operator.filepath)[0]}_{bpy.context.scene.name}.fbx"
-            path.replace(' ', '_')
+            # ファイル名を変換
+            path = BatchExportFilepathFormatData.convert_filename_format(
+                format_str=operator.batch_filename_format,
+                file=operator.filepath,
+                batch=bpy.context.scene.name
+            )
             keywords["filepath"] = path
         print("export: " + path)
         export_fbx_bin.save(operator, context, **keywords)

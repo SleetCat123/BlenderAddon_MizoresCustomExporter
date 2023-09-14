@@ -17,6 +17,8 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
+from ...custom_exporter_fbx.BatchExportFilepathFormatData import BatchExportFilepathFormatData
+import os
 
 
 class MIZORE_FBX_PT_export_main(bpy.types.Panel):
@@ -53,16 +55,29 @@ class MIZORE_FBX_PT_export_main(bpy.types.Panel):
         sub.prop(operator, "use_batch_own_dir", text="", icon='NEWFOLDER')
 
         row = layout.row(align=True)
-        row.enabled = (operator.batch_mode != 'OFF')
-        row.prop(operator, "batch_filename_contains_extension")
-
-        row = layout.row(align=True)
         row.enabled = (
                 operator.batch_mode == 'COLLECTION' or
                 operator.batch_mode == 'SCENE_COLLECTION' or
                 operator.batch_mode == 'ACTIVE_SCENE_COLLECTION'
         )
         row.prop(operator, "only_root_collection")
+
+        BatchExportFilepathFormatData.update_batch_filename_format(operator)
+        use_batch = (operator.batch_mode != 'OFF')
+        sub = layout.column(heading="Batch Filename Format")
+        sub.enabled = use_batch
+        row = sub.row(align=True)
+        row.prop(operator, "batch_filename_format")
+        row = sub.row(align=True)
+        row.prop(operator, "batch_filename_format_presets")
+        if use_batch:
+            row = sub.row(align=True)
+            preview = BatchExportFilepathFormatData.convert_filename_format(
+                format_str=bpy.path.basename(operator.batch_filename_format),
+                file=operator.filepath,
+                batch="BATCH"
+            )
+            row.label(text=preview)
 
 
 def register():

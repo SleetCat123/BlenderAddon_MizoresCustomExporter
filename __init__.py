@@ -66,6 +66,7 @@ except NameError:
         op_core,
         func_execute_main,
         func_isvalid,
+        BatchExportFilepathFormatData,
     )
     from .scripts.panels.export_fbx import (
         panel_export_main,
@@ -96,6 +97,7 @@ files = [
     op_core,
     func_execute_main,
     func_isvalid,
+    BatchExportFilepathFormatData,
 
     panel_export_main,
     panel_export_include,

@@ -21,6 +21,7 @@ from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty
 from bpy_extras.io_utils import ExportHelper, orientation_helper, path_reference_mode
 from .. import preferences_scene
 from . import func_execute_main, func_isvalid
+from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 
 
 # エクスポート
@@ -62,7 +63,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         default=True,
     )
     apply_scale_options: EnumProperty(
-        items=(('FBX_SCALE_NONE', "All Local",
+        items=[('FBX_SCALE_NONE', "All Local",
                 "Apply custom scaling and units scaling to each object transformation, FBX scale remains at 1.0"),
                ('FBX_SCALE_UNITS', "FBX Units Scale",
                 "Apply custom scaling to each object transformation, and units scaling to FBX scale"),
@@ -70,7 +71,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 "Apply custom scaling to FBX scale, and units scaling to each object transformation"),
                ('FBX_SCALE_ALL', "FBX All",
                 "Apply custom scaling and units scaling to FBX scale"),
-               ),
+               ],
         name="Apply Scalings",
         description="How to apply custom and units scalings in generated FBX file "
                     "(Blender uses FBX scale to detect units on import, "
@@ -95,13 +96,13 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     object_types: EnumProperty(
         name="Object Types",
         options={'ENUM_FLAG'},
-        items=(('EMPTY', "Empty", ""),
+        items=[('EMPTY', "Empty", ""),
                ('CAMERA', "Camera", ""),
                ('LIGHT', "Lamp", ""),
                ('ARMATURE', "Armature", "WARNING: not supported in dupli/group instances"),
                ('MESH', "Mesh", ""),
                ('OTHER', "Other", "Other geometry types, like curve, metaball, etc. (converted to meshes)"),
-               ),
+               ],
         description="Which kind of object to export",
         default={'ARMATURE', 'MESH'},
     )  # デフォルト値を{'ARMATURE', 'MESH'}に変更
@@ -119,10 +120,10 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     # )
     mesh_smooth_type: EnumProperty(
         name="Smoothing",
-        items=(('OFF', "Normals Only", "Export only normals instead of writing edge or face smoothing data"),
+        items=[('OFF', "Normals Only", "Export only normals instead of writing edge or face smoothing data"),
                ('FACE', "Face", "Write face smoothing"),
                ('EDGE', "Edge", "Write edge smoothing"),
-               ),
+               ],
         description="Export smoothing information "
                     "(prefer 'Normals Only' option if your target importer understand split normals)",
         default='OFF',
@@ -157,24 +158,24 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     )
     primary_bone_axis: EnumProperty(
         name="Primary Bone Axis",
-        items=(('X', "X Axis", ""),
+        items=[('X', "X Axis", ""),
                ('Y', "Y Axis", ""),
                ('Z', "Z Axis", ""),
                ('-X', "-X Axis", ""),
                ('-Y', "-Y Axis", ""),
                ('-Z', "-Z Axis", ""),
-               ),
+               ],
         default='Y',
     )
     secondary_bone_axis: EnumProperty(
         name="Secondary Bone Axis",
-        items=(('X', "X Axis", ""),
+        items=[('X', "X Axis", ""),
                ('Y', "Y Axis", ""),
                ('Z', "Z Axis", ""),
                ('-X', "-X Axis", ""),
                ('-Y', "-Y Axis", ""),
                ('-Z', "-Z Axis", ""),
-               ),
+               ],
         default='X',
     )
     use_armature_deform_only: BoolProperty(
@@ -184,10 +185,10 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     )
     armature_nodetype: EnumProperty(
         name="Armature FBXNode Type",
-        items=(('NULL', "Null", "'Null' FBX node, similar to Blender's Empty (default)"),
+        items=[('NULL', "Null", "'Null' FBX node, similar to Blender's Empty (default)"),
                ('ROOT', "Root", "'Root' FBX node, supposed to be the root of chains of bones..."),
                ('LIMBNODE', "LimbNode", "'LimbNode' FBX node, a regular joint between two bones..."),
-               ),
+               ],
         description="FBX type of node (object) used to represent Blender's armatures "
                     "(use Null one unless you experience issues with other app, other choices may no import back "
                     "perfectly in Blender...)",
@@ -244,7 +245,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     )
     batch_mode: EnumProperty(
         name="Batch Mode",
-        items=(('OFF', "Off", "Active scene to file"),
+        items=[('OFF', "Off", "Active scene to file"),
                ('SCENE', "Scene", "Each scene as a file"),
                ('COLLECTION', "Collection",
                 "Each collection (data-block ones) as a file, does not include content of children collections"),
@@ -254,7 +255,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                ('ACTIVE_SCENE_COLLECTION', "Active Scene Collections",
                 "Each collection (including master, non-data-block one) of the active scene as a file, "
                 "including content from children collections"),
-               ),
+               ],
     )
     use_batch_own_dir: BoolProperty(
         name="Batch Own Dir",
@@ -280,7 +281,18 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         description=bpy.app.translations.pgettext("custom_export_mizore_fbx.save_path.desc")
     )
 
-    batch_filename_contains_extension: BoolProperty(name="Contains Extension", default=False)
+    batch_filename_format_presets: EnumProperty(
+        name="",
+        items=[
+            ('CUSTOM', "Custom", ""),
+            (BatchExportFilepathFormatData.batch_file_format_fbx, BatchExportFilepathFormatData.batch_file_format_fbx + ".fbx", ""),
+            (BatchExportFilepathFormatData.batch_file_format_default, BatchExportFilepathFormatData.batch_file_format_default + ".fbx", ""),
+        ],
+    )
+    batch_filename_format: StringProperty(
+        name="",
+        default=BatchExportFilepathFormatData.batch_file_format_default,
+    )
 
     use_selection_children_objects: BoolProperty(name="Include Children Objects", default=False)
     use_active_collection_children_objects: BoolProperty(name="Include Children Objects", default=False)
