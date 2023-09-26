@@ -189,10 +189,17 @@ def execute_main(operator, context):
     #
 
     # BatchMode用処理
+    # TODO: このへんの挙動を調べる
     if operator.batch_mode == 'COLLECTION' or operator.batch_mode == 'SCENE_COLLECTION' or operator.batch_mode == 'ACTIVE_SCENE_COLLECTION':
         ignore_collections_name = [consts.ALWAYS_EXPORT_GROUP_NAME, consts.DONT_EXPORT_GROUP_NAME]
         if func_addon_link.auto_merge_is_found():
-            ignore_collections_name.append(bpy.types.WindowManager.mizore_automerge_collection_name)
+            automerge_collection_name = bpy.types.WindowManager.mizore_automerge_collection_name
+            print(f"AutoMerge Collection Name: {automerge_collection_name}")
+            ignore_collections_name.append(automerge_collection_name)
+
+            dont_merge_to_parent_c_name = bpy.types.WindowManager.mizore_automerge_dont_merge_to_parent_collection_name
+            print(f"Don'tMergeToParent Collection Name: {dont_merge_to_parent_c_name}")
+            ignore_collections_name.append(dont_merge_to_parent_c_name)
 
         if operator.only_root_collection:
             # Scene Collection直下だけを対象とする
