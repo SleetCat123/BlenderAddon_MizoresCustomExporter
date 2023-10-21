@@ -15,6 +15,10 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
+import importlib
+import os
+import re
+from glob import glob
 
 
 bl_info = {
@@ -27,107 +31,47 @@ bl_info = {
     "category" : "Import-Export"
 }
 
-
-def reload():
-    import importlib
-    for file in files:
-        importlib.reload(file)
+loaded_modules = {}
 
 
-try:
-    is_loaded
-    reload()
-except NameError:
-    from .scripts import (
-        consts,
-        menu_object_context,
-        preferences_scene,
-        translations,
-    )
-    from .scripts.funcs.utils import (
-        func_collection_utils,
-        func_object_utils,
-        func_package_utils,
-        func_ui_utils,
-    )
-    from .scripts.funcs import (
-        func_addon_link,
-        func_name_utils,
-    )
-    from .scripts.ops import (
-        op_assign_collection,
-        op_remove_export_prefs,
-    )
-    from .scripts.panels import (
-        panel_object_list,
-        panel_assign_groups,
-    )
-    from .scripts.custom_exporter_fbx import (
-        op_core,
-        func_execute_main,
-        func_isvalid,
-        BatchExportFilepathFormatData,
-    )
-    from .scripts.panels.export_fbx import (
-        panel_export_main,
-        panel_export_include,
-        panel_export_transform,
-        panel_export_geometry,
-        panel_export_armature,
-        panel_export_bake_animation,
-        panel_export_automerge,
-        panel_export_shapekeysutil,
-    )
+def register_module(module):
+    func = getattr(module, "register", None)
+    if callable(func):
+        func()
 
-files = [
-    consts,
-    func_addon_link,
-    func_collection_utils,
-    func_name_utils,
-    func_object_utils,
-    func_package_utils,
-    menu_object_context,
-    op_assign_collection,
-    op_remove_export_prefs,
-    panel_assign_groups,
-    panel_object_list,
-    preferences_scene,
-    translations,
 
-    op_core,
-    func_execute_main,
-    func_isvalid,
-    BatchExportFilepathFormatData,
-
-    panel_export_main,
-    panel_export_include,
-    panel_export_transform,
-    panel_export_geometry,
-    panel_export_armature,
-    panel_export_bake_animation,
-    panel_export_automerge,
-    panel_export_shapekeysutil,
-]
-
-is_loaded = False
+def unregister_module(module):
+    func = getattr(module, "unregister", None)
+    if callable(func):
+        func()
 
 
 def register():
-    global is_loaded
-    if is_loaded:
-        reload()
-    for file in files:
-        func = getattr(file, "register", None)
-        if callable(func):
-            func()
-    is_loaded = True
+    path = os.path.dirname(__file__)
+    # print(path)
+    module_files = glob(f'{path}/scripts/**/*.py', recursive=True)
+    regex = re.compile(r"[\\/]")
+    module_names = [regex.sub('.', p[len(path):-3]) for p in module_files]
+    # print(module_names)
+    for module_name in module_names:
+        if module_name in loaded_modules:
+            module = loaded_modules[module_name]
+            module = importlib.reload(module)
+            # print("reload: " + str(module))
+        else:
+            module = importlib.import_module(module_name, package=__package__)
+            loaded_modules[module_name] = module
+        register_module(module)
 
 
 def unregister():
-    for file in files:
-        func = getattr(file, "unregister", None)
-        if callable(func):
-            func()
+    global loaded_modules
+    for module in loaded_modules.values():
+        unregister_module(module)
+        try:
+            importlib.reload(module)
+        except Exception as e:
+            print(e)
 
 
 if __name__ == "__main__":
