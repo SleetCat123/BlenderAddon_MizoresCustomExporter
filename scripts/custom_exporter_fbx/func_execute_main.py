@@ -102,7 +102,7 @@ def execute_main(operator, context):
         func_name_utils.add_suffix(obj)
 
     # オブジェクトを複製
-    targets_dup = func_object_utils.duplicate_object(collection_mode='SCENE')
+    targets_dup = func_object_utils.duplicate_object()
     targets_dup.sort(key=lambda x: x.name)
 
     # 複製したオブジェクトの名前から接尾辞を削除
