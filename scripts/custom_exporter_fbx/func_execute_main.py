@@ -94,7 +94,7 @@ def execute_main(operator, context):
             func_object_utils.set_active_object(o)
             bpy.ops.object.mode_set(mode='OBJECT')
         else:
-            targets_source_mode[i] = None
+            targets_source_mode[i] = ''
 
     # オブジェクト名に接尾辞を付ける
     # （名前の末尾が xxx.001 のように数字になっている場合にオブジェクトを複製すると名前がxxx.002 のようにカウントアップされてしまい、オブジェクト名の復元時に問題が起きるのでその対策）
@@ -102,8 +102,7 @@ def execute_main(operator, context):
         func_name_utils.add_suffix(obj)
 
     # オブジェクトを複製
-    bpy.ops.object.duplicate()
-    targets_dup = bpy.context.selected_objects
+    targets_dup = func_object_utils.duplicate_object()
     targets_dup.sort(key=lambda x: x.name)
 
     # 複製したオブジェクトの名前から接尾辞を削除
@@ -280,7 +279,7 @@ def execute_main(operator, context):
     # オブジェクトのモードを復元
     for i in range(len(targets_source)):
         m = targets_source_mode[i]
-        if m is not None:
+        if m:
             func_object_utils.set_active_object(targets_source[i])
             bpy.ops.object.mode_set(mode=m)
     func_object_utils.set_active_object(active_temp)
