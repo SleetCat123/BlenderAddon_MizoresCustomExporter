@@ -175,93 +175,23 @@ def get_selected_root_objects():
 def duplicate_object(
         source=None,
         linked: bool = False,
-        collection: bpy.types.Collection = None,
-        collection_mode='SET',
 ):
     if source is None:
         source = bpy.context.selected_objects
     print("Duplicate Source: " + str(source))
-    deselect_all_objects()
     if type(source) == bpy.types.Object:
-        obj = source
-        copied = obj.copy()
-        if not linked and copied.data:
-            copied.data = copied.data.copy()
-        print(copied)
-        print(copied.parent)
-
-        # コレクションにリンク
-        if collection and collection_mode == 'SET':
-            collection.objects.link(copied)
-        elif collection_mode == 'SCENE':
-            bpy.context.scene.collection.objects.link(copied)
-        else:
-            # メモ：users_collectionは検索処理が重いらしいので使わずに済む場所では回避したい
-            collections = obj.users_collection
-            print(collections)
-            for co in collections:
-                co.objects.link(copied)
-            if collection:
-                collection.objects.link(copied)
-        if collection:
-            collection.objects.link(copied)
-
-        set_active_object(copied)
-        select_object(copied, True)
-        return copied
+        deselect_all_objects()
+        select_object(source, True)
+        set_active_object(source)
+        bpy.ops.object.duplicate(linked=linked)
+        result = bpy.context.selected_objects[0]
+        print("Duplicate Result: " + str(result))
+        return result
     else:
-        active_obj = get_active_object()
-        result = []
-        for obj in source:
-            copied = obj.copy()
-            if not linked and copied.data:
-                copied.data = copied.data.copy()
-            print(copied)
-
-            # コレクションにリンク
-            if collection and collection_mode == 'SET':
-                collection.objects.link(copied)
-            elif collection_mode == 'SCENE':
-                bpy.context.scene.collection.objects.link(copied)
-            else:
-                # メモ：users_collectionは検索処理が重いらしいので使わずに済む場所では回避したい
-                collections = obj.users_collection
-                print(collections)
-                for co in collections:
-                    co.objects.link(copied)
-                if collection:
-                    collection.objects.link(copied)
-            if collection:
-                collection.objects.link(copied)
-
-            if active_obj == obj:
-                set_active_object(copied)
-            select_object(copied, True)
-            result.append(copied)
-        # 親も一緒に複製されていたら親子関係を再設定する
-        for i in range(len(source)):
-            obj = source[i]
-            if not obj.parent:
-                continue
-            try:
-                index = source.index(obj.parent)
-                copied = result[i]
-                copied.parent = result[index]
-            except ValueError:
-                continue
-        # モディファイアのオブジェクト参照を再設定:
-        for i in range(len(source)):
-            obj = source[i]
-            if not obj.modifiers:
-                continue
-            for m in obj.modifiers:
-                if not hasattr(m, 'object') or not m.object:
-                    continue
-                try:
-                    index = source.index(m.object)
-                    m.object = result[index]
-                except ValueError:
-                    continue
+        deselect_all_objects()
+        select_objects(source, True)
+        bpy.ops.object.duplicate(linked=linked)
+        result = bpy.context.selected_objects
         print("Duplicate Result: " + str(result))
         return result
 
