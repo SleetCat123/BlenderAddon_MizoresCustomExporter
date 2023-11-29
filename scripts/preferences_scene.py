@@ -76,8 +76,10 @@ def load_scene_prefs(operator):
         operator.properties[key] = value
 
 
-def save_scene_prefs(operator, ignore_key=[]):
+def save_scene_prefs(operator, ignore_key=None):
     # シーンに設定を保存
+    if ignore_key is None:
+        ignore_key = []
     p_str = bpy.context.scene.mizore_exporter_prefs.export_str_props
     p_int = bpy.context.scene.mizore_exporter_prefs.export_int_props
     for key, value in operator.properties.items():

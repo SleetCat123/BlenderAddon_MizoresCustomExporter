@@ -19,9 +19,26 @@
 import bpy
 from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty
 from bpy_extras.io_utils import ExportHelper, orientation_helper, path_reference_mode
-from .. import preferences_scene
+from .. import preferences_scene, consts
 from . import func_execute_main, func_isvalid
 from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
+
+
+class OBJECT_OT_mizore_save_export_settings(bpy.types.Operator):
+    bl_idname = "object.mizore_save_export_settings"
+    bl_label = "Save Export Settings"
+    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
+    bl_options = {'REGISTER'}
+
+    operator = None
+
+    def execute(self, context):
+        ignore_key = ["reset_path"]
+        if not self.operator.save_path:
+            ignore_key.append("filepath")
+        preferences_scene.clear_export_props()
+        preferences_scene.save_scene_prefs(operator=self.operator, ignore_key=ignore_key)
+        return {'FINISHED'}
 
 
 # エクスポート
@@ -323,6 +340,9 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         row.enabled = operator.save_prefs
         row.prop(operator, "save_path")
 
+        OBJECT_OT_mizore_save_export_settings.operator = self
+        layout.operator(OBJECT_OT_mizore_save_export_settings.bl_idname)
+
     def invoke(self, context, event):
         # シーンから設定を読み込み
         preferences_scene.load_scene_prefs(self)
@@ -378,6 +398,7 @@ def INFO_MT_file_custom_export_mizore_menu(self, context):
 
 classes = [
     INFO_MT_file_custom_export_mizore_fbx,
+    OBJECT_OT_mizore_save_export_settings,
 ]
 
 
