@@ -141,6 +141,7 @@ def assign_object_group(group_name, assign=True):
 
     active = func_object_utils.get_active_object()
     targets = bpy.context.selected_objects
+    targets.append(active)
     for obj in targets:
         if assign:
             func_object_utils.set_active_object(obj)
