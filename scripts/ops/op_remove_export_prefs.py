@@ -36,25 +36,8 @@ class OBJECT_OT_mizore_remove_export_settings(bpy.types.Operator):
         return wm.invoke_confirm(self, event)
 
 
-class OBJECT_OT_mizore_remove_export_path(bpy.types.Operator):
-    bl_idname = "object.mizore_remove_export_path"
-    bl_label = "Remove Export Path"
-    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        preferences_scene.remove_str_prop("filepath")
-        self.report({'INFO'}, "Export path removed.")
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_confirm(self, event)
-
-
 classes = [
     OBJECT_OT_mizore_remove_export_settings,
-    OBJECT_OT_mizore_remove_export_path,
 ]
 
 

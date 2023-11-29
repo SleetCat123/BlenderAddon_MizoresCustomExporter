@@ -39,7 +39,6 @@ class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
             pass
         layout.separator()
         layout.operator(op_remove_export_prefs.OBJECT_OT_mizore_remove_export_settings.bl_idname)
-        layout.operator(op_remove_export_prefs.OBJECT_OT_mizore_remove_export_path.bl_idname)
 
 
 

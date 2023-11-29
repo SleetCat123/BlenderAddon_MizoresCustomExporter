@@ -41,6 +41,18 @@ class OBJECT_OT_mizore_save_export_settings(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class OBJECT_OT_mizore_remove_saved_path(bpy.types.Operator):
+    bl_idname = "object.mizore_remove_saved_path"
+    bl_label = "Remove Saved Path"
+    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        preferences_scene.remove_str_prop("filepath")
+        self.report({'INFO'}, "Export path removed.")
+        return {'FINISHED'}
+
+
 # エクスポート
 @orientation_helper(axis_forward='-Z', axis_up='Y')
 class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
@@ -326,22 +338,23 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
     def draw(self, context):
         layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
+        # layout.use_property_split = True
+        # layout.use_property_decorate = False
 
         sfile = context.space_data
         operator = sfile.active_operator
 
         layout.label(text=self.bl_label)
 
-        layout.prop(operator, "save_prefs")
+        row = layout.row(align=True)
+        row.prop(operator, "save_prefs")
+        OBJECT_OT_mizore_save_export_settings.operator = self
+        row.operator(OBJECT_OT_mizore_save_export_settings.bl_idname)
 
         row = layout.row(align=True)
         row.enabled = operator.save_prefs
         row.prop(operator, "save_path")
-
-        OBJECT_OT_mizore_save_export_settings.operator = self
-        layout.operator(OBJECT_OT_mizore_save_export_settings.bl_idname)
+        row.operator(OBJECT_OT_mizore_remove_saved_path.bl_idname)
 
     def invoke(self, context, event):
         # シーンから設定を読み込み
@@ -399,6 +412,7 @@ def INFO_MT_file_custom_export_mizore_menu(self, context):
 classes = [
     INFO_MT_file_custom_export_mizore_fbx,
     OBJECT_OT_mizore_save_export_settings,
+    OBJECT_OT_mizore_remove_saved_path
 ]
 
 
