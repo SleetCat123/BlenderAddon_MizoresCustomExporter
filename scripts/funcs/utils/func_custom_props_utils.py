@@ -42,9 +42,9 @@ def get_objects_prop_is_true(prop_name: str, only_current_view_layer: bool = Tru
 
 
 def assign_bool_prop(target, prop_name: str, value: bool, remove_if_false: bool):
-    if isinstance(target, list):
-        targets = target
-    else:
+    try:
+        targets = iter(target)
+    except TypeError as e:
         targets = [target]
     for t in targets:
         t[prop_name] = value

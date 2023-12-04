@@ -127,9 +127,10 @@ def execute_main(operator, context):
     # ↓ AutoMergeアドオン連携
     if operator.enable_auto_merge:
         try:
-            ignore_collection_name = None
             if ignore_collection:
                 ignore_collection_name = ignore_collection.name
+            else:
+                ignore_collection_name = ""
             # オブジェクトを結合
             b = bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon(
                 enable_apply_modifiers_with_shapekeys=operator.enable_apply_modifiers_with_shapekeys,
