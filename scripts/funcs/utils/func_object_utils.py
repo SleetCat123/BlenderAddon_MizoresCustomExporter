@@ -45,6 +45,12 @@ def set_active_object(obj):
     #    print("removed")
 
 
+def get_current_view_layer_objects():
+    current_layer_objects_name = bpy.context.window.view_layer.objects.keys()
+    all_objects = bpy.data.objects
+    return [obj for obj in all_objects if obj.name in current_layer_objects_name]
+
+
 def get_children_objects(obj, only_current_view_layer: bool = True):
     all_objects = bpy.data.objects
     if only_current_view_layer:

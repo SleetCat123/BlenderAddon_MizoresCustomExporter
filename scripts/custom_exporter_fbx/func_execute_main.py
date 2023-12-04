@@ -19,7 +19,7 @@
 import os
 import bpy
 from .. import consts
-from ..funcs.utils import func_object_utils, func_collection_utils
+from ..funcs.utils import func_object_utils, func_collection_utils, func_custom_props_utils
 from ..funcs import func_addon_link, func_name_utils
 from bpy_extras.io_utils import axis_conversion
 from mathutils import Matrix
@@ -47,7 +47,11 @@ def execute_main(operator, context):
         layer_col_always_export.hide_viewport = False
         # オブジェクトの表示状態を記憶してから表示
         collection = func_collection_utils.find_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
-        for obj in collection.objects:
+        always_export_objects = (
+            set(collection.objects) |
+            set(func_custom_props_utils.get_objects_prop_is_true(prop_name=consts.ALWAYS_EXPORT_GROUP_NAME))
+        )
+        for obj in always_export_objects:
             hide_temp_always_export[obj] = obj.hide_get()
             obj.hide_set(False)
 
@@ -80,6 +84,7 @@ def execute_main(operator, context):
     if ignore_collection:
         # 処理から除外するオブジェクトの選択を外す
         func_collection_utils.deselect_collection(collection=ignore_collection)
+        func_custom_props_utils.select_if_prop_is_true(prop_name=consts.DONT_EXPORT_GROUP_NAME, select=False)
 
     # 選択中オブジェクトを取得
     targets_source = bpy.context.selected_objects
@@ -122,10 +127,14 @@ def execute_main(operator, context):
     # ↓ AutoMergeアドオン連携
     if operator.enable_auto_merge:
         try:
+            ignore_collection_name = None
+            if ignore_collection:
+                ignore_collection_name = ignore_collection.name
             # オブジェクトを結合
-            bpy.types.WindowManager.mizore_automerge_temp_ignore_collection = ignore_collection
             b = bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon(
-                enable_apply_modifiers_with_shapekeys=operator.enable_apply_modifiers_with_shapekeys
+                enable_apply_modifiers_with_shapekeys=operator.enable_apply_modifiers_with_shapekeys,
+                ignore_collection_name=ignore_collection_name,
+                ignore_prop_name=consts.DONT_EXPORT_GROUP_NAME
             )
             # 結合処理失敗
             if 'FINISHED' not in b:

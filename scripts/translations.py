@@ -21,7 +21,7 @@ from . import consts
 from .funcs.utils import func_package_utils
 from .ops.op_assign_collection import OBJECT_OT_specials_assign_always_export_group as assign_always_export_group
 from .ops.op_assign_collection import OBJECT_OT_specials_assign_dont_export_group as assign_dont_export_group
-from .ops.op_remove_export_prefs import OBJECT_OT_mizore_remove_export_path as remove_export_path
+from .custom_exporter_fbx.op_core import OBJECT_OT_mizore_remove_saved_path as remove_export_path
 from .ops.op_remove_export_prefs import OBJECT_OT_mizore_remove_export_settings as remove_export_settings
 
 
