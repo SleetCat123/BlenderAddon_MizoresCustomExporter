@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from .ops import op_assign_collection, op_remove_export_prefs
+from .ops import op_assign_collection, op_remove_export_prefs, op_convert_collections
 
 
 # 右クリックメニューにOperatorを登録
@@ -39,7 +39,7 @@ class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
             pass
         layout.separator()
         layout.operator(op_remove_export_prefs.OBJECT_OT_mizore_remove_export_settings.bl_idname)
-
+        layout.operator(op_convert_collections.OBJECT_OT_mizore_convert_collections.bl_idname)
 
 
 def register():
