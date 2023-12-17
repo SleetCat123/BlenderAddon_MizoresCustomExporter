@@ -19,8 +19,7 @@
 import bpy
 from . import consts
 from .funcs.utils import func_package_utils
-from .ops.op_assign_collection import OBJECT_OT_specials_assign_always_export_group as assign_always_export_group
-from .ops.op_assign_collection import OBJECT_OT_specials_assign_dont_export_group as assign_dont_export_group
+from .ops.op_assign_collection import OBJECT_OT_mizore_assign_group as assign_group
 from .custom_exporter_fbx.op_core import OBJECT_OT_mizore_remove_saved_path as remove_export_path
 from .ops.op_remove_export_prefs import OBJECT_OT_mizore_remove_export_settings as remove_export_settings
 
@@ -59,10 +58,9 @@ translations_dict = {
             "Export settings are saved in a blend file.\n"
             f"If you want to delete the saved settings, execute {remove_export_settings.bl_label}.\n",
 
-        ("*", assign_dont_export_group.bl_idname + consts.DESC):
-            f"Assign or removes the selected object(s) to or from the collection \"{consts.DONT_EXPORT_GROUP_NAME}\"",
-        ("*", assign_always_export_group.bl_idname + consts.DESC):
-            f"Assign or removes the selected object(s) to or from the collection \"{consts.ALWAYS_EXPORT_GROUP_NAME}\"",
+        ("*", assign_group.bl_idname + ".Assign"): "Assign to {}",
+        ("*", assign_group.bl_idname + ".Remove"): "Remove from {}",
+        ("*", assign_group.bl_idname + consts.DESC): "Assign or removes the selected object(s) to or from the collection",
         ("*", remove_export_path.bl_idname + consts.DESC): "Remove export destination settings saved in this blend file",
         ("*", remove_export_settings.bl_idname + consts.DESC): "Remove export settings saved in this blend file",
 
@@ -97,10 +95,9 @@ translations_dict = {
             "エクスポート設定をblendファイルに保存します。"
             f"保存された設定を削除したい場合は {remove_export_settings.bl_label} を実行してください。\n",
 
-        ("*", assign_dont_export_group.bl_idname + consts.DESC):
-            "選択中のオブジェクトを\nコレクション“" + consts.DONT_EXPORT_GROUP_NAME + "”に入れたり外したりします",
-        ("*", assign_always_export_group.bl_idname + consts.DESC):
-            "選択中のオブジェクトを\nコレクション" + consts.ALWAYS_EXPORT_GROUP_NAME + "”に入れたり外したりします",
+        ("*", assign_group.bl_idname + ".Assign"): "Assign to {}",
+        ("*", assign_group.bl_idname + ".Remove"): "Remove from {}",
+        ("*", assign_group.bl_idname + consts.DESC): "選択中のオブジェクトを\nコレクションに入れたり外したりします",
         ("*", remove_export_path.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート先の設定を削除します",
         ("*", remove_export_settings.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート設定を削除します",
 

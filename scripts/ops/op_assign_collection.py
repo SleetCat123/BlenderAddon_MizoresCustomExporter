@@ -18,47 +18,24 @@
 
 import bpy
 from .. import consts
-from ..funcs.utils import func_collection_utils, func_custom_props_utils
+from ..funcs.utils import func_custom_props_utils
 
 
-# 選択オブジェクトをDontExportグループに入れたり外したりするクラス
-class OBJECT_OT_specials_assign_dont_export_group(bpy.types.Operator):
-    bl_idname = "object.assign_dont_export_group"
-    bl_label = "Assign Don't-Export Group"
+class OBJECT_OT_mizore_assign_group(bpy.types.Operator):
+    bl_idname = "object.mizore_assign_group"
+    bl_label = "Assign Group"
     bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
     bl_options = {'REGISTER', 'UNDO'}
 
+    name: bpy.props.StringProperty(name="Collection Name", default="")
     assign: bpy.props.BoolProperty(name="Assign", default=True)
 
     def execute(self, context):
-        func_collection_utils.assign_object_group(group_name=consts.DONT_EXPORT_GROUP_NAME, assign=self.assign)
-        # exclude_collection(context=context, group_name=DONT_EXPORT_GROUP_NAME, exclude=True)
-        func_collection_utils.hide_collection(context=context, group_name=consts.DONT_EXPORT_GROUP_NAME, hide=True)
+        # func_collection_utils.assign_object_group(group_name=self.name, assign=self.assign)
+        # func_collection_utils.hide_collection(context=context, group_name=self.name, hide=True)
         func_custom_props_utils.assign_bool_prop(
             target=bpy.context.selected_objects,
-            prop_name=consts.DONT_EXPORT_GROUP_NAME,
-            value=self.assign,
-            remove_if_false=True
-        )
-        return {'FINISHED'}
-
-
-# 選択オブジェクトをAlwaysExportグループに入れたり外したりするクラス
-class OBJECT_OT_specials_assign_always_export_group(bpy.types.Operator):
-    bl_idname = "object.assign_always_export_group"
-    bl_label = "Assign Always-Export Group"
-    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
-    bl_options = {'REGISTER', 'UNDO'}
-
-    assign: bpy.props.BoolProperty(name="Assign", default=True)
-
-    def execute(self, context):
-        func_collection_utils.assign_object_group(group_name=consts.ALWAYS_EXPORT_GROUP_NAME, assign=self.assign)
-        # exclude_collection(context=context, group_name=ALWAYS_EXPORT_GROUP_NAME, exclude=True)
-        func_collection_utils.hide_collection(context=context, group_name=consts.ALWAYS_EXPORT_GROUP_NAME, hide=True)
-        func_custom_props_utils.assign_bool_prop(
-            target=bpy.context.selected_objects,
-            prop_name=consts.ALWAYS_EXPORT_GROUP_NAME,
+            prop_name=self.name,
             value=self.assign,
             remove_if_false=True
         )
@@ -66,8 +43,7 @@ class OBJECT_OT_specials_assign_always_export_group(bpy.types.Operator):
 
 
 classes = [
-    OBJECT_OT_specials_assign_dont_export_group,
-    OBJECT_OT_specials_assign_always_export_group,
+    OBJECT_OT_mizore_assign_group,
 ]
 
 

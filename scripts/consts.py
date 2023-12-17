@@ -19,6 +19,8 @@
 
 DONT_EXPORT_GROUP_NAME = "DontExport"  # エクスポートから除外するオブジェクトのグループ名
 ALWAYS_EXPORT_GROUP_NAME = "AlwaysExport"  # 非表示状態であっても常にエクスポートさせるオブジェクトのグループ名
+RESET_POSE_GROUP_NAME = "ResetPoseWhenExport"  # エクスポート時にポーズをリセットするオブジェクトのグループ名
+RESET_SHAPEKEY_GROUP_NAME = "ResetShapekeysWhenExport"  # エクスポート時にシェイプキーをリセットするオブジェクトのグループ名
 
 EXPORT_TEMP_SUFFIX = ".#MizoreCEx#"  # エクスポート処理時、一時的にオブジェクト名に付加する接尾辞
 MAX_NAME_LENGTH = 63  # オブジェクト名などの最大文字数（Blender側の上限）

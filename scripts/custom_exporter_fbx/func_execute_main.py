@@ -84,7 +84,7 @@ def execute_main(operator, context):
     if ignore_collection:
         # 処理から除外するオブジェクトの選択を外す
         func_collection_utils.deselect_collection(collection=ignore_collection)
-        func_custom_props_utils.select_if_prop_is_true(prop_name=consts.DONT_EXPORT_GROUP_NAME, select=False)
+    func_custom_props_utils.select_if_prop_is_true(prop_name=consts.DONT_EXPORT_GROUP_NAME, select=False)
 
     # 選択中オブジェクトを取得
     targets_source = bpy.context.selected_objects
@@ -123,6 +123,23 @@ def execute_main(operator, context):
     for o in targets_dup:
         print(o.name)
     print("]")
+
+    # Armatureのポーズをリセットする
+    for obj in targets_dup:
+        if obj.type == 'ARMATURE' and func_custom_props_utils.prop_is_true(obj, consts.RESET_POSE_GROUP_NAME):
+            print("Reset Pose: " + obj.name)
+            for pose_bone in obj.pose.bones:
+                pose_bone.matrix_basis = Matrix()
+
+    # シェイプキーをリセットする
+    for obj in targets_dup:
+        if not hasattr(obj.data, 'shape_keys'):
+            continue
+        print("Reset ShapeKey: " + obj.name)
+        obj.active_shape_key_index = 0
+        obj.show_only_shape_key = False
+        for shape_key in obj.data.shape_keys.key_blocks:
+            shape_key.value = 0.0
 
     # ↓ AutoMergeアドオン連携
     if operator.enable_auto_merge:

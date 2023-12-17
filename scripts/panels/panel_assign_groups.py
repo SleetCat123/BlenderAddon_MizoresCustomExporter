@@ -1,6 +1,8 @@
 import bpy
 from bpy.props import StringProperty, PointerProperty, EnumProperty, BoolProperty
+from .. import consts
 from ..ops import op_assign_collection
+from ..ui import ui_assign_groups
 
 
 class OBJECT_PT_mizores_custom_exporter_group_panel(bpy.types.Panel):
@@ -11,24 +13,7 @@ class OBJECT_PT_mizores_custom_exporter_group_panel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-
-        layout.label(text=bpy.app.translations.pgettext("mizores_custom_exporter_group_panel_assign"))
-        layout.operator(op_assign_collection.OBJECT_OT_specials_assign_dont_export_group.bl_idname).assign = True
-        layout.operator(op_assign_collection.OBJECT_OT_specials_assign_always_export_group.bl_idname).assign = True
-        try:
-            layout.operator("object.automerge_assign_merge_group").assign = True
-            layout.operator("object.automerge_assign_dont_merge_to_parent_group").assign = True
-        except:
-            pass
-
-        layout.label(text=bpy.app.translations.pgettext("mizores_custom_exporter_group_panel_assign"))
-        layout.operator(op_assign_collection.OBJECT_OT_specials_assign_dont_export_group.bl_idname).assign = False
-        layout.operator(op_assign_collection.OBJECT_OT_specials_assign_always_export_group.bl_idname).assign = False
-        try:
-            layout.operator("object.automerge_assign_merge_group").assign = False
-            layout.operator("object.automerge_assign_dont_merge_to_parent_group").assign = False
-        except:
-            pass
+        ui_assign_groups.draw(layout)
 
 
 classes = [
