@@ -138,7 +138,7 @@ def execute_main(operator, context):
     for obj in targets_dup:
         if not func_custom_props_utils.prop_is_true(obj, consts.RESET_SHAPEKEY_GROUP_NAME):
             continue
-        if not obj.data or not hasattr(obj.data, 'shape_keys'):
+        if not obj.data or not hasattr(obj.data, 'shape_keys') or not hasattr(obj.data.shape_keys, 'key_blocks'):
             continue
         print("Reset ShapeKey: " + obj.name)
         obj.active_shape_key_index = 0
