@@ -22,6 +22,7 @@ from .funcs.utils import func_package_utils
 from .ops.op_assign_collection import OBJECT_OT_mizore_assign_group as assign_group
 from .custom_exporter_fbx.op_core import OBJECT_OT_mizore_remove_saved_path as remove_export_path
 from .ops.op_remove_export_prefs import OBJECT_OT_mizore_remove_export_settings as remove_export_settings
+from .ops.op_convert_collections import OBJECT_OT_mizore_convert_collections as convert_collections
 
 
 translations_dict = {
@@ -58,14 +59,18 @@ translations_dict = {
             "Export settings are saved in a blend file.\n"
             f"If you want to delete the saved settings, execute {remove_export_settings.bl_label}.\n",
 
-        ("*", assign_group.bl_idname + ".Assign"): "{}",
-        ("*", assign_group.bl_idname + ".Remove"): "{}",
+        ("*", assign_group.bl_idname + ".Set"): "Set",
+        ("*", assign_group.bl_idname + ".Unset"): "Unset",
+        ("*", assign_group.bl_idname + ".Set_Menu"): "Set {}",
+        ("*", assign_group.bl_idname + ".Unset_Menu"): "Unset {}",
         ("*", assign_group.bl_idname + consts.DESC): "Assign or removes the selected object(s) to or from the collection",
         ("*", remove_export_path.bl_idname + consts.DESC): "Remove export destination settings saved in this blend file",
         ("*", remove_export_settings.bl_idname + consts.DESC): "Remove export settings saved in this blend file",
 
         ("*", "mizores_custom_exporter_group_panel_assign"): "Add to group",
         ("*", "mizores_custom_exporter_group_panel_remove"): "Remove from group",
+
+        ("*", convert_collections.bl_idname + consts.DESC): "Convert collections such as AutoMerge to CustomProperty (new format)",
     },
     "ja_JP": {
         ("*", "box_warning_slow_method_1"): "注意：",
@@ -95,14 +100,18 @@ translations_dict = {
             "エクスポート設定をblendファイルに保存します。"
             f"保存された設定を削除したい場合は {remove_export_settings.bl_label} を実行してください。\n",
 
-        ("*", assign_group.bl_idname + ".Assign"): "{}",
-        ("*", assign_group.bl_idname + ".Remove"): "{}",
+        ("*", assign_group.bl_idname + ".Set"): "登録",
+        ("*", assign_group.bl_idname + ".Unset"): "解除",
+        ("*", assign_group.bl_idname + ".Set_Menu"): "Set {}",
+        ("*", assign_group.bl_idname + ".Unset_Menu"): "Unset {}",
         ("*", assign_group.bl_idname + consts.DESC): "選択中のオブジェクトを\nコレクションに入れたり外したりします",
         ("*", remove_export_path.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート先の設定を削除します",
         ("*", remove_export_settings.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート設定を削除します",
 
         ("*", "mizores_custom_exporter_group_panel_assign"): "グループに追加",
         ("*", "mizores_custom_exporter_group_panel_remove"): "グループから削除",
+
+        ("*", convert_collections.bl_idname + consts.DESC): "AutoMerge等のコレクションをCustomProperty（新形式）に変換します",
     },
 }
 

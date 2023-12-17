@@ -1,5 +1,6 @@
 import bpy
-from ..ui import ui_assign_groups
+from .. import consts
+from ..ops import op_assign_collection
 
 
 class OBJECT_PT_mizores_custom_exporter_group_panel(bpy.types.Panel):
@@ -9,8 +10,31 @@ class OBJECT_PT_mizores_custom_exporter_group_panel(bpy.types.Panel):
     bl_label = "Assign Groups"
 
     def draw(self, context):
+        # TODO: モディファイアの"AS"追加・解除ボタン
         layout = self.layout
-        ui_assign_groups.draw(layout)
+        wm = bpy.context.window_manager
+        groups = [
+            consts.DONT_EXPORT_GROUP_NAME,
+            consts.ALWAYS_EXPORT_GROUP_NAME,
+            consts.RESET_POSE_GROUP_NAME,
+            consts.RESET_SHAPEKEY_GROUP_NAME,
+            wm.mizore_automerge_collection_name,
+            wm.mizore_automerge_dont_merge_to_parent_collection_name
+        ]
+        id = op_assign_collection.OBJECT_OT_mizore_assign_group.bl_idname
+        for group_name in groups:
+            if not group_name:
+                continue
+            row = layout.row(align=False)
+            row.label(text=group_name)
+
+            op = row.operator(id, text=bpy.app.translations.pgettext(id + ".Set"))
+            op.name = group_name
+            op.assign = True
+
+            op = row.operator(id, text=bpy.app.translations.pgettext(id + ".Unset"))
+            op.name = group_name
+            op.assign = False
 
 
 classes = [
