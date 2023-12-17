@@ -126,14 +126,19 @@ def execute_main(operator, context):
 
     # Armatureのポーズをリセットする
     for obj in targets_dup:
-        if obj.type == 'ARMATURE' and func_custom_props_utils.prop_is_true(obj, consts.RESET_POSE_GROUP_NAME):
-            print("Reset Pose: " + obj.name)
-            for pose_bone in obj.pose.bones:
-                pose_bone.matrix_basis = Matrix()
+        if obj.type != 'ARMATURE':
+            continue
+        if not func_custom_props_utils.prop_is_true(obj, consts.RESET_POSE_GROUP_NAME):
+            continue
+        print("Reset Pose: " + obj.name)
+        for pose_bone in obj.pose.bones:
+            pose_bone.matrix_basis = Matrix()
 
     # シェイプキーをリセットする
     for obj in targets_dup:
-        if not hasattr(obj.data, 'shape_keys'):
+        if not func_custom_props_utils.prop_is_true(obj, consts.RESET_SHAPEKEY_GROUP_NAME):
+            continue
+        if not obj.data or not hasattr(obj.data, 'shape_keys'):
             continue
         print("Reset ShapeKey: " + obj.name)
         obj.active_shape_key_index = 0
