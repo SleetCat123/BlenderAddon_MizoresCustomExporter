@@ -1,7 +1,4 @@
 import bpy
-from bpy.props import StringProperty, PointerProperty, EnumProperty, BoolProperty
-from .. import consts
-from ..ops import op_assign_collection
 from ..ui import ui_assign_groups
 
 

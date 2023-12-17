@@ -5,17 +5,19 @@ from .. import consts
 def draw_button(layout, group_name: str, assign: bool):
     assign_collection_id = op_assign_collection.OBJECT_OT_mizore_assign_group.bl_idname
     if assign:
-        text = bpy.app.translations.pgettext(assign_collection_id + ".Assign").format(group_name)
+        label = bpy.app.translations.pgettext(assign_collection_id + ".Assign")
     else:
-        text = bpy.app.translations.pgettext(assign_collection_id + ".Remove").format(group_name)
-    op = layout.operator(id, text=text).format(group_name)
+        label = bpy.app.translations.pgettext(assign_collection_id + ".Remove")
+    label = label.format(group_name)
+    
+    op = layout.operator(assign_collection_id, text=label)
     op.name = group_name
     op.assign = True
 
 
 def draw(layout):
     # TODO: モディファイアの"AS"追加・解除ボタン
-    
+
     wm = bpy.context.window_manager
     # Assign
     layout.label(text=bpy.app.translations.pgettext("mizores_custom_exporter_group_panel_assign"))

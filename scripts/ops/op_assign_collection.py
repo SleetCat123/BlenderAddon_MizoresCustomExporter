@@ -33,8 +33,11 @@ class OBJECT_OT_mizore_assign_group(bpy.types.Operator):
     def execute(self, context):
         # func_collection_utils.assign_object_group(group_name=self.name, assign=self.assign)
         # func_collection_utils.hide_collection(context=context, group_name=self.name, hide=True)
+        targets = bpy.context.selected_objects
+        if context.object:
+            targets.append(context.object)
         func_custom_props_utils.assign_bool_prop(
-            target=bpy.context.selected_objects,
+            target=targets,
             prop_name=self.name,
             value=self.assign,
             remove_if_false=True

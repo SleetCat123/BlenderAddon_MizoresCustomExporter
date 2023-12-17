@@ -58,8 +58,8 @@ translations_dict = {
             "Export settings are saved in a blend file.\n"
             f"If you want to delete the saved settings, execute {remove_export_settings.bl_label}.\n",
 
-        ("*", assign_group.bl_idname + ".Assign"): "Assign to {}",
-        ("*", assign_group.bl_idname + ".Remove"): "Remove from {}",
+        ("*", assign_group.bl_idname + ".Assign"): "{}",
+        ("*", assign_group.bl_idname + ".Remove"): "{}",
         ("*", assign_group.bl_idname + consts.DESC): "Assign or removes the selected object(s) to or from the collection",
         ("*", remove_export_path.bl_idname + consts.DESC): "Remove export destination settings saved in this blend file",
         ("*", remove_export_settings.bl_idname + consts.DESC): "Remove export settings saved in this blend file",
@@ -95,8 +95,8 @@ translations_dict = {
             "エクスポート設定をblendファイルに保存します。"
             f"保存された設定を削除したい場合は {remove_export_settings.bl_label} を実行してください。\n",
 
-        ("*", assign_group.bl_idname + ".Assign"): "Assign to {}",
-        ("*", assign_group.bl_idname + ".Remove"): "Remove from {}",
+        ("*", assign_group.bl_idname + ".Assign"): "{}",
+        ("*", assign_group.bl_idname + ".Remove"): "{}",
         ("*", assign_group.bl_idname + consts.DESC): "選択中のオブジェクトを\nコレクションに入れたり外したりします",
         ("*", remove_export_path.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート先の設定を削除します",
         ("*", remove_export_settings.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート設定を削除します",

@@ -17,8 +17,8 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from .. import consts
-from .ops import op_assign_collection, op_remove_export_prefs, op_convert_collections
+from ..ops import op_remove_export_prefs, op_convert_collections
+from ..ui import ui_assign_groups
 
 
 # 右クリックメニューにOperatorを登録
@@ -32,67 +32,7 @@ class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        wm = bpy.context.window_manager
-
-        assign_collection_id = op_assign_collection.OBJECT_OT_mizore_assign_group.bl_idname
-        # Assign
-        group_name = consts.DONT_EXPORT_GROUP_NAME
-        op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Assign").format(group_name))
-        op.name = group_name
-        op.assign = True
-
-        group_name = consts.ALWAYS_EXPORT_GROUP_NAME
-        op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Assign").format(group_name))
-        op.name = group_name
-        op.assign = True
-
-        group_name = consts.RESET_POSE_GROUP_NAME
-        op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Assign").format(group_name))
-        op.name = group_name
-        op.assign = True
-
-        # AutoMerge連携
-        group_name = wm.mizore_automerge_collection_name
-        if group_name:
-            op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Assign").format(group_name))
-            op.name = group_name
-            op.assign = True
-        # AutoMerge連携
-        group_name = wm.mizore_automerge_dont_merge_to_parent_collection_name
-        if group_name:
-            op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Assign").format(group_name))
-            op.name = group_name
-            op.assign = True
-
-        # Remove
-        layout.label(text=bpy.app.translations.pgettext("mizores_custom_exporter_group_panel_assign"))
-        group_name = consts.DONT_EXPORT_GROUP_NAME
-        op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Remove").format(group_name))
-        op.name = group_name
-        op.assign = False
-
-        group_name = consts.ALWAYS_EXPORT_GROUP_NAME
-        op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Remove").format(group_name))
-        op.name = group_name
-        op.assign = False
-
-        group_name = consts.RESET_POSE_GROUP_NAME
-        op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Remove").format(group_name))
-        op.name = group_name
-        op.assign = False
-        
-        # AutoMerge連携
-        group_name = wm.mizore_automerge_collection_name
-        if group_name:
-            op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Remove").format(group_name))
-            op.name = group_name
-            op.assign = False
-        # AutoMerge連携
-        group_name = wm.mizore_automerge_dont_merge_to_parent_collection_name
-        if group_name:
-            op = layout.operator(id, text=bpy.app.translations.pgettext(assign_collection_id + ".Remove").format(group_name))
-            op.name = group_name
-            op.assign = False
+        ui_assign_groups.draw(layout)
 
         layout.separator()
         layout.operator(op_remove_export_prefs.OBJECT_OT_mizore_remove_export_settings.bl_idname)
