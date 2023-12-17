@@ -86,6 +86,22 @@ def execute_main(operator, context):
         func_collection_utils.deselect_collection(collection=ignore_collection)
     func_custom_props_utils.select_if_prop_is_true(prop_name=consts.DONT_EXPORT_GROUP_NAME, select=False)
 
+    # AlwaysResetのシェイプキーをリセットする
+    temp_shapekeys = {}
+    for obj in bpy.data.objects:
+        if not func_custom_props_utils.prop_is_true(obj, consts.ALWAYS_RESET_SHAPEKEY_GROUP_NAME):
+            continue
+        if not obj.data or not hasattr(obj.data, 'shape_keys') or not hasattr(obj.data.shape_keys, 'key_blocks'):
+            continue
+        print("AlwaysReset ShapeKey: " + obj.name)
+        temp_shapekeys[obj] = {
+            "show_only_shape_key": obj.show_only_shape_key,
+            "values": [shape_key.value for shape_key in obj.data.shape_keys.key_blocks]
+        }
+        obj.show_only_shape_key = False
+        for shape_key in obj.data.shape_keys.key_blocks:
+            shape_key.value = 0.0
+
     # 選択中オブジェクトを取得
     targets_source = bpy.context.selected_objects
     targets_source.sort(key=lambda x: x.name)
@@ -141,7 +157,6 @@ def execute_main(operator, context):
         if not obj.data or not hasattr(obj.data, 'shape_keys') or not hasattr(obj.data.shape_keys, 'key_blocks'):
             continue
         print("Reset ShapeKey: " + obj.name)
-        obj.active_shape_key_index = 0
         obj.show_only_shape_key = False
         for shape_key in obj.data.shape_keys.key_blocks:
             shape_key.value = 0.0
@@ -294,6 +309,13 @@ def execute_main(operator, context):
     # 複製前オブジェクト名から接尾辞を削除
     for obj in targets_source:
         func_name_utils.remove_suffix(obj)
+
+    # AlwaysResetのシェイプキーを復元する
+    for obj, data in temp_shapekeys.items():
+        obj.show_only_shape_key = data["show_only_shape_key"]
+        values = data["values"]
+        for i, shape_key in enumerate(obj.data.shape_keys.key_blocks):
+            shape_key.value = values[i]
 
     # AlwaysExportを非表示
     if layer_col_always_export:
