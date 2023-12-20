@@ -40,20 +40,18 @@ def execute_main(operator, context):
 
     # 常時エクスポートするオブジェクトを表示
     hide_temp_always_export = {}
+    always_export_objects = set(func_custom_props_utils.get_objects_prop_is_true(prop_name=consts.ALWAYS_EXPORT_GROUP_NAME))
     layer_col_always_export = func_collection_utils.find_layer_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
     if layer_col_always_export:
         # layer_col_always_export.exclude = False
         # コレクションを表示
         layer_col_always_export.hide_viewport = False
-        # オブジェクトの表示状態を記憶してから表示
         collection = func_collection_utils.find_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
-        always_export_objects = (
-            set(collection.objects) |
-            set(func_custom_props_utils.get_objects_prop_is_true(prop_name=consts.ALWAYS_EXPORT_GROUP_NAME))
-        )
-        for obj in always_export_objects:
-            hide_temp_always_export[obj] = obj.hide_get()
-            obj.hide_set(False)
+        always_export_objects = always_export_objects | set(collection.objects)
+    for obj in always_export_objects:
+        # オブジェクトの表示状態を記憶してから表示
+        hide_temp_always_export[obj] = obj.hide_get()
+        obj.hide_set(False)
 
     if not operator.use_selection:
         # Selected Objectsにチェックがついていないなら全オブジェクトを選択
@@ -319,11 +317,10 @@ def execute_main(operator, context):
 
     # AlwaysExportを非表示
     if layer_col_always_export:
-        # layer_col_always_export.exclude = True
         layer_col_always_export.hide_viewport = True
-        # オブジェクトの表示状態を復元
-        for obj, value in hide_temp_always_export.items():
-            obj.hide_set(value)
+    # オブジェクトの表示状態を復元
+    for obj, value in hide_temp_always_export.items():
+        obj.hide_set(value)
 
     # 選択状況を処理前の状態に復元
     func_object_utils.deselect_all_objects()
