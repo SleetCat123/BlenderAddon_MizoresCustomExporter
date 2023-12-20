@@ -20,7 +20,7 @@ class OBJECT_PT_mizores_custom_exporter_group_panel(bpy.types.Panel):
             "_Reset",
             consts.RESET_POSE_GROUP_NAME,
             consts.RESET_SHAPEKEY_GROUP_NAME,
-            "_Reset Always"
+            "_Reset Always",
             consts.ALWAYS_RESET_SHAPEKEY_GROUP_NAME,
             "_Auto Merge",
             wm.mizore_automerge_collection_name,
