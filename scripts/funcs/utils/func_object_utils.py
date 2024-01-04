@@ -61,7 +61,7 @@ def get_children_objects(obj, only_current_view_layer: bool = True):
         return [child for child in all_objects if child.parent == obj]
 
 
-def get_children_recursive(targets, only_current_view_layer: bool = True):
+def get_children_recursive(targets, only_current_view_layer: bool = True, contains_self: bool = True):
     result = []
 
     def recursive(t):
@@ -70,10 +70,13 @@ def get_children_recursive(targets, only_current_view_layer: bool = True):
         for child in children:
             recursive(child)
 
-    if targets is bpy.types.Object:
+    if not hasattr(targets, '__iter__'):
         targets = [targets]
+    print("get_children_recursive  targets: " + str(targets))
     for obj in targets:
         recursive(obj)
+    if not contains_self:
+        result.remove(targets)
     return result
 
 
@@ -189,7 +192,12 @@ def duplicate_object(
         deselect_all_objects()
         select_object(source, True)
         set_active_object(source)
+        mode_temp = source.mode
+        if mode_temp != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.duplicate(linked=linked)
+        if mode_temp != 'OBJECT':
+            bpy.ops.object.mode_set(mode=mode_temp)
         result = bpy.context.selected_objects[0]
         print("Duplicate Result: " + str(result))
         return result

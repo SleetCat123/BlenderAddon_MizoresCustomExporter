@@ -19,26 +19,35 @@ import bpy
 from . import func_object_utils
 
 
-def select_if_prop_is_true(prop_name: str, select: bool = True):
-    if select:
+def select_if_prop_is_true(prop_name: str, select: bool = True, affect_children: bool = False):
+    if select or affect_children:
         targets = bpy.context.window.view_layer.objects
     else:
         targets = bpy.context.selected_objects
-    for obj in targets:
-        if prop_name in obj and obj[prop_name]:
-            func_object_utils.select_object(obj, select)
+
+    prop_true_objects = get_objects_prop_is_true(
+        targets=targets,
+        prop_name=prop_name,
+        affect_children=affect_children
+        )
+    func_object_utils.select_objects(prop_true_objects, select)
 
 
 def prop_is_true(obj, prop_name: str):
     return prop_name in obj and obj[prop_name]
 
 
-def get_objects_prop_is_true(prop_name: str, only_current_view_layer: bool = True):
-    if only_current_view_layer:
-        targets = func_object_utils.get_current_view_layer_objects()
-    else:
-        targets = bpy.data.objects
-    return [obj for obj in targets if prop_is_true(obj=obj, prop_name=prop_name)]
+def get_objects_prop_is_true(prop_name: str, affect_children: bool = False, targets = None, only_current_view_layer: bool = True):
+    if targets is None:
+        if only_current_view_layer:
+            targets = func_object_utils.get_current_view_layer_objects()
+        else:
+            targets = bpy.data.objects
+    result = [obj for obj in targets if prop_is_true(obj=obj, prop_name=prop_name)]
+    if affect_children:
+        result = func_object_utils.get_children_recursive(result, contains_self=True)
+    print(f"{prop_name} is true objects: {[obj.name for obj in result]}")
+    return result
 
 
 def assign_bool_prop(target, prop_name: str, value: bool, remove_if_false: bool):

@@ -82,7 +82,7 @@ def execute_main(operator, context):
     if ignore_collection:
         # 処理から除外するオブジェクトの選択を外す
         func_collection_utils.deselect_collection(collection=ignore_collection)
-    func_custom_props_utils.select_if_prop_is_true(prop_name=consts.DONT_EXPORT_GROUP_NAME, select=False)
+    func_custom_props_utils.select_if_prop_is_true(prop_name=consts.DONT_EXPORT_GROUP_NAME, select=False, affect_children=True)
 
     # AlwaysResetのシェイプキーをリセットする
     temp_shapekeys = {}
