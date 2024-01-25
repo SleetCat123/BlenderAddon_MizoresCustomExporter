@@ -89,7 +89,7 @@ def select_children_recursive(targets=None, only_current_view_layer: bool = True
 
     if targets is None:
         targets = bpy.context.selected_objects
-    elif targets is bpy.types.Object:
+    elif not hasattr(targets, '__iter__'):
         targets = [targets]
     for obj in targets:
         recursive(obj)

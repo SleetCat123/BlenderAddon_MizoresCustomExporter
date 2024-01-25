@@ -1,6 +1,6 @@
 import bpy, operator
 from bpy.props import StringProperty, BoolProperty
-from ..funcs.utils import func_object_utils, func_collection_utils
+from ..funcs.utils import func_object_utils, func_collection_utils, func_custom_props_utils
 
 
 class OBJECT_OT_mizore_automerge_assign_group(bpy.types.Operator):
@@ -12,16 +12,15 @@ class OBJECT_OT_mizore_automerge_assign_group(bpy.types.Operator):
     obj_name: StringProperty(name="Object")
     name: StringProperty(name="Collection")
     assign: BoolProperty(name="Assign", default=True)
-    hide: BoolProperty(name="Hide", default=False)
 
     def execute(self, context):
-        temp_selected_objects = bpy.context.selected_objects
-        func_object_utils.deselect_all_objects()
-        func_object_utils.select_object(bpy.data.objects[self.obj_name], True)
-        func_collection_utils.assign_object_group(group_name=self.name, assign=self.assign)
-        if self.hide:
-            func_collection_utils.hide_collection(context=context, group_name=self.name, hide=True)
-        func_object_utils.select_objects(temp_selected_objects, True)
+        obj = bpy.data.objects[self.obj_name]
+        func_custom_props_utils.assign_bool_prop(
+            target=[obj],
+            prop_name=self.name,
+            value=self.assign,
+            remove_if_false=True
+        )
         return {'FINISHED'}
 
 
@@ -49,30 +48,22 @@ class OBJECT_PT_mizores_automerge_list_panel(bpy.types.Panel):
 
         row = split.row(align=True)
 
-        collection = func_collection_utils.find_collection('DontExport')
-        if collection and obj.name in collection.objects:
-            dont_export = True
-
-        collection = func_collection_utils.find_collection('AlwaysExport')
-        if collection and obj.name in collection.objects:
-            always_export = True
+        dont_export = func_custom_props_utils.prop_is_true(obj, 'DontExport')
+        always_export = func_custom_props_utils.prop_is_true(obj, 'AlwaysExport')
 
         if merge:
             row.label(icon='EMPTY_SINGLE_ARROW')
 
-        is_merge_root = False
-        collection = func_collection_utils.find_collection('MergeGroup')
-        if collection and obj.name in collection.objects:
-            is_merge_root = True
+        is_merge_root = func_custom_props_utils.prop_is_true(obj, 'MergeGroup')
+        if is_merge_root:
             merge = True
-
+        
         # --- dont_export
         op_id = OBJECT_OT_mizore_automerge_assign_group.bl_idname
         op = row.operator(op_id, icon='OUTLINER' if is_merge_root else 'NONE', text="")
         op.obj_name = obj.name
         op.name = 'MergeGroup'
         op.assign = not is_merge_root
-        op.hide = True
         # ---
         # --- dont_export
         op_id = OBJECT_OT_mizore_automerge_assign_group.bl_idname
@@ -80,7 +71,6 @@ class OBJECT_PT_mizores_automerge_list_panel(bpy.types.Panel):
         op.obj_name = obj.name
         op.name = 'DontExport'
         op.assign = not dont_export
-        op.hide = True
         # ---
         # --- always_export
         op_id = OBJECT_OT_mizore_automerge_assign_group.bl_idname
@@ -88,9 +78,10 @@ class OBJECT_PT_mizores_automerge_list_panel(bpy.types.Panel):
         op.obj_name = obj.name
         op.name = 'AlwaysExport'
         op.assign = not always_export
-        op.hide = True
         # ---
 
+        if dont_export:
+            return
         children = func_object_utils.get_children_objects(obj)
         for child in children:
             OBJECT_PT_mizores_automerge_list_panel.draw_recursive(child, layout, indent=indent + 1,
