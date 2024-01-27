@@ -284,6 +284,9 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                ('ACTIVE_SCENE_COLLECTION', "Active Scene Collections",
                 "Each collection (including master, non-data-block one) of the active scene as a file, "
                 "including content from children collections"),
+
+                # 追加
+                ('OBJECTS_IN_ACTIVE_COLLECTION', "Objects in Active Collection", "Each object in active collection as a file"),
                ],
     )
     use_batch_own_dir: BoolProperty(

@@ -266,8 +266,9 @@ def execute_main(operator, context):
             # パス設定
             path = BatchExportFilepathFormatData.convert_filename_format(
                 format_str=operator.batch_filename_format,
-                file=operator.filepath,
-                batch=collection.name
+                path=operator.filepath,
+                batch=collection.name,
+                use_batch_own_dir=operator.use_batch_own_dir
             )
             keywords["filepath"] = path
             print("export: " + path)
@@ -277,13 +278,35 @@ def execute_main(operator, context):
             # パス設定
             path = BatchExportFilepathFormatData.convert_filename_format(
                 format_str=operator.batch_filename_format,
-                file=operator.filepath,
-                batch=f"{bpy.context.scene.name}_Scene_Collection"
+                path=operator.filepath,
+                batch=f"{bpy.context.scene.name}_Scene_Collection",
+                use_batch_own_dir=operator.use_batch_own_dir
             )
             keywords["filepath"] = path
             print("export: " + path)
             func_object_utils.deselect_all_objects()
             func_object_utils.select_objects(targets, True)
+            export_fbx_bin.save(operator, context, **keywords)
+    elif operator.batch_mode == 'OBJECTS_IN_ACTIVE_COLLECTION':
+        # アクティブなコレクションに属するオブジェクト（親を持たないか、親がアクティブなコレクションに属さない）を対象とする
+        active_layer_collection = bpy.context.view_layer.active_layer_collection
+        active_collection = active_layer_collection.collection
+        root_objects = func_collection_utils.get_root_objects(collection=active_collection)
+        root_objects = set(root_objects) & set(targets)
+        for root_obj in root_objects:
+            children = func_object_utils.get_children_recursive(root_obj, contains_self=True)
+            children = set(children) & set(targets)
+            func_object_utils.deselect_all_objects()
+            func_object_utils.select_objects(children, True)
+            # パス設定
+            path = BatchExportFilepathFormatData.convert_filename_format(
+                format_str=operator.batch_filename_format,
+                path=operator.filepath,
+                batch=root_obj.name,
+                use_batch_own_dir=operator.use_batch_own_dir
+            )
+            keywords["filepath"] = path
+            print("export: " + path)
             export_fbx_bin.save(operator, context, **keywords)
     elif operator.batch_mode == 'OFF' or operator.batch_mode == 'SCENE':
         path = operator.filepath
@@ -291,8 +314,9 @@ def execute_main(operator, context):
             # ファイル名を変換
             path = BatchExportFilepathFormatData.convert_filename_format(
                 format_str=operator.batch_filename_format,
-                file=operator.filepath,
-                batch=bpy.context.scene.name
+                path=operator.filepath,
+                batch=bpy.context.scene.name,
+                use_batch_own_dir=operator.use_batch_own_dir
             )
             keywords["filepath"] = path
         print("export: " + path)

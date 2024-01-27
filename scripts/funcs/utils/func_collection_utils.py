@@ -169,3 +169,11 @@ def hide_collection(context, group_name, hide=True):
     layer_col = find_layer_collection(group_name)
     if layer_col:
         layer_col.hide_viewport = hide
+
+def get_root_objects(collection):
+    result = []
+    for obj in collection.objects:
+        # 親が無いか、Collectionに属していないオブジェクトを取得
+        if (obj.parent is None) or (obj.parent.name not in collection.objects):
+            result.append(obj)
+    return result

@@ -74,8 +74,9 @@ class MIZORE_FBX_PT_export_main(bpy.types.Panel):
             # プレビュー
             preview = BatchExportFilepathFormatData.convert_filename_format(
                 format_str=bpy.path.basename(operator.batch_filename_format),
-                file=operator.filepath,
+                path=operator.filepath,
                 batch="BATCH",
+                use_batch_own_dir=operator.use_batch_own_dir,
                 fullpath=False
             )
             row = sub.row(align=True)
@@ -83,8 +84,9 @@ class MIZORE_FBX_PT_export_main(bpy.types.Panel):
 
             preview = BatchExportFilepathFormatData.convert_filename_format(
                 format_str=operator.batch_filename_format,
-                file=operator.filepath,
+                path=operator.filepath,
                 batch="BATCH",
+                use_batch_own_dir=operator.use_batch_own_dir,
                 fullpath=True
             )
             row = sub.row(align=True)

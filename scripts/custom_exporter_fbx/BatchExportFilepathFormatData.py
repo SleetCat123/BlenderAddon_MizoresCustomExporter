@@ -49,17 +49,20 @@ class BatchExportFilepathFormatData:
         BatchExportFilepathFormatData.temp_prev_batch_filename_format = operator.batch_filename_format
 
     @staticmethod
-    def convert_filename_format(format_str: str, file: str, batch: str, fullpath: bool = True):
+    def convert_filename_format(format_str: str, path: str, batch: str, use_batch_own_dir: bool, fullpath: bool = True):
         if "{batch}" not in format_str:
             format_str += "_{batch}"
-        file = os.path.splitext(file)[0]
-        if not fullpath:
-            file = os.path.basename(file)
-        if fullpath and "{name}" not in format_str:
-            dir = os.path.dirname(file)
-            format_str = dir + "\\" + format_str
-        result = format_str.format(name=file, batch=batch)
+        dir = os.path.dirname(path)
+        filename = os.path.splitext(os.path.basename(path))[0]
+        result = format_str.format(name=filename, batch=batch)
         result = result.replace(' ', '_')
+        if use_batch_own_dir:
+            subdir = os.path.basename(result)
+            if subdir.endswith(".fbx"):
+                subdir = subdir[:-4]
+            result = os.path.join(subdir, result)
         if not result.endswith(".fbx"):
             result += ".fbx"
+        if fullpath:
+            result = os.path.join(dir, result)
         return result
