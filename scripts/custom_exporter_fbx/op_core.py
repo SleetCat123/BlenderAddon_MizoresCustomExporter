@@ -312,11 +312,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
     batch_filename_format_presets: EnumProperty(
         name="",
-        items=[
-            ('CUSTOM', "Custom", ""),
-            (BatchExportFilepathFormatData.batch_file_format_fbx, BatchExportFilepathFormatData.batch_file_format_fbx + ".fbx", ""),
-            (BatchExportFilepathFormatData.batch_file_format_default, BatchExportFilepathFormatData.batch_file_format_default + ".fbx", ""),
-        ],
+        items=BatchExportFilepathFormatData.init_enum_items()
     )
     batch_filename_format: StringProperty(
         name="",

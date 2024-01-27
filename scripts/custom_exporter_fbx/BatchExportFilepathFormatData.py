@@ -19,14 +19,19 @@
 import os
 
 class BatchExportFilepathFormatData:
-    batch_file_format_fbx = ".fbx_{batch}"
-    batch_file_format_default = "_{batch}"
     batch_file_formats = [
-        batch_file_format_fbx,
-        batch_file_format_default,
+        "{name}.fbx_{batch}",
+        "{name}_{batch}",
+        "{batch}",
     ]
     temp_prev_batch_filename_format_presets=None
     temp_prev_batch_filename_format=None
+
+    @staticmethod
+    def init_enum_items():
+        result = [('CUSTOM', "Custom", "")]
+        for format in BatchExportFilepathFormatData.batch_file_formats:
+            result.append((format, format + ".fbx", ""))
 
     @staticmethod
     def update_batch_filename_format(operator):
@@ -46,8 +51,8 @@ class BatchExportFilepathFormatData:
         if "{batch}" not in format_str:
             format_str += "_{batch}"
         file = os.path.splitext(file)[0]
-        result = format_str.format(batch=batch)
-        result = file + result
+        result = format_str.format(name=file, batch=batch)
         result = result.replace(' ', '_')
-        result += ".fbx"
+        if not result.endswith(".fbx"):
+            result += ".fbx"
         return result
