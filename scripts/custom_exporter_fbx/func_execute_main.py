@@ -159,6 +159,13 @@ def execute_main(operator, context):
         for shape_key in obj.data.shape_keys.key_blocks:
             shape_key.value = 0.0
 
+    # オブジェクトを原点に移動する
+    for obj in targets_dup:
+        if not func_custom_props_utils.prop_is_true(obj, consts.MOVE_TO_ORIGIN_GROUP_NAME):
+            continue
+        print("Move To Origin: " + obj.name)
+        obj.location = (0, 0, 0)
+
     # ↓ AutoMergeアドオン連携
     if operator.enable_auto_merge:
         try:
