@@ -19,9 +19,10 @@
 import os
 
 class BatchExportFilepathFormatData:
+    batch_file_format_default = "{name}_{batch}"
     batch_file_formats = [
         "{name}.fbx_{batch}",
-        "{name}_{batch}",
+        batch_file_format_default,
         "{batch}",
     ]
     temp_prev_batch_filename_format_presets=None
@@ -32,6 +33,7 @@ class BatchExportFilepathFormatData:
         result = [('CUSTOM', "Custom", "")]
         for format in BatchExportFilepathFormatData.batch_file_formats:
             result.append((format, format + ".fbx", ""))
+        return result
 
     @staticmethod
     def update_batch_filename_format(operator):
@@ -47,10 +49,15 @@ class BatchExportFilepathFormatData:
         BatchExportFilepathFormatData.temp_prev_batch_filename_format = operator.batch_filename_format
 
     @staticmethod
-    def convert_filename_format(format_str: str, file: str, batch: str):
+    def convert_filename_format(format_str: str, file: str, batch: str, fullpath: bool = True):
         if "{batch}" not in format_str:
             format_str += "_{batch}"
         file = os.path.splitext(file)[0]
+        if not fullpath:
+            file = os.path.basename(file)
+        if fullpath and "{name}" not in format_str:
+            dir = os.path.dirname(file)
+            format_str = dir + "\\" + format_str
         result = format_str.format(name=file, batch=batch)
         result = result.replace(' ', '_')
         if not result.endswith(".fbx"):
