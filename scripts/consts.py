@@ -22,6 +22,9 @@ ALWAYS_EXPORT_GROUP_NAME = "AlwaysExport"  # 非表示状態であっても常�
 RESET_POSE_GROUP_NAME = "ResetPoseWhenExport"  # エクスポート時にポーズをリセットするオブジェクトのグループ名
 RESET_SHAPEKEY_GROUP_NAME = "ResetShapekeysWhenExport"  # エクスポート時にシェイプキーをリセットするオブジェクトのグループ名
 MOVE_TO_ORIGIN_GROUP_NAME = "MoveToOriginWhenExport"  # エクスポート時に原点に移動するオブジェクトのグループ名
+APPLY_LOCATIONS_GROUP_NAME = "ApplyLocationsWhenExport"  # エクスポート時に位置を適用するオブジェクトのグループ名
+APPLY_ROTATIONS_GROUP_NAME = "ApplyRotationsWhenExport"  # エクスポート時に回転を適用するオブジェクトのグループ名
+APPLY_SCALES_GROUP_NAME = "ApplyScalesWhenExport"  # エクスポート時にスケールを適用するオブジェクトのグループ名
 ALWAYS_RESET_SHAPEKEY_GROUP_NAME = "AlwaysResetShapekeys"  # エクスポート時にシェイプキーをリセットするオブジェクトのグループ名（エクスポート対象外であっても常にリセット）
 
 EXPORT_TEMP_SUFFIX = ".#MizoreCEx#"  # エクスポート処理時、一時的にオブジェクト名に付加する接尾辞

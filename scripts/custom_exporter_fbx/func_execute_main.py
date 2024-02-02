@@ -159,13 +159,6 @@ def execute_main(operator, context):
         for shape_key in obj.data.shape_keys.key_blocks:
             shape_key.value = 0.0
 
-    # オブジェクトを原点に移動する
-    for obj in targets_dup:
-        if not func_custom_props_utils.prop_is_true(obj, consts.MOVE_TO_ORIGIN_GROUP_NAME):
-            continue
-        print("Move To Origin: " + obj.name)
-        obj.location = (0, 0, 0)
-
     # ↓ AutoMergeアドオン連携
     if operator.enable_auto_merge:
         try:
@@ -216,6 +209,30 @@ def execute_main(operator, context):
         t = "!!! Failed to load ShapeKeysUtil !!! - apply_modifiers_with_shapekeys"
         print(t)
         operator.report({'ERROR'}, t)
+
+    # 後処理
+    temp_selected = bpy.context.selected_objects
+    temp_active = func_object_utils.get_active_object()
+    for obj in temp_selected:
+        if func_custom_props_utils.prop_is_true(obj, consts.MOVE_TO_ORIGIN_GROUP_NAME):
+            # オブジェクトを原点に移動する
+            print("Move To Origin: " + obj.name)
+            obj.location = (0, 0, 0)
+        
+        apply_location = func_custom_props_utils.prop_is_true(obj, consts.APPLY_LOCATIONS_GROUP_NAME)
+        apply_rotation = func_custom_props_utils.prop_is_true(obj, consts.APPLY_ROTATIONS_GROUP_NAME)
+        apply_scale = func_custom_props_utils.prop_is_true(obj, consts.APPLY_SCALES_GROUP_NAME)
+        if apply_location or apply_rotation or apply_scale:
+            # Transformを適用する
+            print(f"Apply: {obj.name} - Location: {apply_location} / Rotation: {apply_rotation} / Scale: {apply_scale}")
+            func_object_utils.deselect_all_objects()
+            func_object_utils.select_object(obj)
+            func_object_utils.set_active_object(obj)
+            bpy.ops.object.transform_apply(location=apply_location, rotation=apply_rotation, scale=apply_scale)
+    
+    func_object_utils.select_objects(temp_selected, True)
+    func_object_utils.set_active_object(temp_active)
+    # 後処理終了
 
     # region # Export based on io_scene_fbx
     if not operator.filepath:

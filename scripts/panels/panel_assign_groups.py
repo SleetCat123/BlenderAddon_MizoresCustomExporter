@@ -14,16 +14,20 @@ class OBJECT_PT_mizores_custom_exporter_group_panel(bpy.types.Panel):
         layout = self.layout
         wm = bpy.context.window_manager
         groups = [
-            "_Export Target",
+            "_Export Target:",
             consts.DONT_EXPORT_GROUP_NAME,
             consts.ALWAYS_EXPORT_GROUP_NAME,
-            "_Reset",
+            "_Reset:",
             consts.RESET_POSE_GROUP_NAME,
             consts.RESET_SHAPEKEY_GROUP_NAME,
             consts.MOVE_TO_ORIGIN_GROUP_NAME,
-            "_Reset Always",
+            "_Apply:",
+            consts.APPLY_LOCATIONS_GROUP_NAME,
+            consts.APPLY_ROTATIONS_GROUP_NAME,
+            consts.APPLY_SCALES_GROUP_NAME,
+            "_Reset Always:",
             consts.ALWAYS_RESET_SHAPEKEY_GROUP_NAME,
-            "_Auto Merge",
+            "_Auto Merge:",
             wm.mizore_automerge_collection_name,
             wm.mizore_automerge_dont_merge_to_parent_collection_name
         ]
