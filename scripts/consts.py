@@ -1,20 +1,4 @@
-# ##### BEGIN GPL LICENSE BLOCK #####
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software Foundation,
-# Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-#
-# ##### END GPL LICENSE BLOCK #####
+import bpy
 
 
 DONT_EXPORT_GROUP_NAME = "DontExport"  # エクスポートから除外するオブジェクトのグループ名
@@ -32,3 +16,27 @@ MAX_NAME_LENGTH = 63  # オブジェクト名などの最大文字数（Blender�
 ACTUAL_MAX_NAME_LENGTH = MAX_NAME_LENGTH - len(EXPORT_TEMP_SUFFIX)  # オブジェクトなどの名前として実際に使用可能な最大文字数
 
 DESC = ".desc"
+
+
+def register():
+    bpy.types.WindowManager.mizore_exporter_dont_export_group_name = DONT_EXPORT_GROUP_NAME
+    bpy.types.WindowManager.mizore_exporter_always_export_group_name = ALWAYS_EXPORT_GROUP_NAME
+    bpy.types.WindowManager.mizore_exporter_reset_pose_group_name = RESET_POSE_GROUP_NAME
+    bpy.types.WindowManager.mizore_exporter_reset_shapekey_group_name = RESET_SHAPEKEY_GROUP_NAME
+    bpy.types.WindowManager.mizore_exporter_move_to_origin_group_name = MOVE_TO_ORIGIN_GROUP_NAME
+    bpy.types.WindowManager.mizore_exporter_apply_locations_group_name = APPLY_LOCATIONS_GROUP_NAME
+    bpy.types.WindowManager.mizore_exporter_apply_rotations_group_name = APPLY_ROTATIONS_GROUP_NAME
+    bpy.types.WindowManager.mizore_exporter_apply_scales_group_name = APPLY_SCALES_GROUP_NAME
+    bpy.types.WindowManager.mizore_exporter_always_reset_shapekey_group_name = ALWAYS_RESET_SHAPEKEY_GROUP_NAME
+
+
+def unregister():
+    del bpy.types.WindowManager.mizore_exporter_dont_export_group_name
+    del bpy.types.WindowManager.mizore_exporter_always_export_group_name
+    del bpy.types.WindowManager.mizore_exporter_reset_pose_group_name
+    del bpy.types.WindowManager.mizore_exporter_reset_shapekey_group_name
+    del bpy.types.WindowManager.mizore_exporter_move_to_origin_group_name
+    del bpy.types.WindowManager.mizore_exporter_apply_locations_group_name
+    del bpy.types.WindowManager.mizore_exporter_apply_rotations_group_name
+    del bpy.types.WindowManager.mizore_exporter_apply_scales_group_name
+    del bpy.types.WindowManager.mizore_exporter_always_reset_shapekey_group_name
