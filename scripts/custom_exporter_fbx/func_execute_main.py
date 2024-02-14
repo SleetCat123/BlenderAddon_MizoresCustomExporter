@@ -77,12 +77,43 @@ def execute_main(operator, context):
             set_visible=False
         )
 
+    # エクスポート対象でない種類のオブジェクトの選択を解除
+    object_types = operator.object_types
+    if 'EMPTY' not in object_types:
+        selected_objects = bpy.context.selected_objects
+        for obj in selected_objects:
+            if obj.type == 'EMPTY' :
+                if 'EMPTY' not in object_types:
+                    func_object_utils.select_object(obj, False)
+            elif obj.type == 'CAMERA':
+                if 'CAMERA' not in object_types:
+                    func_object_utils.select_object(obj, False)
+            elif obj.type == 'LIGHT':
+                if 'LIGHT' not in object_types:
+                    func_object_utils.select_object(obj, False)
+            elif obj.type == 'ARMATURE':
+                if 'ARMATURE' not in object_types:
+                    func_object_utils.select_object(obj, False)
+            elif obj.type == 'MESH':
+                if 'MESH' not in object_types:
+                    func_object_utils.select_object(obj, False)
+            elif obj.type in ['LATTICE', 'LIGHT_PROBE', 'SPEAKER']:
+                func_object_utils.select_object(obj, False)
+            else:
+                if 'OTHER' not in object_types:
+                    func_object_utils.select_object(obj, False)
+    
+
     # エクスポート除外コレクションを取得
     ignore_collection = func_collection_utils.find_collection(consts.DONT_EXPORT_GROUP_NAME)
     if ignore_collection:
         # 処理から除外するオブジェクトの選択を外す
         func_collection_utils.deselect_collection(collection=ignore_collection)
-    func_custom_props_utils.select_if_prop_is_true(prop_name=consts.DONT_EXPORT_GROUP_NAME, select=False, affect_children=True)
+    func_custom_props_utils.select_if_prop_is_true(
+        prop_name=consts.DONT_EXPORT_GROUP_NAME, 
+        select=False, 
+        affect_children=True
+        )
 
     # AlwaysResetのシェイプキーをリセットする
     temp_shapekeys = {}
@@ -283,6 +314,7 @@ def execute_main(operator, context):
             objects = func_collection_utils.get_collection_objects(collection=collection,
                                                                    include_children_collections=operator.only_root_collection)
             objects = objects & set(targets)
+            # 対象オブジェクトが無い場合はスキップ
             if not objects:
                 continue
             func_object_utils.deselect_all_objects()
