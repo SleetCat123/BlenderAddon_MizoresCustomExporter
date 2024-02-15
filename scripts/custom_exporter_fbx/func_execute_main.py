@@ -114,6 +114,28 @@ def execute_main(operator, context):
         select=False, 
         affect_children=True
         )
+    
+    # オブジェクトの文字数チェック
+    selected_objects = bpy.context.selected_objects
+    for obj in selected_objects:
+        # 接尾辞をつけたときに名前の文字数が63文字（Blenderの最大文字数）を超えるオブジェクトがあるならエラー
+        if consts.ACTUAL_MAX_NAME_LENGTH < len(obj.name):
+            t = bpy.app.translations.pgettext("error_longname_object").format(
+                str(consts.ACTUAL_MAX_NAME_LENGTH),
+                obj.name,
+                str(len(obj.name))
+            )
+            operator.report({'ERROR'}, t)
+            return {'CANCELLED'}
+        if obj.data and consts.ACTUAL_MAX_NAME_LENGTH < len(obj.data.name):
+            t = bpy.app.translations.pgettext("error_longname_data").format(
+                str(consts.ACTUAL_MAX_NAME_LENGTH),
+                obj.name,
+                obj.data.name,
+                str(len(obj.data.name))
+            )
+            operator.report({'ERROR'}, t)
+            return {'CANCELLED'}
 
     # AlwaysResetのシェイプキーをリセットする
     temp_shapekeys = {}
@@ -330,7 +352,7 @@ def execute_main(operator, context):
             dir = os.path.dirname(path)
             if not os.path.exists(dir):
                 os.makedirs(dir)
-                
+
             keywords["filepath"] = path
             print("export: " + path)
             export_fbx_bin.save(operator, context, **keywords)

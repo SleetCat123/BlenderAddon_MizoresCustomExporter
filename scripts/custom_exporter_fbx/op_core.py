@@ -370,9 +370,6 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             preferences_scene.clear_export_props()
             preferences_scene.save_scene_prefs(operator=self, ignore_key=ignore_key)
 
-        if not func_isvalid.isvalid(self):
-            return {'CANCELLED'}
-
         if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE' or self.batch_mode == 'SCENE_COLLECTION':
             temp_scene = bpy.context.window.scene
             for scene in bpy.data.scenes:
