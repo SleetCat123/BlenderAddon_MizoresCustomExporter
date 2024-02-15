@@ -326,6 +326,11 @@ def execute_main(operator, context):
                 batch=collection.name,
                 use_batch_own_dir=operator.use_batch_own_dir
             )
+            # ディレクトリが存在しない場合は作成
+            dir = os.path.dirname(path)
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+                
             keywords["filepath"] = path
             print("export: " + path)
             export_fbx_bin.save(operator, context, **keywords)
