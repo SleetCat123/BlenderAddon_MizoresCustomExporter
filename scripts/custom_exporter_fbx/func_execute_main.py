@@ -409,7 +409,7 @@ def execute_main(operator, context):
     # endregion
 
     # 複製されたオブジェクトを削除
-    func_object_utils.remove_objects(targets_dup)
+    func_object_utils.remove_objects(bpy.context.selected_objects)
 
     # 複製前オブジェクト名から接尾辞を削除
     for obj in targets_source:
