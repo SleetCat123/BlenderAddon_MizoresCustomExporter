@@ -24,6 +24,9 @@ class BatchExportFilepathFormatData:
         "{name}.fbx_{batch}",
         batch_file_format_default,
         "{batch}",
+        f"{batch_file_format_default}/{batch_file_format_default}",
+        f"{batch_file_format_default}/" + "{batch}",
+        "{batch}/{batch}",
     ]
     temp_prev_batch_filename_format_presets=None
     temp_prev_batch_filename_format=None
