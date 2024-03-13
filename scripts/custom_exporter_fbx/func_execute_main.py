@@ -41,14 +41,14 @@ def execute_main(operator, context):
     # 常時エクスポートするオブジェクトを表示
     hide_temp_always_export = {}
     always_export_objects = set(func_custom_props_utils.get_objects_prop_is_true(prop_name=consts.ALWAYS_EXPORT_GROUP_NAME))
-    layer_col_always_export = func_collection_utils.find_layer_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
-    if layer_col_always_export:
-        # layer_col_always_export.exclude = False
-        # コレクションを表示
-        layer_col_always_export.hide_viewport = False
-        collection = func_collection_utils.find_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
-        always_export_objects = always_export_objects | set(collection.objects)
+    # AlwaysExportのPropをもつオブジェクトをコレクションに追加
+    layer_col_always_export = func_collection_utils.find_or_create_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
     for obj in always_export_objects:
+        layer_col_always_export.objects.link(obj)
+    # コレクションを表示
+    layer_col_always_export.hide_viewport = False
+    collection = func_collection_utils.find_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
+    for obj in collection.objects:
         # オブジェクトの表示状態を記憶してから表示
         hide_temp_always_export[obj] = obj.hide_get()
         obj.hide_set(False)
@@ -98,6 +98,7 @@ def execute_main(operator, context):
                 if 'MESH' not in object_types:
                     func_object_utils.select_object(obj, False)
             elif obj.type in ['LATTICE', 'LIGHT_PROBE', 'SPEAKER']:
+                # 常にエクスポートされない種類のオブジェクト
                 func_object_utils.select_object(obj, False)
             else:
                 if 'OTHER' not in object_types:
@@ -422,9 +423,16 @@ def execute_main(operator, context):
         for i, shape_key in enumerate(obj.data.shape_keys.key_blocks):
             shape_key.value = values[i]
 
-    # AlwaysExportを非表示
-    if layer_col_always_export:
-        layer_col_always_export.hide_viewport = True
+    # AlwaysExportコレクションを非表示
+    layer_col_always_export.hide_viewport = True
+    # AlwaysExportコレクションに追加していたオブジェクトをコレクションから外す
+    for obj in always_export_objects:
+        layer_col_always_export.objects.unlink(obj)
+    if not layer_col_always_export.objects:
+        # コレクションが空なら削除する
+        print("Remove Collection: " + layer_col_always_export.name)
+        bpy.context.scene.collection.children.unlink(layer_col_always_export)
+        bpy.data.collections.remove(layer_col_always_export)
     # オブジェクトの表示状態を復元
     for obj, value in hide_temp_always_export.items():
         obj.hide_set(value)
