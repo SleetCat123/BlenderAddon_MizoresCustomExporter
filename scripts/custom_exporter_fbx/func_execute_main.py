@@ -175,25 +175,26 @@ def execute_main(operator, context):
         func_name_utils.add_suffix(obj)
 
     # オブジェクトを複製
-    targets_dup = func_object_utils.duplicate_object()
-    targets_dup.sort(key=lambda x: x.name)
+    selected_objects = func_object_utils.duplicate_object()
 
     # 複製したオブジェクトの名前から接尾辞を削除
-    for obj in targets_dup:
+    for obj in selected_objects:
         func_name_utils.remove_suffix(obj)
 
     # Debug
+    selected_objects.sort(key=lambda x: x.name)
     print("Source: [")
     for o in targets_source:
         print(o.name)
     print("]")
     print("Duplicate: [")
-    for o in targets_dup:
+    for o in selected_objects:
         print(o.name)
     print("]")
 
     # Armatureのポーズをリセットする
-    for obj in targets_dup:
+    selected_objects = bpy.context.selected_objects
+    for obj in selected_objects:
         if obj.type != 'ARMATURE':
             continue
         if not func_custom_props_utils.prop_is_true(obj, consts.RESET_POSE_GROUP_NAME):
@@ -203,7 +204,7 @@ def execute_main(operator, context):
             pose_bone.matrix_basis = Matrix()
 
     # シェイプキーをリセットする
-    for obj in targets_dup:
+    for obj in selected_objects:
         if not func_custom_props_utils.prop_is_true(obj, consts.RESET_SHAPEKEY_GROUP_NAME):
             continue
         if not obj.data or not hasattr(obj.data, 'shape_keys') or not hasattr(obj.data.shape_keys, 'key_blocks'):
@@ -229,7 +230,7 @@ def execute_main(operator, context):
             # 結合処理失敗
             if 'FINISHED' not in b:
                 # 複製されたオブジェクトを削除
-                func_object_utils.remove_objects(targets_dup)
+                func_object_utils.remove_objects(selected_objects)
                 return {'FAILED'}
         except AttributeError as e:
             t = "!!! Failed to load AutoMerge !!!"
@@ -245,8 +246,8 @@ def execute_main(operator, context):
         if operator.enable_apply_modifiers_with_shapekeys and operator.use_mesh_modifiers:
             active = func_object_utils.get_active_object()
             selected_objects = bpy.context.selected_objects
-            targets = [d for d in selected_objects if d.type == 'MESH']
-            for obj in targets:
+            all_export_targets = [d for d in selected_objects if d.type == 'MESH']
+            for obj in all_export_targets:
                 func_object_utils.set_active_object(obj)
                 bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon()
             # 選択オブジェクトを復元
@@ -264,7 +265,7 @@ def execute_main(operator, context):
         print(t)
         operator.report({'ERROR'}, t)
 
-    # 後処理
+    # Transform操作
     temp_selected = bpy.context.selected_objects
     temp_active = func_object_utils.get_active_object()
     for obj in temp_selected:
@@ -330,13 +331,13 @@ def execute_main(operator, context):
             # [0]はシーンコレクションなのでスキップ
             target_collections = func_collection_utils.get_all_collections()[1:]
 
-        targets = bpy.context.selected_objects
+        all_export_targets = bpy.context.selected_objects
         for collection in target_collections:
             if any(collection.name in n for n in ignore_collections_name):
                 continue
             objects = func_collection_utils.get_collection_objects(collection=collection,
                                                                    include_children_collections=operator.only_root_collection)
-            objects = objects & set(targets)
+            objects = objects & set(all_export_targets)
             # 対象オブジェクトが無い場合はスキップ
             if not objects:
                 continue
@@ -369,17 +370,17 @@ def execute_main(operator, context):
             keywords["filepath"] = path
             print("export: " + path)
             func_object_utils.deselect_all_objects()
-            func_object_utils.select_objects(targets, True)
+            func_object_utils.select_objects(all_export_targets, True)
             export_fbx_bin.save(operator, context, **keywords)
     elif operator.batch_mode == 'OBJECTS_IN_ACTIVE_COLLECTION':
         # アクティブなコレクションに属するオブジェクト（親を持たないか、親がアクティブなコレクションに属さない）を対象とする
         active_layer_collection = bpy.context.view_layer.active_layer_collection
         active_collection = active_layer_collection.collection
         root_objects = func_collection_utils.get_root_objects(collection=active_collection)
-        root_objects = set(root_objects) & set(targets)
+        root_objects = set(root_objects) & set(all_export_targets)
         for root_obj in root_objects:
             children = func_object_utils.get_children_recursive(root_obj, contains_self=True)
-            children = set(children) & set(targets)
+            children = set(children) & set(all_export_targets)
             func_object_utils.deselect_all_objects()
             func_object_utils.select_objects(children, True)
             # パス設定
@@ -410,7 +411,7 @@ def execute_main(operator, context):
     # endregion
 
     # 複製されたオブジェクトを削除
-    func_object_utils.remove_objects(bpy.context.selected_objects)
+    func_object_utils.remove_objects(all_export_targets)
 
     # 複製前オブジェクト名から接尾辞を削除
     for obj in targets_source:
