@@ -310,6 +310,7 @@ def execute_main(operator, context):
     keywords["use_active_collection"] = False
     keywords["batch_mode"] = 'OFF'
     #
+    all_export_targets = bpy.context.selected_objects
 
     # BatchMode用処理
     # TODO: このへんの挙動を調べる
@@ -331,7 +332,6 @@ def execute_main(operator, context):
             # [0]はシーンコレクションなのでスキップ
             target_collections = func_collection_utils.get_all_collections()[1:]
 
-        all_export_targets = bpy.context.selected_objects
         for collection in target_collections:
             if any(collection.name in n for n in ignore_collections_name):
                 continue
