@@ -21,6 +21,7 @@ import bpy
 from .. import consts
 from ..funcs.utils import func_object_utils, func_collection_utils, func_custom_props_utils
 from ..funcs import func_addon_link, func_name_utils
+from ..funcs import func_remove_unused_groups, func_remove_groups_not_bones
 from bpy_extras.io_utils import axis_conversion
 from mathutils import Matrix
 from io_scene_fbx import export_fbx_bin
@@ -284,10 +285,18 @@ def execute_main(operator, context):
             func_object_utils.select_object(obj)
             func_object_utils.set_active_object(obj)
             bpy.ops.object.transform_apply(location=apply_location, rotation=apply_rotation, scale=apply_scale)
-    
     func_object_utils.select_objects(temp_selected, True)
     func_object_utils.set_active_object(temp_active)
-    # 後処理終了
+    
+    for obj in bpy.context.selected_objects:
+        # ボーン名以外の頂点グループを削除
+        if func_custom_props_utils.prop_is_true(obj, consts.REMOVE_GROUPS_NOT_BONE_GROUP_NAME):
+            func_object_utils.set_active_object(obj)
+            func_remove_groups_not_bones.remove_groups_not_bones()
+        # 使用されていない頂点グループを削除
+        if func_custom_props_utils.prop_is_true(obj, consts.REMOVE_UNUSED_GROUPS_GROUP_NAME):
+            func_object_utils.set_active_object(obj)
+            func_remove_unused_groups.remove_unused_groups(search_data_transfer_modifier=True)
 
     # region # Export based on io_scene_fbx
     if not operator.filepath:

@@ -57,6 +57,8 @@ class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
             consts.APPLY_LOCATIONS_GROUP_NAME,
             consts.APPLY_ROTATIONS_GROUP_NAME,
             consts.APPLY_SCALES_GROUP_NAME,
+            consts.REMOVE_UNUSED_GROUPS_GROUP_NAME,
+            consts.REMOVE_GROUPS_NOT_BONE_GROUP_NAME,
             consts.ALWAYS_RESET_SHAPEKEY_GROUP_NAME,
             wm.mizore_automerge_collection_name,
             wm.mizore_automerge_dont_merge_to_parent_collection_name

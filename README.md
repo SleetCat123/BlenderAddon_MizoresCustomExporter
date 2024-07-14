@@ -44,10 +44,13 @@ Blender 2.8～であれば上記以外のバージョンでも導入できます
 - ResetPoseWhenExport: このプロパティが有効なアーマチュアはエクスポート時にポーズがリセットされます。
 - ResetShapekeysWhenExport: このプロパティが有効なオブジェクトはエクスポート時にシェイプキーがリセットされます。
 - MoveToOriginWhenExport: このプロパティが有効なオブジェクトはエクスポート時に原点に移動します。
-- ApplyLocationsWhenExport: このプロパティが有効なオブジェクトはエクスポート時に位置を適用します。
-- ApplyRotationsWhenExport: このプロパティが有効なオブジェクトはエクスポート時に回転を適用します。
-- ApplyScalesWhenExport: このプロパティが有効なオブジェクトはエクスポート時にスケールを適用します。
-- AlwaysResetShapekeys: このプロパティが有効なオブジェクトはエクスポート時にシェイプキーが0にリセットされます。
+- ApplyLocationsWhenExport: このプロパティが有効なオブジェクトはエクスポート時に位置が適用されます。
+- ApplyRotationsWhenExport: このプロパティが有効なオブジェクトはエクスポート時に回転が適用されます。
+- ApplyScalesWhenExport: このプロパティが有効なオブジェクトはエクスポート時にスケールが適用されます。
+- RemoveUnusedGroupsWhenExport: このプロパティが有効なMeshはエクスポート時に未使用のグループが削除されます。
+- RemoveGroupsNotBoneNamesWhenExport: このプロパティが有効なMeshはエクスポート時にボーン名以外のグループが削除されます。
+- AlwaysResetShapekeys: このプロパティが有効なオブジェクトは、エクスポート対象かどうかに関わらずエクスポート時にシェイプキーが0にリセットされます。  
+エクスポート完了後にシェイプキーの状態は復元されます。
 
 ## ◇エクスポート対象オブジェクトの設定
 ### ・Only Root Collections
