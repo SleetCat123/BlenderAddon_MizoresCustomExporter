@@ -42,6 +42,7 @@ class MIZORE_FBX_PT_export_automerge(bpy.types.Panel):
         operator = sfile.active_operator
 
         layout.prop(operator, "enable_auto_merge")
+        layout.prop(operator, "use_variants_merge")
 
 
 def register():

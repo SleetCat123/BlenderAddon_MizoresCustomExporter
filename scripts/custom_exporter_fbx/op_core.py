@@ -16,6 +16,7 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+import traceback
 import bpy
 from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty
 from bpy_extras.io_utils import ExportHelper, orientation_helper, path_reference_mode
@@ -142,11 +143,11 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                     "WARNING: prevents exporting shape keys",
         default=True,
     )
-    # use_mesh_modifiers_render: BoolProperty(
-    #     name="Use Modifiers Render Setting",
-    #     description="Use render settings when applying modifiers to mesh objects (DISABLED in Blender 2.8)",
-    #     default=True,
-    # )
+    use_mesh_modifiers_render: BoolProperty(
+        name="Use Modifiers Render Setting",
+        description="Use render settings when applying modifiers to mesh objects",
+        default=True,
+    )
     mesh_smooth_type: EnumProperty(
         name="Smoothing",
         items=[('OFF', "Normals Only", "Export only normals instead of writing edge or face smoothing data"),
@@ -333,6 +334,10 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     enable_apply_modifiers_with_shapekeys: BoolProperty(name="Apply Modifier with Shape Keys", default=True)
     enable_separate_lr_shapekey: BoolProperty(name="Separate Shape Keys LR", default=True)
 
+    bake_anim_use_bone_constraint: BoolProperty(name="Use Bone Constraint", default=True)
+
+    use_variants_merge: BoolProperty(name="Use Variants Merge", default=True)
+
     scene = None
 
     def draw(self, context):
@@ -362,6 +367,35 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         return super().invoke(context, event)
 
     def execute(self, context):
+        try:
+            if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE' or self.batch_mode == 'SCENE_COLLECTION':
+                # TODO: デフォルトの'COLLECTION'って全シーンで実行される？
+                temp_scene = bpy.context.window.scene
+                for scene in bpy.data.scenes:
+                    bpy.context.window.scene = scene
+                    print("Scene: " + scene.name)
+                    func_execute_main.execute_main(self, context)
+                bpy.context.window.scene = temp_scene
+                log = bpy.app.translations.pgettext("export_completed")
+                print(log)
+                self.report({'INFO'}, log)
+                result = {'FINISHED'}
+            else:
+                func_execute_main.execute_main(self, context)
+                log = bpy.app.translations.pgettext("export_completed")
+                print(log)
+                self.report({'INFO'}, log)
+                result = {'FINISHED'}
+        except Exception as e:
+            traceback.print_exc()
+            log = bpy.app.translations.pgettext("export_interrupted")
+            print(log)
+            self.report({'ERROR'}, log)
+            result = {'CANCELLED'}
+
+        # 実行前の状態に戻す
+        bpy.ops.ed.undo_push(message = "Restore point 1")
+        bpy.ops.ed.undo()
         # シーンに設定を保存
         if self.save_prefs:
             ignore_key = ["reset_path"]
@@ -369,35 +403,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 ignore_key.append("filepath")
             preferences_scene.clear_export_props()
             preferences_scene.save_scene_prefs(operator=self, ignore_key=ignore_key)
-
-        if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE' or self.batch_mode == 'SCENE_COLLECTION':
-            temp_scene = bpy.context.window.scene
-            for scene in bpy.data.scenes:
-                bpy.context.window.scene = scene
-                print("Scene: " + scene.name)
-                b = func_execute_main.execute_main(self, context)
-                if 'FINISHED' not in b:
-                    log = bpy.app.translations.pgettext("export_interrupted")
-                    print(log)
-                    self.report({'ERROR'}, log)
-                    return {'CANCELLED'}
-            bpy.context.window.scene = temp_scene
-            log = bpy.app.translations.pgettext("export_completed")
-            print(log)
-            self.report({'INFO'}, log)
-            return {'FINISHED'}
-        else:
-            b = func_execute_main.execute_main(self, context)
-            if 'FINISHED' in b:
-                log = bpy.app.translations.pgettext("export_completed")
-                print(log)
-                self.report({'INFO'}, log)
-                return {'FINISHED'}
-            else:
-                log = bpy.app.translations.pgettext("export_interrupted")
-                print(log)
-                self.report({'ERROR'}, log)
-                return {'CANCELLED'}
+        bpy.ops.ed.undo_push(message = "Restore point")
+        return result
 
 
 # ExportメニューにOperatorを登録

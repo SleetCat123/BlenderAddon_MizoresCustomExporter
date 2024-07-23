@@ -20,7 +20,7 @@ import os
 import bpy
 from .. import consts
 from ..funcs.utils import func_object_utils, func_collection_utils, func_custom_props_utils
-from ..funcs import func_addon_link, func_name_utils
+from ..funcs import func_addon_link
 from . import func_export_preprocess
 from bpy_extras.io_utils import axis_conversion
 from mathutils import Matrix
@@ -29,20 +29,9 @@ from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 
 
 def execute_main(operator, context):
-    mode_temp = None
-    if bpy.context.object is not None:
-        # 開始時のモードを記憶しオブジェクトモードに
-        mode_temp = bpy.context.object.mode
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-    # 現在の選択状況を記憶
-    active_temp = func_object_utils.get_active_object()
-    selected_temp = bpy.context.selected_objects
-
     # 常時エクスポートするオブジェクトを表示
-    hide_temp_always_export = {}
     always_export_objects = set(func_custom_props_utils.get_objects_prop_is_true(prop_name=consts.ALWAYS_EXPORT_GROUP_NAME))
-    # AlwaysExportのPropをもつオブジェクトをコレクションに追加
+    # AlwaysExportのPropをもつオブジェクトをコレクションに追加（親コレクションが非表示な場合でも表示できるように）
     layer_col_always_export = func_collection_utils.find_or_create_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
     for obj in always_export_objects:
         layer_col_always_export.objects.link(obj)
@@ -50,17 +39,18 @@ def execute_main(operator, context):
     layer_col_always_export.hide_viewport = False
     collection = func_collection_utils.find_collection(consts.ALWAYS_EXPORT_GROUP_NAME)
     for obj in collection.objects:
-        # オブジェクトの表示状態を記憶してから表示
-        hide_temp_always_export[obj] = obj.hide_get()
-        obj.hide_set(False)
+        # オブジェクトを表示
+        func_object_utils.force_unhide(obj)
 
-    if not operator.use_selection:
+    if operator.use_selection:
+        # 選択中のオブジェクト以外を非表示にする
+        func_object_utils.hide_unselected_objects()
+    else:
         # Selected Objectsにチェックがついていないなら全オブジェクトを選択
         func_object_utils.select_all_objects()
 
     if operator.use_selection and operator.use_selection_children_objects:
-        current_selected = bpy.context.selected_objects
-        for obj in current_selected:
+        for obj in bpy.context.selected_objects:
             func_object_utils.set_active_object(obj)
             if bpy.context.object.mode != 'OBJECT':
                 # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
@@ -106,11 +96,7 @@ def execute_main(operator, context):
                     func_object_utils.select_object(obj, False)
     # endregion
 
-    # エクスポート除外コレクションを取得
-    ignore_collection = func_collection_utils.find_collection(consts.DONT_EXPORT_GROUP_NAME)
     # region 処理から除外するオブジェクトの選択を外す
-    if ignore_collection:
-        func_collection_utils.deselect_collection(collection=ignore_collection)
     func_custom_props_utils.select_if_prop_is_true(
         prop_name=consts.DONT_EXPORT_GROUP_NAME, 
         select=False, 
@@ -142,17 +128,12 @@ def execute_main(operator, context):
     # endregion
 
     # region AlwaysResetのシェイプキーをリセットする
-    temp_shapekeys = {}
     for obj in bpy.data.objects:
         if not func_custom_props_utils.prop_is_true(obj, consts.ALWAYS_RESET_SHAPEKEY_GROUP_NAME):
             continue
         if not obj.data or not hasattr(obj.data, 'shape_keys') or not hasattr(obj.data.shape_keys, 'key_blocks'):
             continue
         print("AlwaysReset ShapeKey: " + obj.name)
-        temp_shapekeys[obj] = {
-            "show_only_shape_key": obj.show_only_shape_key,
-            "values": [shape_key.value for shape_key in obj.data.shape_keys.key_blocks]
-        }
         obj.show_only_shape_key = False
         for shape_key in obj.data.shape_keys.key_blocks:
             shape_key.value = 0.0
@@ -161,45 +142,23 @@ def execute_main(operator, context):
     # 選択中オブジェクトを取得
     targets_source = bpy.context.selected_objects
     targets_source.sort(key=lambda x: x.name)
-    targets_source_mode = [''] * len(targets_source)
     # PoseモードのオブジェクトをOBJECTモードにする
     # （Poseモードになっているアーマチュアが複製されないっぽいので）
     for i in range(len(targets_source)):
         o = targets_source[i]
         if o.mode == 'POSE':
-            targets_source_mode[i] = o.mode
             func_object_utils.set_active_object(o)
             bpy.ops.object.mode_set(mode='OBJECT')
-        else:
-            targets_source_mode[i] = ''
-
-    # オブジェクト名に接尾辞を付ける
-    # （名前の末尾が xxx.001 のように数字になっている場合にオブジェクトを複製すると名前がxxx.002 のようにカウントアップされてしまい、オブジェクト名の復元時に問題が起きるのでその対策）
-    for obj in targets_source:
-        func_name_utils.add_suffix(obj)
-
-    # オブジェクトを複製
-    selected_objects = func_object_utils.duplicate_object()
-
-    # 複製したオブジェクトの名前から接尾辞を削除
-    for obj in selected_objects:
-        func_name_utils.remove_suffix(obj)
 
     # Debug
-    selected_objects.sort(key=lambda x: x.name)
-    print("Source: [")
+    print("Targets: [")
     for o in targets_source:
-        print(o.name)
-    print("]")
-    print("Duplicate: [")
-    for o in selected_objects:
         print(o.name)
     print("]")
 
     # region Preprocess
     func_export_preprocess.export_preprocess(
         operator=operator,
-        ignore_collection=ignore_collection
     )
     # endregion
 
@@ -323,50 +282,3 @@ def execute_main(operator, context):
     else:
         operator.report({'ERROR'}, str(operator.batch_mode) + " は未定義です。")
     # endregion
-
-    # 複製されたオブジェクトを削除
-    func_object_utils.remove_objects(all_export_targets)
-
-    # 複製前オブジェクト名から接尾辞を削除
-    for obj in targets_source:
-        func_name_utils.remove_suffix(obj)
-
-    # AlwaysResetのシェイプキーを復元する
-    for obj, data in temp_shapekeys.items():
-        obj.show_only_shape_key = data["show_only_shape_key"]
-        values = data["values"]
-        for i, shape_key in enumerate(obj.data.shape_keys.key_blocks):
-            shape_key.value = values[i]
-
-    # AlwaysExportコレクションを非表示
-    layer_col_always_export.hide_viewport = True
-    # AlwaysExportコレクションに追加していたオブジェクトをコレクションから外す
-    for obj in always_export_objects:
-        layer_col_always_export.objects.unlink(obj)
-    if not layer_col_always_export.objects:
-        # コレクションが空なら削除する
-        print("Remove Collection: " + layer_col_always_export.name)
-        bpy.context.scene.collection.children.unlink(layer_col_always_export)
-        bpy.data.collections.remove(layer_col_always_export)
-    # オブジェクトの表示状態を復元
-    for obj, value in hide_temp_always_export.items():
-        obj.hide_set(value)
-
-    # 選択状況を処理前の状態に復元
-    func_object_utils.deselect_all_objects()
-    func_object_utils.select_objects(selected_temp, True)
-    # set_active_object(active_temp)
-
-    # オブジェクトのモードを復元
-    for i in range(len(targets_source)):
-        m = targets_source_mode[i]
-        if m:
-            func_object_utils.set_active_object(targets_source[i])
-            bpy.ops.object.mode_set(mode=m)
-    func_object_utils.set_active_object(active_temp)
-
-    if mode_temp is not None:
-        # 開始時のモードを復元
-        bpy.ops.object.mode_set(mode=mode_temp)
-
-    return {'FINISHED'}

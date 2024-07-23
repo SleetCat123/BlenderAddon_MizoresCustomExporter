@@ -44,9 +44,11 @@ class MIZORE_FBX_PT_export_geometry(bpy.types.Panel):
         layout.prop(operator, "mesh_smooth_type")
         layout.prop(operator, "use_subsurf")
         layout.prop(operator, "use_mesh_modifiers")
-        # sub = layout.row()
-        # sub.enabled = operator.use_mesh_modifiers and False  # disabled in 2.8...
-        # sub.prop(operator, "use_mesh_modifiers_render")
+
+        sub = layout.row()
+        sub.enabled = operator.use_mesh_modifiers
+        sub.prop(operator, "use_mesh_modifiers_render")
+
         layout.prop(operator, "use_mesh_edges")
         sub = layout.row()
         # ~ sub.enabled = operator.mesh_smooth_type in {'OFF'}

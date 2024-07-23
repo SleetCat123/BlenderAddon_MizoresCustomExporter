@@ -54,6 +54,7 @@ class MIZORE_FBX_PT_export_bake_animation(bpy.types.Panel):
         layout.prop(operator, "bake_anim_force_startend_keying")
         layout.prop(operator, "bake_anim_step")
         layout.prop(operator, "bake_anim_simplify_factor")
+        layout.prop(operator, "bake_anim_use_bone_constraint")
 
 
 def register():

@@ -1,11 +1,12 @@
 import bpy
+import traceback
 from mathutils import Matrix
 from .. import consts
 from ..funcs import func_addon_link
 from ..funcs.utils import func_object_utils, func_custom_props_utils
 from ..funcs import func_remove_unused_groups, func_remove_groups_not_bones
 
-def export_preprocess(operator, ignore_collection):
+def export_preprocess(operator):
         # Armatureのポーズをリセットする
     selected_objects = bpy.context.selected_objects
     for obj in selected_objects:
@@ -31,25 +32,18 @@ def export_preprocess(operator, ignore_collection):
     # ↓ AutoMergeアドオン連携
     if operator.enable_auto_merge:
         try:
-            if ignore_collection:
-                ignore_collection_name = ignore_collection.name
-            else:
-                ignore_collection_name = ""
+            print("AutoMerge: Start")
             # オブジェクトを結合
-            b = bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon(
-                enable_apply_modifiers_with_shapekeys=operator.enable_apply_modifiers_with_shapekeys,
-                ignore_collection_name=ignore_collection_name,
-                ignore_prop_name=consts.DONT_EXPORT_GROUP_NAME
+            bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon(
+                use_shapekeys_util=operator.enable_apply_modifiers_with_shapekeys,
+                remove_non_render_mod=operator.use_mesh_modifiers_render,
+                use_variants_merge=operator.use_variants_merge,
             )
-            # 結合処理失敗
-            if 'FINISHED' not in b:
-                # 複製されたオブジェクトを削除
-                func_object_utils.remove_objects(selected_objects)
-                return {'FAILED'}
         except AttributeError as e:
             t = "!!! Failed to load AutoMerge !!!"
             print(t)
-            print(str(e))
+            operator.report({'WARNING'}, t)
+            traceback.print_exc()
     # ↑ AutoMergeアドオン連携
 
     print("xxxxxx Export Targets xxxxxx\n" + '\n'.join(
@@ -74,6 +68,8 @@ def export_preprocess(operator, ignore_collection):
                         obj.data.shape_keys.key_blocks) != 0:
                     func_object_utils.set_active_object(obj)
                     bpy.ops.object.shapekeys_util_separate_lr_shapekey_for_exporter()
+        # モディファイアを適用し終わっているので標準のモディファイア適用を無効化
+        operator.use_mesh_modifiers = False
     else:
         t = "!!! Failed to load ShapeKeysUtil !!! - apply_modifiers_with_shapekeys"
         print(t)
@@ -112,11 +108,10 @@ def export_preprocess(operator, ignore_collection):
                 func_object_utils.set_active_object(obj)
                 func_remove_unused_groups.remove_unused_groups(search_data_transfer_modifier=True)
 
-    # if operator.bake_anim and operator.bake_anim_use_ik_constraint == False:
-    #     # IK制約を無効化
-    #     for obj in bpy.context.selected_objects:
-    #         if obj.type == 'ARMATURE':
-    #             for bone in obj.pose.bones:
-    #                 for c in bone.constraints:
-    #                     if c.type == 'IK':
-    #                         c.enabled = False
+    if operator.bake_anim and operator.bake_anim_use_bone_constraint == False:
+        # Constraintsを無効化
+        for obj in bpy.context.selected_objects:
+            if obj.type == 'ARMATURE':
+                for bone in obj.pose.bones:
+                    for c in bone.constraints:
+                        c.enabled = False
