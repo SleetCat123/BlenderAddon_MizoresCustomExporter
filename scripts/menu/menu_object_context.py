@@ -36,7 +36,7 @@ def draw_button(layout, group_name: str, assign: bool):
     
     op = layout.operator(assign_collection_id, text=label)
     op.name = group_name
-    op.assign = True
+    op.assign = assign
 
 
 class VIEW3D_MT_object_mizores_exporter(bpy.types.Menu):
