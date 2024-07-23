@@ -30,9 +30,14 @@ class OBJECT_OT_mizore_assign_group(bpy.types.Operator):
     name: bpy.props.StringProperty(name="Collection Name", default="")
     assign: bpy.props.BoolProperty(name="Assign", default=True)
 
+    @classmethod
+    def description(cls, context, properties):
+        if properties.assign:
+            return bpy.app.translations.pgettext(cls.bl_idname + ".Set" + consts.DESC).format(properties.name)
+        else:
+            return bpy.app.translations.pgettext(cls.bl_idname + ".Unset" + consts.DESC).format(properties.name)
+
     def execute(self, context):
-        # func_collection_utils.assign_object_group(group_name=self.name, assign=self.assign)
-        # func_collection_utils.hide_collection(context=context, group_name=self.name, hide=True)
         targets = bpy.context.selected_objects
         if context.object:
             targets.append(context.object)

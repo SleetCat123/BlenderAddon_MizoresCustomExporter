@@ -45,7 +45,11 @@ translations_dict = {
         ("*", assign_group.bl_idname + ".Unset"): "Unset",
         ("*", assign_group.bl_idname + ".Set_Menu"): "Set {}",
         ("*", assign_group.bl_idname + ".Unset_Menu"): "Unset {}",
-        ("*", assign_group.bl_idname + consts.DESC): "Assign or removes the selected object(s) to or from the collection",
+
+        ("*", assign_group.bl_idname + consts.DESC): "Set or Unset the selected object(s) to or from the property",
+        ("*", assign_group.bl_idname + ".Set" + consts.DESC): "Set the selected object(s) to the property",
+        ("*", assign_group.bl_idname + ".Unset" + consts.DESC): "Unset the selected object(s) from the property",
+
         ("*", remove_export_path.bl_idname + consts.DESC): "Remove export destination settings saved in this blend file",
         ("*", remove_export_settings.bl_idname + consts.DESC): "Remove export settings saved in this blend file",
 
@@ -86,7 +90,11 @@ translations_dict = {
         ("*", assign_group.bl_idname + ".Unset"): "解除",
         ("*", assign_group.bl_idname + ".Set_Menu"): "Set {}",
         ("*", assign_group.bl_idname + ".Unset_Menu"): "Unset {}",
-        ("*", assign_group.bl_idname + consts.DESC): "選択中のオブジェクトを\nコレクションに入れたり外したりします",
+
+        ("*", assign_group.bl_idname + consts.DESC): "選択中のオブジェクトのプロパティを設定または解除します",
+        ("*", assign_group.bl_idname + ".Set" + consts.DESC): "選択中のオブジェクトにプロパティ{0}を設定します",
+        ("*", assign_group.bl_idname + ".Unset" + consts.DESC): "選択中のオブジェクトからプロパティ{0}を解除します",
+        
         ("*", remove_export_path.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート先の設定を削除します",
         ("*", remove_export_settings.bl_idname + consts.DESC): "現在のblendファイルに保存されているエクスポート設定を削除します",
 
