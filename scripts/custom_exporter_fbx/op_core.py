@@ -367,6 +367,14 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         return super().invoke(context, event)
 
     def execute(self, context):
+        # シーンに設定を保存
+        if self.save_prefs:
+            ignore_key = ["reset_path"]
+            if not self.save_path:
+                ignore_key.append("filepath")
+            preferences_scene.clear_export_props()
+            preferences_scene.save_scene_prefs(operator=self, ignore_key=ignore_key)
+
         try:
             if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE' or self.batch_mode == 'SCENE_COLLECTION':
                 # TODO: デフォルトの'COLLECTION'って全シーンで実行される？
@@ -388,21 +396,13 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 result = {'FINISHED'}
         except Exception as e:
             traceback.print_exc()
-            log = bpy.app.translations.pgettext("export_interrupted")
-            print(log)
+            log = bpy.app.translations.pgettext("export_interrupted") + "\n\n" + str(e)
             self.report({'ERROR'}, log)
             result = {'CANCELLED'}
 
         # 実行前の状態に戻す
         bpy.ops.ed.undo_push(message = "Restore point 1")
         bpy.ops.ed.undo()
-        # シーンに設定を保存
-        if self.save_prefs:
-            ignore_key = ["reset_path"]
-            if not self.save_path:
-                ignore_key.append("filepath")
-            preferences_scene.clear_export_props()
-            preferences_scene.save_scene_prefs(operator=self, ignore_key=ignore_key)
         bpy.ops.ed.undo_push(message = "Restore point")
         return result
 
