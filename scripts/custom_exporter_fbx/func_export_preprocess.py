@@ -6,8 +6,13 @@ from ..funcs import func_addon_link
 from ..funcs.utils import func_object_utils, func_custom_props_utils
 from ..funcs import func_remove_unused_groups, func_remove_groups_not_bones
 
+class ExportPostprocessResult:
+    success_shapekey_util: bool = False
+
 def export_preprocess(operator):
-        # Armatureのポーズをリセットする
+    result = ExportPostprocessResult()
+
+    # Armatureのポーズをリセットする
     selected_objects = bpy.context.selected_objects
     for obj in selected_objects:
         if obj.type != 'ARMATURE':
@@ -68,8 +73,7 @@ def export_preprocess(operator):
                         obj.data.shape_keys.key_blocks) != 0:
                     func_object_utils.set_active_object(obj)
                     bpy.ops.object.shapekeys_util_separate_lr_shapekey_for_exporter()
-        # モディファイアを適用し終わっているので標準のモディファイア適用を無効化
-        operator.use_mesh_modifiers = False
+        result.success_shapekey_util = True
     else:
         t = "!!! Failed to load ShapeKeysUtil !!! - apply_modifiers_with_shapekeys"
         print(t)
@@ -115,3 +119,5 @@ def export_preprocess(operator):
                 for bone in obj.pose.bones:
                     for c in bone.constraints:
                         c.enabled = False
+    
+    return result

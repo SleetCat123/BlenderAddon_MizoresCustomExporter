@@ -157,7 +157,7 @@ def execute_main(operator, context):
     print("]")
 
     # region Preprocess
-    func_export_preprocess.export_preprocess(
+    postprocess_result = func_export_preprocess.export_preprocess(
         operator=operator,
     )
     # endregion
@@ -177,6 +177,10 @@ def execute_main(operator, context):
                                         ))
 
     keywords["global_matrix"] = global_matrix
+
+    if postprocess_result.success_shapekey_util:
+        # モディファイアを適用し終わっているので標準のモディファイア適用を無効化
+        keywords["use_mesh_modifiers"] = False
 
     # use_selectionなどに該当する処理をこの関数内で行っており追加で何かをする必要はないため、エクスポート関数の処理を固定化しておく
     keywords["use_selection"] = True
