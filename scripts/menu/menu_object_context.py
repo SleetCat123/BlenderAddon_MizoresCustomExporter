@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from ..ops import op_remove_export_prefs, op_convert_collections, op_assign_collection
+from ..ops import op_remove_export_prefs, op_convert_collections, op_assign_prop
 from .. import consts
 
 
@@ -27,14 +27,14 @@ def INFO_MT_object_mizores_exporter_menu(self, context):
 
 
 def draw_button(layout, group_name: str, assign: bool):
-    assign_collection_id = op_assign_collection.OBJECT_OT_mizore_assign_group.bl_idname
+    assign_prop_id = op_assign_prop.OBJECT_OT_mizore_assign_prop.bl_idname
     if assign:
-        label = bpy.app.translations.pgettext(assign_collection_id + ".Set_Menu")
+        label = bpy.app.translations.pgettext(assign_prop_id + ".set")
     else:
-        label = bpy.app.translations.pgettext(assign_collection_id + ".Unset_Menu")
+        label = bpy.app.translations.pgettext(assign_prop_id + ".unset")
     label = label.format(group_name)
     
-    op = layout.operator(assign_collection_id, text=label)
+    op = layout.operator(assign_prop_id, text=label)
     op.name = group_name
     op.assign = assign
 

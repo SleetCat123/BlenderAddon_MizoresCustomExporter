@@ -22,36 +22,9 @@ from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty
 from bpy_extras.io_utils import ExportHelper, orientation_helper, path_reference_mode
 from .. import preferences_scene, consts
 from . import func_execute_main
+from .op_remove_saved_path import OBJECT_OT_mizore_remove_saved_path
+from .op_save_export_settings import OBJECT_OT_mizore_save_export_settings
 from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
-
-
-class OBJECT_OT_mizore_save_export_settings(bpy.types.Operator):
-    bl_idname = "object.mizore_save_export_settings"
-    bl_label = "Save Export Settings"
-    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
-    bl_options = {'REGISTER'}
-
-    operator = None
-
-    def execute(self, context):
-        ignore_key = ["reset_path"]
-        if not self.operator.save_path:
-            ignore_key.append("filepath")
-        preferences_scene.clear_export_props()
-        preferences_scene.save_scene_prefs(operator=self.operator, ignore_key=ignore_key)
-        return {'FINISHED'}
-
-
-class OBJECT_OT_mizore_remove_saved_path(bpy.types.Operator):
-    bl_idname = "object.mizore_remove_saved_path"
-    bl_label = "Remove Saved Path"
-    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        preferences_scene.remove_str_prop("filepath")
-        self.report({'INFO'}, "Export path removed.")
-        return {'FINISHED'}
 
 
 # エクスポート
@@ -413,8 +386,6 @@ def INFO_MT_file_custom_export_mizore_menu(self, context):
 
 classes = [
     INFO_MT_file_custom_export_mizore_fbx,
-    OBJECT_OT_mizore_save_export_settings,
-    OBJECT_OT_mizore_remove_saved_path
 ]
 
 
@@ -425,9 +396,9 @@ def register():
     bpy.types.TOPBAR_MT_file_export.append(INFO_MT_file_custom_export_mizore_menu)
 
 
+
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
     bpy.types.TOPBAR_MT_file_export.remove(INFO_MT_file_custom_export_mizore_menu)
-

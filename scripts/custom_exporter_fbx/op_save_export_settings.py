@@ -15,37 +15,27 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-
 import bpy
-from .. import consts, preferences_scene
+from .. import preferences_scene
 
+class OBJECT_OT_mizore_save_export_settings(bpy.types.Operator):
+    bl_idname = "object.mizore_save_export_settings"
+    bl_label = "Save Export Settings"
+    bl_description = "Remove export settings saved in this blend file"
+    bl_options = {'REGISTER'}
 
-class OBJECT_OT_mizore_remove_export_settings(bpy.types.Operator):
-    bl_idname = "object.mizore_remove_export_settings"
-    bl_label = "Remove Export Settings"
-    bl_description = "Remove export settings of MizoresCustomExporter saved in this blend file"
-    bl_options = {'REGISTER', 'UNDO'}
+    operator = None
 
     def execute(self, context):
+        ignore_key = ["reset_path"]
+        if not self.operator.save_path:
+            ignore_key.append("filepath")
         preferences_scene.clear_export_props()
-        self.report({'INFO'}, "Export settings removed.")
+        preferences_scene.save_scene_prefs(operator=self.operator, ignore_key=ignore_key)
         return {'FINISHED'}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_confirm(self, event)
-
-
-classes = [
-    OBJECT_OT_mizore_remove_export_settings,
-]
-
-
+    
 def register():
-    for cls in classes:
-        bpy.utils.register_class(cls)
-
+    bpy.utils.register_class(OBJECT_OT_mizore_save_export_settings)
 
 def unregister():
-    for cls in classes:
-        bpy.utils.unregister_class(cls)
+    bpy.utils.unregister_class(OBJECT_OT_mizore_save_export_settings)

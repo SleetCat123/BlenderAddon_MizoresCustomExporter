@@ -15,22 +15,24 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-
 import bpy
-from . import func_object_utils
+from .. import preferences_scene
 
 
-def select_axis(mode='POSITIVE', axis='X', threshold=0.0001):
-    if mode == 'POSITIVE':
-        mode = 'POS'
-    elif mode == 'NEGATIVE':
-        mode = 'NEG'
-    elif mode == 'ALIGNED':
-        mode = 'ALIGN'
-    bpy.ops.mesh.select_axis(sign=mode, axis=axis, threshold=threshold)
+class OBJECT_OT_mizore_remove_saved_path(bpy.types.Operator):
+    bl_idname = "object.mizore_remove_saved_path"
+    bl_label = "Remove Saved Path"
+    bl_description = "Remove export destination settings of MizoresCustomExporter saved in this blend file"
+    bl_options = {'REGISTER', 'UNDO'}
 
+    def execute(self, context):
+        preferences_scene.remove_str_prop("filepath")
+        self.report({'INFO'}, "Export path removed.")
+        return {'FINISHED'}
+    
 
-def update_mesh():
-    obj = func_object_utils.get_active_object()
-    if obj and obj.data:
-        obj.data.update()
+def register():
+    bpy.utils.register_class(OBJECT_OT_mizore_remove_saved_path)
+
+def unregister():
+    bpy.utils.unregister_class(OBJECT_OT_mizore_remove_saved_path)  

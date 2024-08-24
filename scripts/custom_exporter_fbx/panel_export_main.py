@@ -17,8 +17,8 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from ...custom_exporter_fbx.BatchExportFilepathFormatData import BatchExportFilepathFormatData
 import os
+from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 
 
 class MIZORE_FBX_PT_export_main(bpy.types.Panel):
@@ -70,6 +70,7 @@ class MIZORE_FBX_PT_export_main(bpy.types.Panel):
         row.prop(operator, "batch_filename_format")
         row = sub.row(align=True)
         row.prop(operator, "batch_filename_format_presets")
+        # TODO: Batch対象となるコレクションを選択できるようにしたい
         if use_batch:
             # プレビュー
             preview = BatchExportFilepathFormatData.convert_filename_format(

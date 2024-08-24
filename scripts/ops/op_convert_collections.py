@@ -24,7 +24,7 @@ from ..funcs.utils import func_collection_utils, func_custom_props_utils
 class OBJECT_OT_mizore_convert_collections(bpy.types.Operator):
     bl_idname = "object.mizore_convert_collections"
     bl_label = "Convert Collections"
-    bl_description = bpy.app.translations.pgettext(bl_idname + consts.DESC)
+    bl_description = "Convert collections such as AutoMerge to CustomProperty (new format)"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
