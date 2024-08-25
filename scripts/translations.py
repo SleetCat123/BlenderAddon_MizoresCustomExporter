@@ -1,8 +1,7 @@
 import bpy
 from . import consts
 from .funcs.utils import func_package_utils
-from .ops.op_assign_prop import OBJECT_OT_mizore_assign_prop as assign_prop
-from .custom_exporter_fbx.op_core import OBJECT_OT_mizore_remove_saved_path as remove_export_path
+from .custom_exporter_fbx.op_remove_saved_path import OBJECT_OT_mizore_remove_saved_path as remove_export_path
 from .ops.op_remove_export_prefs import OBJECT_OT_mizore_remove_export_settings as remove_export_settings
 
 
