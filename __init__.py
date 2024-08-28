@@ -15,10 +15,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-import importlib
-import os
-import re
-from glob import glob
+from .scripts.funcs.utils import func_package_utils
 
 
 bl_info = {
@@ -31,45 +28,77 @@ bl_info = {
     "category" : "Import-Export"
 }
 
-loaded_modules = {}
+if 'bpy' in locals():
+    from importlib import reload
+    import sys
+    for k, v in list(sys.modules.items()):
+        if k.startswith(func_package_utils.get_package_root()):
+            reload(v)
+else:
+    from .scripts import (
+        consts,
+        preferences_scene,
+        translations,
+    )
+    from .scripts.custom_exporter_fbx import (
+        op_core,
+        op_remove_saved_path,
+        op_save_export_settings,
+        panel_export_armature,
+        panel_export_automerge,
+        panel_export_bake_animation,
+        panel_export_geometry,
+        panel_export_include,
+        panel_export_main,
+        panel_export_shapekeysutil,
+        panel_export_transform,
+    )
+    from .scripts.menu import (
+        menu_object_context,
+    )
+    from .scripts.ops import (
+        op_assign_prop,
+        op_convert_collections,
+        op_remove_export_prefs,
+    )
 
 
-def register_module(module):
-    func = getattr(module, "register", None)
-    if callable(func):
-        func()
+classes = [
+    consts,
+    preferences_scene,
+    translations,
 
+    op_core,
+    op_remove_saved_path,
+    op_save_export_settings,
+    panel_export_armature,
+    panel_export_automerge,
+    panel_export_bake_animation,
+    panel_export_geometry,
+    panel_export_include,
+    panel_export_main,
+    panel_export_shapekeysutil,
+    panel_export_transform,
 
-def unregister_module(module):
-    func = getattr(module, "unregister", None)
-    if callable(func):
-        func()
+    menu_object_context,
+    op_assign_prop,
+    op_convert_collections,
+    op_remove_export_prefs,
+]
 
 
 def register():
-    path = os.path.dirname(__file__)
-    # print(path)
-    module_files = glob(f'{path}/scripts/**/*.py', recursive=True)
-    regex = re.compile(r"[\\/]")
-    module_names = [regex.sub('.', p[len(path):-3]) for p in module_files]
-    # print(module_names)
-    for module_name in module_names:
-        if module_name in loaded_modules:
-            module = loaded_modules[module_name]
-            module = importlib.reload(module)
-            # print("reload: " + str(module))
-        else:
-            module = importlib.import_module(module_name, package=__package__)
-            loaded_modules[module_name] = module
-        register_module(module)
+    for cls in classes:
+        try:
+            getattr(cls, "register", None)()
+        except Exception as e:
+            print(e)
 
 
 def unregister():
-    global loaded_modules
-    for module in loaded_modules.values():
-        unregister_module(module)
+    for cls in classes:
         try:
-            importlib.reload(module)
+            getattr(cls, "unregister", None)()
         except Exception as e:
             print(e)
 
