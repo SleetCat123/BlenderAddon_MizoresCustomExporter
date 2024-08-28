@@ -62,6 +62,7 @@ else:
         op_remove_export_prefs,
     )
 
+import bpy
 
 classes = [
     consts,
