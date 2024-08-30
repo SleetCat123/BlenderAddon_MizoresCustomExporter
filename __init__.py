@@ -40,6 +40,13 @@ else:
         preferences_scene,
         translations,
     )
+    from .scripts.assign_prop_panel import (
+        register_classes,
+    )
+    from .scripts.panels import (
+        panel_assign_object_groups,
+        panel_object_list,
+    )
     from .scripts.custom_exporter_fbx import (
         op_core,
         op_remove_saved_path,
@@ -57,7 +64,6 @@ else:
         menu_object_context,
     )
     from .scripts.ops import (
-        op_assign_prop,
         op_convert_collections,
         op_remove_export_prefs,
     )
@@ -68,6 +74,10 @@ classes = [
     consts,
     preferences_scene,
     translations,
+
+    register_classes,
+    panel_assign_object_groups,
+    panel_object_list,
 
     op_core,
     op_remove_saved_path,
@@ -82,7 +92,6 @@ classes = [
     panel_export_transform,
 
     menu_object_context,
-    op_assign_prop,
     op_convert_collections,
     op_remove_export_prefs,
 ]

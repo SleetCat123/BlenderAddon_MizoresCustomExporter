@@ -18,13 +18,13 @@
 
 import bpy
 from .. import consts
-from ..funcs.utils import func_collection_utils, func_custom_props_utils
+from ..funcs.utils import func_collection_utils, func_custom_props_utils, func_object_utils
 
 
 class OBJECT_OT_mizore_convert_collections(bpy.types.Operator):
     bl_idname = "object.mizore_convert_collections"
     bl_label = "Convert Collections"
-    bl_description = "Convert collections such as AutoMerge to CustomProperty (new format)"
+    bl_description = "Convert collections to CustomProperty (DontExport, AlwaysExport, MergeGroup)"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -32,9 +32,10 @@ class OBJECT_OT_mizore_convert_collections(bpy.types.Operator):
         collection_names = [
             consts.DONT_EXPORT_GROUP_NAME,
             consts.ALWAYS_EXPORT_GROUP_NAME,
-            wm.mizore_automerge_collection_name,
-            wm.mizore_automerge_dont_merge_to_parent_collection_name
         ]
+        if hasattr(wm, "mizore_automerge_collection_name"):
+            collection_names.append(wm.mizore_automerge_collection_name)
+
         for collection_name in collection_names:
             print(collection_name)
             collection = func_collection_utils.find_collection(collection_name)
@@ -42,6 +43,7 @@ class OBJECT_OT_mizore_convert_collections(bpy.types.Operator):
                 continue
             objects = func_collection_utils.get_collection_objects(collection, include_children_collections=True)
             print([v.name for v in objects])
+            func_object_utils.select_objects(objects)
             func_custom_props_utils.assign_bool_prop(
                 target=objects,
                 prop_name=collection_name,
@@ -49,6 +51,13 @@ class OBJECT_OT_mizore_convert_collections(bpy.types.Operator):
                 remove_if_false=True
             )
         return {'FINISHED'}
+
+
+translations_dict = {
+    "ja_JP": {
+        ("*", "Convert collections to CustomProperty (DontExport, AlwaysExport, MergeGroup)"): "コレクションをCustomPropertyに変換します。(DontExport, AlwaysExport, MergeGroup)",
+    },
+}
 
 
 classes = [

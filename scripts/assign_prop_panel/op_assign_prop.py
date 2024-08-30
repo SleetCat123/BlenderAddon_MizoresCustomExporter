@@ -17,12 +17,11 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from .. import consts
 from ..funcs.utils import func_custom_props_utils
-
+from .. import consts
 
 class OBJECT_OT_mizore_assign_prop(bpy.types.Operator):
-    bl_idname = "object.mizore_assign_prop_custom_exporter"
+    bl_idname = "object.mizore_assign_prop_" + consts.ADDON_NAME.lower()
     bl_label = "Assign Prop"
     bl_description = "Set or Unset the selected object(s) to or from the property"
     bl_options = {'REGISTER', 'UNDO'}
@@ -60,6 +59,8 @@ translations_dict = {
     "en_US": {
         ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".set"): "Set",
         ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".unset"): "Unset",
+        ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".set.format"): "Set {}",
+        ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".unset.format"): "Unset {}",
         ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".label"): "Set/Unset {}",
         ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".assign.true.desc"): "Assign the property \"{}\"",
         ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".assign.false.desc"): "Remove the property \"{}\"",
@@ -67,9 +68,11 @@ translations_dict = {
     "ja_JP": {
         ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".set"): "登録",
         ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".unset"): "解除",
+        ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".set.format"): "{}を登録",
+        ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".unset.format"): "{}を解除",
         ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".label"): "{}を登録/解除",
-        ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".assign.true.desc"): "選択中のオブジェクトにプロパティ{}を設定します",
-        ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".assign.false.desc"): "選択中のオブジェクトからプロパティ{}を解除します",
+        ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".assign.true.desc"): "選択中のオブジェクトに\"{}\"プロパティを設定します",
+        ("*", OBJECT_OT_mizore_assign_prop.bl_idname + ".assign.false.desc"): "選択中のオブジェクトから\"{}\"プロパティを解除します",
         
         ("*", "Set or Unset the selected object(s) to or from the property"): "選択中のオブジェクトのプロパティを設定または解除します",
         ("*", "Property Name"): "プロパティ名",

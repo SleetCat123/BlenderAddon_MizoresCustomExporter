@@ -19,6 +19,8 @@ ACTUAL_MAX_NAME_LENGTH = MAX_NAME_LENGTH - len(EXPORT_TEMP_SUFFIX)  # オブジ�
 
 DESC = ".desc"
 
+ADDON_NAME = "MizoreCustomExporter"
+
 
 def register():
     bpy.types.WindowManager.mizore_exporter_dont_export_group_name = DONT_EXPORT_GROUP_NAME
