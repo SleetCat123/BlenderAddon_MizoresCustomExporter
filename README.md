@@ -27,6 +27,13 @@
 `オブジェクトモードの右クリックメニュー → MizoresCustomExporter → Convert Collections`  
 同作者のAutoMergeアドオンの過去バージョンで使用していた制御用コレクションをCustomProperty（新方式）に変換します。
 
+## ◆Object List (Panel)
+`サイドメニュー（Nキー）→ Mizore → Object List`  
+以下のプロパティの有無を確認したり、プロパティの割り当て／解除を行うことができます。
+- AutoMerge
+- DontExport
+- AlwaysExport
+
 ## ◆エクスポートの追加機能
 ### ◇オブジェクトのプロパティによる特殊処理
 各種プロパティは  
@@ -39,7 +46,8 @@
 エクスポート完了後、全てのオブジェクトは処理前の状態に戻ります。  
 
 - AlwaysExport: このプロパティが有効なオブジェクトは、オブジェクトが非表示になっていてもエクスポートされます。
-- DontExport: このプロパティが有効なオブジェクトはエクスポートされません。
+- DontExport: このプロパティが有効なオブジェクトはエクスポートされません。  
+AlwaysExportと同時に有効化した場合はDontExportが優先されます。
 
 - ResetPoseWhenExport: このプロパティが有効なアーマチュアはエクスポート時にポーズがリセットされます。
 - ResetShapekeysWhenExport: このプロパティが有効なオブジェクトはエクスポート時にシェイプキーがリセットされます。
