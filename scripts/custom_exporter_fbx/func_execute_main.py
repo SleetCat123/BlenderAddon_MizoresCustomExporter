@@ -68,7 +68,7 @@ def execute_main(operator, context):
             set_visible=False
         )
 
-    # region エクスポート対象でない種類のオブジェクトの選択を解除
+    # region エクスポート対象でない種類のオブジェクトの選択を解除し非表示にする
     object_types = operator.object_types
     if 'EMPTY' not in object_types:
         selected_objects = bpy.context.selected_objects
@@ -76,32 +76,41 @@ def execute_main(operator, context):
             if obj.type == 'EMPTY' :
                 if 'EMPTY' not in object_types:
                     func_object_utils.select_object(obj, False)
+                    obj.hide_set(True)
             elif obj.type == 'CAMERA':
                 if 'CAMERA' not in object_types:
                     func_object_utils.select_object(obj, False)
+                    obj.hide_set(True)
             elif obj.type == 'LIGHT':
                 if 'LIGHT' not in object_types:
                     func_object_utils.select_object(obj, False)
+                    obj.hide_set(True)
             elif obj.type == 'ARMATURE':
                 if 'ARMATURE' not in object_types:
                     func_object_utils.select_object(obj, False)
+                    obj.hide_set(True)
             elif obj.type == 'MESH':
                 if 'MESH' not in object_types:
                     func_object_utils.select_object(obj, False)
+                    obj.hide_set(True)
             elif obj.type in ['LATTICE', 'LIGHT_PROBE', 'SPEAKER']:
                 # 常にエクスポートされない種類のオブジェクト
                 func_object_utils.select_object(obj, False)
+                obj.hide_set(True)
             else:
                 if 'OTHER' not in object_types:
                     func_object_utils.select_object(obj, False)
+                    obj.hide_set(True)
     # endregion
 
-    # region 処理から除外するオブジェクトの選択を外す
-    func_custom_props_utils.select_if_prop_is_true(
+    # region 処理から除外するオブジェクトの選択を外し非表示にする
+    dont_export_objects = func_custom_props_utils.get_objects_prop_is_true(
         prop_name=consts.DONT_EXPORT_GROUP_NAME, 
-        select=False, 
         affect_children=True
         )
+    for obj in dont_export_objects:
+        func_object_utils.select_object(obj, False)
+        obj.hide_set(True)
     # endregion
     
     # region オブジェクトの文字数チェック
