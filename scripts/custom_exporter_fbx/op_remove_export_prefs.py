@@ -36,6 +36,14 @@ class OBJECT_OT_mizore_remove_export_settings(bpy.types.Operator):
         return wm.invoke_confirm(self, event)
 
 
+translations_dict = {
+    "ja_JP": {
+        ("*", "Remove Export Settings"): "エクスポート設定を削除",
+        ("*", "Remove export settings of MizoresCustomExporter saved in this blend file"): "現在のblendファイルに保存されているMizoresCustomExporterのエクスポート設定を削除します",
+    },
+}
+
+
 classes = [
     OBJECT_OT_mizore_remove_export_settings,
 ]
@@ -44,8 +52,11 @@ classes = [
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+    bpy.app.translations.register(__name__, translations_dict)
 
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+    bpy.app.translations.unregister(__name__)
+

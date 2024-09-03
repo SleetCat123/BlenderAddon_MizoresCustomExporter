@@ -50,6 +50,7 @@ else:
     from .scripts.custom_exporter_fbx import (
         op_core,
         op_remove_saved_path,
+        op_remove_export_prefs,
         op_save_export_settings,
         panel_export_armature,
         panel_export_automerge,
@@ -65,7 +66,6 @@ else:
     )
     from .scripts.ops import (
         op_convert_collections,
-        op_remove_export_prefs,
     )
 
 import bpy
@@ -102,6 +102,7 @@ def register():
         try:
             getattr(cls, "register", None)()
         except Exception as e:
+            print(f"Error registering {cls.__name__}")
             print(e)
 
 
@@ -110,6 +111,7 @@ def unregister():
         try:
             getattr(cls, "unregister", None)()
         except Exception as e:
+            print(f"Error unregistering {cls.__name__}")
             print(e)
 
 

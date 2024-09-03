@@ -17,8 +17,6 @@ EXPORT_TEMP_SUFFIX = ".#MizoreCEx#"  # エクスポート処理時、一時的�
 MAX_NAME_LENGTH = 63  # オブジェクト名などの最大文字数（Blender側の上限）
 ACTUAL_MAX_NAME_LENGTH = MAX_NAME_LENGTH - len(EXPORT_TEMP_SUFFIX)  # オブジェクトなどの名前として実際に使用可能な最大文字数
 
-DESC = ".desc"
-
 ADDON_NAME = "MizoreCustomExporter"
 
 

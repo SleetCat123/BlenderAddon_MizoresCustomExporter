@@ -1,15 +1,15 @@
 # MizoresCustomExporter
 ## ◆概要
-このデータはBlender用のアドオンです。
-
 - 特定のオブジェクトをエクスポート対象から除外
 - 特定のオブジェクトだけは非表示になっているときでも絶対にエクスポートする
-- （同作者の別アドオンとの連携機能）エクスポート時だけモディファイアを適用
-- （同作者の別アドオンとの連携機能）エクスポート時だけオブジェクトを結合
-- （同作者の別アドオンとの連携機能）エクスポート時だけシェイプキーを左右分割
-
+- エクスポート時だけモディファイアを適用（同作者の[別アドオン(AutoMerge)](https://github.com/SleetCat123/BlenderAddon-AutoMerge)との連携機能）
+- エクスポート時だけオブジェクトを結合（同作者の[別アドオン(AutoMerge)](https://github.com/SleetCat123/BlenderAddon-AutoMerge)との連携機能）
+- エクスポート時だけシェイプキーを左右分割（同作者の[別アドオン(ShapeKeysUtil)](https://github.com/SleetCat123/BlenderAddon_ShapeKeysUtil)との連携機能）
 といった機能を持ったアドオンです。
 現在はfbx形式のエクスポートのみに対応しています。
+
+ダウンロードはこちらから  
+https://github.com/SleetCat123/BlenderAddon_MizoresCustomExporter/releases  
 
 ## ◆File → Export → Mizores Custom Exporter (.fbx)
 オブジェクトをfbxとしてエクスポートします。
@@ -25,7 +25,7 @@
 
 ## ◆Convert Collections
 `オブジェクトモードの右クリックメニュー → MizoresCustomExporter → Convert Collections`  
-同作者のAutoMergeアドオンの過去バージョンで使用していた制御用コレクションをCustomProperty（新方式）に変換します。
+同作者の[AutoMerge](https://github.com/SleetCat123/BlenderAddon-AutoMerge)アドオンの過去バージョン（2.1.0以前）で使用していた制御用コレクションをCustomProperty（新方式）に変換します。
 
 ## ◆Object List (Panel)
 `サイドメニュー（Nキー）→ Mizore → Object List`  
@@ -61,10 +61,11 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 - AlwaysResetShapekeys: このプロパティが有効なオブジェクトは、エクスポート対象かどうかに関わらずエクスポート時にシェイプキーが0にリセットされます。  
 エクスポート完了後にシェイプキーの状態は復元されます。
 
-**アドオン連携機能 (AutoMerge)**  
+**アドオン連携機能 ([AutoMerge](https://github.com/SleetCat123/BlenderAddon-AutoMerge))**  
 - MergeGroup: このプロパティが有効なオブジェクトは、エクスポート時に子オブジェクトを結合します。
 - DontMergeToParent: このプロパティが有効なオブジェクトは、オブジェクト結合時に親オブジェクトに結合されません。
 
+[AutoMerge](https://github.com/SleetCat123/BlenderAddon-AutoMerge) 2.1.0以前のデータから最新の方式に移行する場合、`Convert Collections` を使用して移行してください。  
 
 ## ◇エクスポート対象オブジェクトの設定
 ### ・Only Root Collections
@@ -97,8 +98,8 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 
 ## ◆アドオン連携機能
 
-### AutoMergeとの連携
-この連携機能を使うには、同作者の別アドオン[AutoMerge](https://sleetcatshop.booth.pm/items/1166452)を導入する必要があります。
+### 同作者の別アドオン AutoMergeとの連携
+この連携機能を使うには、[AutoMerge](https://github.com/SleetCat123/BlenderAddon-AutoMerge)を導入する必要があります。
 
 コレクション“MergeGroup”に属するものに対し、
 それぞれの子階層以下にあるオブジェクトを結合した上でエクスポートします。
@@ -113,9 +114,9 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 ということもできるようになります。
 
 
-### ShapeKeysUtilとの連携
+### 同作者の別アドオン ShapeKeysUtilとの連携
 
-この連携機能を使うには、同作者の別アドオン[ShapeKeys Util](https://sleetcatshop.booth.pm/items/1224307)を導入する必要があります。
+この連携機能を使うには、[ShapeKeys Util](https://github.com/SleetCat123/BlenderAddon_ShapeKeysUtil)を導入する必要があります。
 
 連携機能を有効にすることにより、
 シェイプキーをもつオブジェクトのモディファイアを適用してエクスポートできます。
@@ -129,13 +130,10 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 
 これにより、
 ```
-ミラーを付けたまま編集
-　　　　　↓
-エクスポートのときだけミラー適用（自動）
-　　　　　↓
-シェイプキーを自動で左右分割
-　　　　　↓
-エクスポート後は元通り！
+1. ミラーを付けたまま編集
+2. エクスポートのときだけミラー適用（自動）
+3. シェイプキーを自動で左右分割
+4. エクスポート後は元通り！
 ```
 ということもできるようになります。
 

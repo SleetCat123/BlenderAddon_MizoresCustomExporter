@@ -1,8 +1,5 @@
 import bpy
-from . import consts
 from .funcs.utils import func_package_utils
-from .custom_exporter_fbx.op_remove_saved_path import OBJECT_OT_mizore_remove_saved_path as remove_export_path
-from .ops.op_remove_export_prefs import OBJECT_OT_mizore_remove_export_settings as remove_export_settings
 
 
 translations_dict = {
@@ -27,20 +24,6 @@ translations_dict = {
                                  "Object: {1}\n"
                                  "Data Name: {2}\n"
                                  "({3}characters)",
-
-        ("*", "export_completed"): "Export completed.",
-        ("*", "export_interrupted"): "Export interrupted.",
-
-        ("*", "custom_export_mizore_fbx.save_path.desc"):
-            "Export location is stored in the blend file.\n"
-            "!!! Please be careful if you plan to send blend file to others"
-            f"If you want to delete the saved path, execute {remove_export_path.bl_label}.\n",
-        ("*", "custom_export_mizore_fbx.save_prefs.desc"):
-            "Export settings are saved in a blend file.\n"
-            f"If you want to delete the saved settings, execute {remove_export_settings.bl_label}.\n",
-
-        ("*", "mizores_custom_exporter_group_panel_assign"): "Add to group",
-        ("*", "mizores_custom_exporter_group_panel_remove"): "Remove from group",
     },
     "ja_JP": {
         ("*", "box_warning_slow_method_1"): "注意：",
@@ -57,26 +40,6 @@ translations_dict = {
                                  "オブジェクト: {1}\n"
                                  "{2}\n"
                                  "（{3}文字）",
-
-        ("*", "export_completed"): "エクスポートが完了しました。",
-        ("*", "export_interrupted"): "エクスポートが中断されました。",
-
-        ("*", "custom_export_mizore_fbx.save_path.desc"):
-            "fbxの書き出し場所をblendファイルに記憶します。\n"
-            "!!! blendファイルを他人に送る予定がある方は注意して使用してください。"
-            f"保存された設定を削除したい場合は {remove_export_path.bl_label} を実行してください。\n",
-
-        ("*", "custom_export_mizore_fbx.save_prefs.desc"): 
-            "エクスポート設定をblendファイルに保存します。"
-            f"保存された設定を削除したい場合は {remove_export_settings.bl_label} を実行してください。\n",
-        
-        ("*", "Remove export destination settings of MizoresCustomExporter saved in this blend file"): "現在のblendファイルに保存されているMizoresCustomExporterのエクスポート先の設定を削除します",
-        ("*", "Remove export settings of MizoresCustomExporter saved in this blend file"): "現在のblendファイルに保存されているMizoresCustomExporterのエクスポート設定を全て削除します",
-
-        ("*", "mizores_custom_exporter_group_panel_assign"): "グループに追加",
-        ("*", "mizores_custom_exporter_group_panel_remove"): "グループから削除",
-
-        ("*", "Convert collections such as AutoMerge to CustomProperty (new format)"): "AutoMerge等のコレクションをCustomProperty（新形式）に変換します",
     },
 }
 

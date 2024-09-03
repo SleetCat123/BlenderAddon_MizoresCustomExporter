@@ -21,7 +21,7 @@ from .. import preferences_scene
 class OBJECT_OT_mizore_save_export_settings(bpy.types.Operator):
     bl_idname = "object.mizore_save_export_settings"
     bl_label = "Save Export Settings"
-    bl_description = "Remove export settings saved in this blend file"
+    bl_description = "Save current export settings to this blend file"
     bl_options = {'REGISTER'}
 
     operator = None
@@ -34,8 +34,20 @@ class OBJECT_OT_mizore_save_export_settings(bpy.types.Operator):
         preferences_scene.save_scene_prefs(operator=self.operator, ignore_key=ignore_key)
         return {'FINISHED'}
     
+
+translations_dict = {
+    "ja_JP": {
+        ("*", "Save Export Settings"): "設定を保存",
+        ("*", "Save current export settings to this blend file"): "現在のエクスポート設定をこのblendファイルに保存します",
+    },
+}
+
+
 def register():
     bpy.utils.register_class(OBJECT_OT_mizore_save_export_settings)
+    bpy.app.translations.register(__name__, translations_dict)
+
 
 def unregister():
     bpy.utils.unregister_class(OBJECT_OT_mizore_save_export_settings)
+    bpy.app.translations.unregister(__name__)

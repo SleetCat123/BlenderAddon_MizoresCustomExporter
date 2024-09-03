@@ -29,10 +29,20 @@ class OBJECT_OT_mizore_remove_saved_path(bpy.types.Operator):
         preferences_scene.remove_str_prop("filepath")
         self.report({'INFO'}, "Export path removed.")
         return {'FINISHED'}
-    
+
+
+translations_dict = {
+    "ja_JP": {
+        ("*", "Remove Saved Path"): "保存されたパスを削除",
+        ("*", "Remove export destination settings of MizoresCustomExporter saved in this blend file"): "現在のblendファイルに保存されているMizoresCustomExporterのエクスポート先の設定を削除します",
+    },
+}
+
 
 def register():
     bpy.utils.register_class(OBJECT_OT_mizore_remove_saved_path)
+    bpy.app.translations.register(__name__, translations_dict)
 
 def unregister():
-    bpy.utils.unregister_class(OBJECT_OT_mizore_remove_saved_path)  
+    bpy.utils.unregister_class(OBJECT_OT_mizore_remove_saved_path)
+    bpy.app.translations.unregister(__name__)

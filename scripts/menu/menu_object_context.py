@@ -17,7 +17,8 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from ..ops import op_remove_export_prefs, op_convert_collections
+from ..ops import op_convert_collections
+from ..custom_exporter_fbx import op_remove_export_prefs
 from ..assign_prop_panel import op_assign_prop
 from .. import consts
 

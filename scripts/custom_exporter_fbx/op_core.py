@@ -279,12 +279,14 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     save_prefs: BoolProperty(
         name="Save Settings",
         default=True,
-        description=bpy.app.translations.pgettext("custom_export_mizore_fbx.save_prefs.desc")
+        description="Export settings are saved in a blend file.\n"
+            f"If you want to delete the saved settings, execute \"Remove Export Settings\" in the right-click menu of the Object mode."
     )
     save_path: BoolProperty(
         name="Save Export Path",
         default=False,
-        description=bpy.app.translations.pgettext("custom_export_mizore_fbx.save_path.desc")
+        description="Export location is stored in the blend file.\n"
+            "!!! Please be careful if you plan to send blend file to others"
     )
 
     batch_filename_format_presets: EnumProperty(
@@ -367,6 +369,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         # 実行前の状態に戻す
         bpy.ops.ed.undo_push(message = "Restore point 1")
+        bpy.ops.ed.undo()
         # シーンに設定を保存
         if self.save_prefs:
             ignore_key = ["reset_path"]
@@ -374,7 +377,6 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 ignore_key.append("filepath")
             preferences_scene.clear_export_props()
             preferences_scene.save_scene_prefs(operator=self, ignore_key=ignore_key)
-        bpy.ops.ed.undo()
         bpy.ops.ed.undo_push(message = "Restore point")
         return result
 
@@ -382,6 +384,31 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 # ExportメニューにOperatorを登録
 def INFO_MT_file_custom_export_mizore_menu(self, context):
     self.layout.operator(INFO_MT_file_custom_export_mizore_fbx.bl_idname)
+
+
+translations_dict = {
+    "en_US": {
+        ("*", "export_completed"): "Export completed.",
+        ("*", "export_interrupted"): "Export interrupted.",
+    },
+    "ja_JP": {
+        ("*", "export_completed"): "エクスポートが完了しました。",
+        ("*", "export_interrupted"): "エクスポートが中断されました。",
+
+        ("*", "Save Settings"): "設定を保存",
+        ("*", "Save Export Path"): "出力パスを保存",
+
+        ("*", "Export location is stored in the blend file.\n"
+            "!!! Please be careful if you plan to send blend file to others"):
+            "fbxの書き出し場所をblendファイルに記憶します。\n"
+            "!!! blendファイルを他人に送る予定がある場合は注意して使用してください。",
+
+        ("*", "Export settings are saved in a blend file.\n"
+            f"If you want to delete the saved settings, execute \"Remove Export Settings\" in the right-click menu of the Object mode."): 
+            "エクスポート設定をblendファイルに保存します。"
+            f"保存された設定を削除したい場合は、オブジェクトモードの右クリックメニューから\"Remove Export Settings\"を実行してください。",
+    },
+}
 
 
 classes = [
@@ -394,6 +421,7 @@ def register():
         bpy.utils.register_class(cls)
 
     bpy.types.TOPBAR_MT_file_export.append(INFO_MT_file_custom_export_mizore_menu)
+    bpy.app.translations.register(__name__, translations_dict)
 
 
 
@@ -402,3 +430,5 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
     bpy.types.TOPBAR_MT_file_export.remove(INFO_MT_file_custom_export_mizore_menu)
+    bpy.app.translations.unregister(__name__)
+
