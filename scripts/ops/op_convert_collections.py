@@ -36,6 +36,7 @@ class OBJECT_OT_mizore_convert_collections(bpy.types.Operator):
         if hasattr(wm, "mizore_automerge_collection_name"):
             collection_names.append(wm.mizore_automerge_collection_name)
 
+        func_object_utils.deselect_all_objects()
         for collection_name in collection_names:
             print(collection_name)
             collection = func_collection_utils.find_collection(collection_name)
@@ -43,13 +44,18 @@ class OBJECT_OT_mizore_convert_collections(bpy.types.Operator):
                 continue
             objects = func_collection_utils.get_collection_objects(collection, include_children_collections=True)
             print([v.name for v in objects])
-            func_object_utils.select_objects(objects)
+            for obj in objects:
+                func_object_utils.force_unhide(obj)
+                func_object_utils.select_object(obj)
             func_custom_props_utils.assign_bool_prop(
                 target=objects,
                 prop_name=collection_name,
                 value=True,
                 remove_if_false=True
             )
+            # collection意外のコレクションに属していないオブジェクトはシーンコレクションに移動
+            func_collection_utils.assign_object_group(collection_name, False)
+            self.report({'INFO'}, f"{collection_name} converted")
         return {'FINISHED'}
 
 
