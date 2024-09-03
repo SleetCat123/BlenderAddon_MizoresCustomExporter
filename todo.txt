@@ -1,0 +1,7 @@
+Active Collection (Include Children)"の動作確認
+Tooltip
+Save Path についての注意点をReadmeに書く
+プロジェクト共通の初期設定として保存
+フォルダが見つからなかった場合でもfbxファイル名を維持する
+Readme書く
+fbxエクスポート用のtooltip文字列の翻訳
