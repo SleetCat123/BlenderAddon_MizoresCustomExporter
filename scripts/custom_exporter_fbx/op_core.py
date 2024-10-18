@@ -107,8 +107,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                ('OTHER', "Other", "Other geometry types, like curve, metaball, etc. (converted to meshes)"),
                ],
         description="Which kind of object to export",
-        default={'ARMATURE', 'MESH'},
-    )  # デフォルト値を{'ARMATURE', 'MESH'}に変更
+        default={'ARMATURE', 'MESH', 'OTHER'},
+    )  # デフォルト値を{'ARMATURE', 'MESH', 'OTHER'}に変更
 
     use_mesh_modifiers: BoolProperty(
         name="Apply Modifiers",

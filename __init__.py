@@ -21,7 +21,7 @@ from .scripts.funcs.utils import func_package_utils
 bl_info = {
     "name" : "MizoresCustomExporter",
     "author" : "@sleetcat123(Twitter)",
-    "version" : (1,0,0),
+    "version" : (1,0,1),
     "blender" : (2, 80, 0),
     "location": "File > Export > Mizore's Custom Exporter",
     "description" : "Custom exporter by Mizore Nekoyanagi",

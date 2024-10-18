@@ -85,7 +85,7 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 ### ・標準のfbxエクスポートと初期設定が異なる項目
 - Apply Scalings: デフォルト値をFBX Units Scaleに変更
 - Apply Transform: デフォルト値をTrueに変更
-- Object Types: デフォルト値を{Armature, Mesh}に変更
+- Object Types: デフォルト値を{Armature, Mesh, Other}に変更
 - Batch Own Dir: デフォルト値をFalseに変更
 
 ### ・設定項目の保存
