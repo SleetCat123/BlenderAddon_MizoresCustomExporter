@@ -49,13 +49,12 @@ def execute_main(operator, context):
         # Selected Objectsにチェックがついていないなら全オブジェクトを選択
         func_object_utils.select_all_objects()
 
-    if operator.use_selection and operator.use_selection_children_objects:
-        for obj in bpy.context.selected_objects:
-            func_object_utils.set_active_object(obj)
-            if bpy.context.object.mode != 'OBJECT':
-                # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
-                bpy.ops.object.mode_set(mode='OBJECT')
-            func_object_utils.select_children_recursive()
+    for obj in bpy.context.selected_objects:
+        func_object_utils.set_active_object(obj)
+        if obj.mode != 'OBJECT':
+            # Armatureをアクティブにしたとき勝手にPoseモードになる場合があるためここで確実にObjectモードにする
+            bpy.ops.object.mode_set(mode='OBJECT')
+        func_object_utils.select_children_recursive()
 
     if operator.use_active_collection:
         active_layer_collection = bpy.context.view_layer.active_layer_collection
