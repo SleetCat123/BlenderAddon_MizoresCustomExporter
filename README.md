@@ -87,6 +87,7 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 - Apply Transform: デフォルト値をTrueに変更
 - Object Types: デフォルト値を{Armature, Mesh, Other}に変更
 - Batch Own Dir: デフォルト値をFalseに変更
+- Smoothing: デフォルト値をFaceに変更
 
 ### ・設定項目の保存
 各種項目の設定状態はblendファイルに保存され、次回以降のエクスポート時に引き継がれます。

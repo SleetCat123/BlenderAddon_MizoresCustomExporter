@@ -129,8 +129,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                ],
         description="Export smoothing information "
                     "(prefer 'Normals Only' option if your target importer understand split normals)",
-        default='OFF',
-    )
+        default='FACE',
+    ) # デフォルト値をFACEに変更
     use_subsurf: BoolProperty(
         name="Export Subdivision Surface",
         description="Export the last Catmull-Rom subdivision modifier as FBX subdivision "
