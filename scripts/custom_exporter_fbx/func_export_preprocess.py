@@ -2,7 +2,7 @@ import bpy
 import traceback
 from mathutils import Matrix
 from .. import consts
-from ..funcs import func_addon_link
+from ..funcs import func_addon_link, func_convert_uv_tiles_to_single
 from ..funcs.utils import func_object_utils, func_custom_props_utils
 from ..funcs import func_remove_unused_groups, func_remove_groups_not_bones
 
@@ -102,15 +102,20 @@ def export_preprocess(operator):
     func_object_utils.set_active_object(temp_active)
     
     for obj in bpy.context.selected_objects:
-        if obj.type == 'MESH':
-            if func_custom_props_utils.prop_is_true(obj, consts.REMOVE_GROUPS_NOT_BONE_GROUP_NAME):
-                # ボーン名以外の頂点グループを削除
-                func_object_utils.set_active_object(obj)
-                func_remove_groups_not_bones.remove_groups_not_bones()
-            if func_custom_props_utils.prop_is_true(obj, consts.REMOVE_UNUSED_GROUPS_GROUP_NAME):
-                # 使用されていない頂点グループを削除
-                func_object_utils.set_active_object(obj)
-                func_remove_unused_groups.remove_unused_groups(search_data_transfer_modifier=True)
+        if obj.type != 'MESH':
+            continue
+        if func_custom_props_utils.prop_is_true(obj, consts.REMOVE_GROUPS_NOT_BONE_GROUP_NAME):
+            # ボーン名以外の頂点グループを削除
+            func_object_utils.set_active_object(obj)
+            func_remove_groups_not_bones.remove_groups_not_bones()
+        if func_custom_props_utils.prop_is_true(obj, consts.REMOVE_UNUSED_GROUPS_GROUP_NAME):
+            # 使用されていない頂点グループを削除
+            func_object_utils.set_active_object(obj)
+            func_remove_unused_groups.remove_unused_groups(search_data_transfer_modifier=True)
+        if func_custom_props_utils.prop_is_true(obj, consts.CONVERT_UV_TILES_TO_SINGLE_GROUP_NAME):
+            # UVタイルを1つにする
+            func_object_utils.set_active_object(obj)
+            func_convert_uv_tiles_to_single.convert_uv_tiles_to_single()
 
     if operator.bake_anim and operator.bake_anim_use_bone_constraint == False:
         # Constraintsを無効化

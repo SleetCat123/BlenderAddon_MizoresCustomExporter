@@ -59,7 +59,10 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 - RemoveUnusedGroupsWhenExport: このプロパティが有効なMeshはエクスポート時に未使用のグループが削除されます。
 - RemoveGroupsNotBoneNamesWhenExport: このプロパティが有効なMeshはエクスポート時にボーン名以外のグループが削除されます。
 - AlwaysResetShapekeys: このプロパティが有効なオブジェクトは、エクスポート対象かどうかに関わらずエクスポート時にシェイプキーが0にリセットされます。  
-エクスポート完了後にシェイプキーの状態は復元されます。
+  - エクスポート完了後にシェイプキーの状態は復元されます。
+- ConvertUvTilesToSingle: このプロパティが有効なオブジェクトは、エクスポート時にUVタイルを1x1に変換します。
+  - UV頂点が[0,0]-[1,1]の範囲に収まるように調整されます。
+  - UVタイルの境界をまたがるような配置のUVは正常に変換できない場合があります。
 
 **アドオン連携機能 ([AutoMerge](https://github.com/SleetCat123/BlenderAddon-AutoMerge))**  
 - MergeGroup: このプロパティが有効なオブジェクトは、エクスポート時に子オブジェクトを結合します。

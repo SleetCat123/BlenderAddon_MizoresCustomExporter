@@ -73,6 +73,15 @@ class OBJECT_PT_mizores_assign_export_remove_group_panel(OBJECT_PT_mizores_assig
         "mizore_exporter_remove_groups_not_bone_group_name",
     ]
 
+class OBJECT_PT_mizores_assign_export_modify_group_panel(OBJECT_PT_mizores_assign_group_panel):
+    bl_label = "Modify (Export)"
+    required_addons = [
+        "MizoresCustomExporter",
+    ]
+    groups = [
+        "mizore_exporter_convert_uv_tiles_to_single_group_name",
+    ]
+
 
 classes = [
     OBJECT_PT_mizores_assign_export_targets_group_panel,
@@ -80,6 +89,7 @@ classes = [
     OBJECT_PT_mizores_assign_export_reset_always_group_panel,
     OBJECT_PT_mizores_assign_export_apply_group_panel,
     OBJECT_PT_mizores_assign_export_remove_group_panel,
+    OBJECT_PT_mizores_assign_export_modify_group_panel,
 ]
 
 
