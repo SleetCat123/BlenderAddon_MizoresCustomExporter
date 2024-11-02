@@ -19,7 +19,7 @@
 import bpy
 from ..funcs.utils import func_custom_props_utils
 from .. import consts
-
+from . import func_get_target_objects
 class OBJECT_OT_mizore_assign_prop(bpy.types.Operator):
     bl_idname = "object.mizore_assign_prop_" + consts.ADDON_NAME.lower()
     bl_label = "Assign Prop"
@@ -43,7 +43,7 @@ class OBJECT_OT_mizore_assign_prop(bpy.types.Operator):
             return bpy.app.translations.pgettext(cls.bl_idname + ".assign.false.desc").format(properties.name)
 
     def execute(self, context):
-        targets = bpy.context.selected_objects
+        targets = func_get_target_objects.get_target_objects()
         if context.object:
             targets.append(context.object)
         func_custom_props_utils.assign_bool_prop(

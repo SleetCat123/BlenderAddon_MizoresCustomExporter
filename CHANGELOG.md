@@ -3,6 +3,7 @@
 ### 2024-11- v1.1.0
   - add: 複数のUVタイルを1つのタイルにしてエクスポートするグループを追加（[0,0]-[1,1]の範囲に収まるようにUV頂点を移動する）
   - change: Smoothingのエクスポート設定のデフォルト値をFaceに変更
+  - fix: prop割り当てパネルでInclude Childrenが機能していなかったのを修正
 
 ### 2024-10-18 v1.0.1
   - change: エクスポート対象オブジェクトタイプのデフォルト値を{Armature, Mesh}から{Armature, Mesh, Other}に変更
