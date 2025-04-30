@@ -31,3 +31,11 @@ def auto_merge_is_found():
         return hasattr(bpy.types, bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon.idname())
     except AttributeError:
         return False
+
+def update_mesh_deform_addon_is_found():
+    try:
+        return hasattr(bpy.types, bpy.ops.object.mizore_update_mesh_deform.idname())
+    except AttributeError:
+        return False
+
+

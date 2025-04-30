@@ -43,6 +43,7 @@ def export_preprocess(operator):
                 use_shapekeys_util=operator.enable_apply_modifiers_with_shapekeys,
                 remove_non_render_mod=operator.use_mesh_modifiers_render,
                 use_variants_merge=operator.use_variants_merge,
+                use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon
             )
         except AttributeError as e:
             t = "!!! Failed to load AutoMerge !!!"
@@ -62,7 +63,8 @@ def export_preprocess(operator):
             all_export_targets = [d for d in selected_objects if d.type == 'MESH']
             for obj in all_export_targets:
                 func_object_utils.set_active_object(obj)
-                bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon()
+                bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon(
+                    use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon)
             # 選択オブジェクトを復元
             for obj in selected_objects:
                 obj.select_set(True)

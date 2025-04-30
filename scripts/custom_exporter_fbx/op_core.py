@@ -306,6 +306,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
     enable_auto_merge: BoolProperty(name="Enable Auto Merge", default=True)
 
+    use_update_mesh_deform_addon: BoolProperty(name="Use Update Mesh Deform Addon", default=True)
+
     enable_apply_modifiers_with_shapekeys: BoolProperty(name="Apply Modifier with Shape Keys", default=True)
     enable_separate_lr_shapekey: BoolProperty(name="Separate Shape Keys LR", default=True)
 
