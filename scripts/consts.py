@@ -13,6 +13,7 @@ APPLY_ROTATIONS_GROUP_NAME = "ApplyRotationsWhenExport"  # エクスポート時
 APPLY_SCALES_GROUP_NAME = "ApplyScalesWhenExport"  # エクスポート時にスケールを適用するオブジェクトのグループ名
 ALWAYS_RESET_SHAPEKEY_GROUP_NAME = "AlwaysResetShapekeys"  # エクスポート時にシェイプキーをリセットするオブジェクトのグループ名（エクスポート対象外であっても常にリセット）
 CONVERT_UV_TILES_TO_SINGLE_GROUP_NAME = "ConvertUvTilesToSingleWhenExport"  # エクスポート時にUVタイルを1つにするオブジェクトのグループ名（[0,0]-[1,1]の範囲に収まるようにUV頂点を移動する）
+CLEAR_ALL_SHAPEKEYS_GROUP_NAME = "ClearAllShapekeysWhenExport"  # エクスポート時にシェイプキーを全て削除するオブジェクトのグループ名
 
 EXPORT_TEMP_SUFFIX = ".#MizoreCEx#"  # エクスポート処理時、一時的にオブジェクト名に付加する接尾辞
 MAX_NAME_LENGTH = 63  # オブジェクト名などの最大文字数（Blender側の上限）
@@ -34,6 +35,7 @@ def register():
     bpy.types.WindowManager.mizore_exporter_apply_scales_group_name = APPLY_SCALES_GROUP_NAME
     bpy.types.WindowManager.mizore_exporter_always_reset_shapekey_group_name = ALWAYS_RESET_SHAPEKEY_GROUP_NAME
     bpy.types.WindowManager.mizore_exporter_convert_uv_tiles_to_single_group_name = CONVERT_UV_TILES_TO_SINGLE_GROUP_NAME
+    bpy.types.WindowManager.mizore_exporter_clear_all_shapekeys_group_name = CLEAR_ALL_SHAPEKEYS_GROUP_NAME
 
 def unregister():
     del bpy.types.WindowManager.mizore_exporter_dont_export_group_name
@@ -48,3 +50,4 @@ def unregister():
     del bpy.types.WindowManager.mizore_exporter_apply_scales_group_name
     del bpy.types.WindowManager.mizore_exporter_always_reset_shapekey_group_name
     del bpy.types.WindowManager.mizore_exporter_convert_uv_tiles_to_single_group_name
+    del bpy.types.WindowManager.mizore_exporter_clear_all_shapekeys_group_name

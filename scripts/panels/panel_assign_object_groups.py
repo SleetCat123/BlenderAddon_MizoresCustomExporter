@@ -80,6 +80,7 @@ class OBJECT_PT_mizores_assign_export_modify_group_panel(OBJECT_PT_mizores_assig
     ]
     groups = [
         "mizore_exporter_convert_uv_tiles_to_single_group_name",
+        "mizore_exporter_clear_all_shapekeys",
     ]
 
 
