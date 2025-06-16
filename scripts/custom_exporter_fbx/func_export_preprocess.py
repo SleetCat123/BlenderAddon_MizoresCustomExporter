@@ -118,9 +118,18 @@ def export_preprocess(operator):
             # UVタイルを1つにする
             func_object_utils.set_active_object(obj)
             func_convert_uv_tiles_to_single.convert_uv_tiles_to_single()
-        if func_custom_props_utils.prop_is_true(obj, consts.CLEAR_ALL_SHAPEKEYS_GROUP_NAME):
+        has_shapekeys = obj.data.shape_keys and obj.data.shape_keys.key_blocks
+        if has_shapekeys and func_custom_props_utils.prop_is_true(obj, consts.APPLY_ALL_SHAPEKEYS_GROUP_NAME):
+            # シェイプキーを適用
+            func_object_utils.set_active_object(obj)
+            if obj.mode != 'OBJECT':
+                bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+        if has_shapekeys and func_custom_props_utils.prop_is_true(obj, consts.CLEAR_ALL_SHAPEKEYS_GROUP_NAME):
             # シェイプキーを全て削除
             func_object_utils.set_active_object(obj)
+            if obj.mode != 'OBJECT':
+                bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.object.shape_key_remove(all=True, apply_mix=False)
 
     if operator.bake_anim and operator.bake_anim_use_bone_constraint == False:
