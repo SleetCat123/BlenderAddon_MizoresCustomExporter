@@ -9,10 +9,33 @@ from ..funcs import func_remove_unused_groups, func_remove_groups_not_bones
 class ExportPostprocessResult:
     success_shapekey_util: bool = False
 
+def apply_or_clear_shapekeys():
+    for obj in bpy.context.selected_objects:
+        if not hasattr(obj, 'data') or not hasattr(obj.data, 'shape_keys') or not hasattr(obj.data.shape_keys, 'key_blocks'):
+            continue
+        # 処理対象のオブジェクトを選択
+        func_object_utils.set_active_object(obj)
+
+        if func_custom_props_utils.prop_is_true(obj, consts.APPLY_ALL_SHAPEKEYS_GROUP_NAME):
+            # シェイプキーを適用
+            if obj.mode != 'OBJECT':
+                bpy.ops.object.mode_set(mode='OBJECT')
+            print(f"Apply All ShapeKeys: {obj.name}")
+            bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+        if func_custom_props_utils.prop_is_true(obj, consts.CLEAR_ALL_SHAPEKEYS_GROUP_NAME):
+            # シェイプキーを全て削除
+            if obj.mode != 'OBJECT':
+                bpy.ops.object.mode_set(mode='OBJECT')
+            print(f"Clear All ShapeKeys: {obj.name}")
+            bpy.ops.object.shape_key_remove(all=True, apply_mix=False)
+
 def export_preprocess(operator):
     result = ExportPostprocessResult()
 
+    print("xxxxxx Export Preprocess xxxxxx")
+
     # Armatureのポーズをリセットする
+    print("--- Reset Pose ---")
     selected_objects = bpy.context.selected_objects
     for obj in selected_objects:
         if obj.type != 'ARMATURE':
@@ -24,6 +47,7 @@ def export_preprocess(operator):
             pose_bone.matrix_basis = Matrix()
 
     # シェイプキーをリセットする
+    print("--- Reset ShapeKey ---")
     for obj in selected_objects:
         if not func_custom_props_utils.prop_is_true(obj, consts.RESET_SHAPEKEY_GROUP_NAME):
             continue
@@ -34,7 +58,12 @@ def export_preprocess(operator):
         for shape_key in obj.data.shape_keys.key_blocks:
             shape_key.value = 0.0
 
+    # マージ前にシェイプキーを適用/削除することでシェイプキー関連処理を省略可能にする
+    print("--- Apply/Clear ShapeKeys (Before Merge) ---")
+    apply_or_clear_shapekeys()
+
     # ↓ AutoMergeアドオン連携
+    print("--- AutoMerge ---")
     if operator.enable_auto_merge:
         try:
             print("AutoMerge: Start")
@@ -56,6 +85,7 @@ def export_preprocess(operator):
         [obj.name for obj in bpy.context.selected_objects]) + "\nxxxxxxxxxxxxxxx")
 
     # ShapeKeysUtil連携
+    print("--- ShapeKeysUtil ---")
     if func_addon_link.shapekey_util_is_found():
         if operator.enable_apply_modifiers_with_shapekeys and operator.use_mesh_modifiers:
             active = func_object_utils.get_active_object()
@@ -82,6 +112,7 @@ def export_preprocess(operator):
         operator.report({'ERROR'}, t)
 
     # Transform操作
+    print("--- Transform ---")
     temp_selected = bpy.context.selected_objects
     temp_active = func_object_utils.get_active_object()
     for obj in temp_selected:
@@ -102,7 +133,8 @@ def export_preprocess(operator):
             bpy.ops.object.transform_apply(location=apply_location, rotation=apply_rotation, scale=apply_scale)
     func_object_utils.select_objects(temp_selected, True)
     func_object_utils.set_active_object(temp_active)
-    
+
+    print("--- Modify ---")
     for obj in bpy.context.selected_objects:
         if obj.type != 'MESH':
             continue
@@ -118,22 +150,12 @@ def export_preprocess(operator):
             # UVタイルを1つにする
             func_object_utils.set_active_object(obj)
             func_convert_uv_tiles_to_single.convert_uv_tiles_to_single()
-        has_shapekeys = obj.data.shape_keys and obj.data.shape_keys.key_blocks
-        if has_shapekeys and func_custom_props_utils.prop_is_true(obj, consts.APPLY_ALL_SHAPEKEYS_GROUP_NAME):
-            # シェイプキーを適用
-            func_object_utils.set_active_object(obj)
-            if obj.mode != 'OBJECT':
-                bpy.ops.object.mode_set(mode='OBJECT')
-            print(f"Apply All ShapeKeys: {obj.name}")
-            bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
-        if has_shapekeys and func_custom_props_utils.prop_is_true(obj, consts.CLEAR_ALL_SHAPEKEYS_GROUP_NAME):
-            # シェイプキーを全て削除
-            func_object_utils.set_active_object(obj)
-            if obj.mode != 'OBJECT':
-                bpy.ops.object.mode_set(mode='OBJECT')
-            print(f"Clear All ShapeKeys: {obj.name}")
-            bpy.ops.object.shape_key_remove(all=True, apply_mix=False)
+    
+    # マージやApply Modifierで増えたシェイプキーを適用/削除する
+    print("--- Apply/Clear ShapeKeys (After Merge) ---")
+    apply_or_clear_shapekeys()
 
+    print("--- Constraints ---")
     if operator.bake_anim and operator.bake_anim_use_bone_constraint == False:
         # Constraintsを無効化
         for obj in bpy.context.selected_objects:
@@ -141,5 +163,5 @@ def export_preprocess(operator):
                 for bone in obj.pose.bones:
                     for c in bone.constraints:
                         c.enabled = False
-    
+    print("xxxxxx Export Preprocess End xxxxxx")
     return result
