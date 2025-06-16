@@ -124,12 +124,14 @@ def export_preprocess(operator):
             func_object_utils.set_active_object(obj)
             if obj.mode != 'OBJECT':
                 bpy.ops.object.mode_set(mode='OBJECT')
+            print(f"Apply All ShapeKeys: {obj.name}")
             bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
         if has_shapekeys and func_custom_props_utils.prop_is_true(obj, consts.CLEAR_ALL_SHAPEKEYS_GROUP_NAME):
             # シェイプキーを全て削除
             func_object_utils.set_active_object(obj)
             if obj.mode != 'OBJECT':
                 bpy.ops.object.mode_set(mode='OBJECT')
+            print(f"Clear All ShapeKeys: {obj.name}")
             bpy.ops.object.shape_key_remove(all=True, apply_mix=False)
 
     if operator.bake_anim and operator.bake_anim_use_bone_constraint == False:
