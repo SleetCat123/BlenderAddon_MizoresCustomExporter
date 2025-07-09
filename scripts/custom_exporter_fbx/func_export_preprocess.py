@@ -4,7 +4,7 @@ from mathutils import Matrix
 from .. import consts
 from ..funcs import func_addon_link, func_convert_uv_tiles_to_single
 from ..funcs.utils import func_object_utils, func_custom_props_utils
-from ..funcs import func_remove_unused_groups, func_remove_groups_not_bones
+from ..funcs import func_remove_unused_groups, func_remove_groups_not_bones, func_fix_vertex_group_collisions
 
 class ExportPostprocessResult:
     success_shapekey_util: bool = False
@@ -135,6 +135,18 @@ def export_preprocess(operator):
     func_object_utils.set_active_object(temp_active)
 
     print("--- Modify ---")
+    # Name Collision修復（全体設定）
+    if operator.enable_fix_vertex_group_collisions:
+        print("--- Fix Vertex Group Name Collisions ---")
+        for obj in bpy.context.selected_objects:
+            if obj.type != 'MESH':
+                continue
+            func_object_utils.set_active_object(obj)
+            fixed_count, affected_vertices = func_fix_vertex_group_collisions.fix_vertex_group_name_collisions(obj)
+            if fixed_count > 0:
+                print(f"Fixed {fixed_count} vertex group collisions in {obj.name}")
+    
+    # その他のModify処理（オブジェクト個別設定）
     for obj in bpy.context.selected_objects:
         if obj.type != 'MESH':
             continue

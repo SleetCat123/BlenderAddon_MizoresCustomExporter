@@ -58,6 +58,7 @@ else:
         panel_export_geometry,
         panel_export_include,
         panel_export_main,
+        panel_export_modify,
         panel_export_shapekeysutil,
         panel_export_transform,
     )
@@ -88,6 +89,7 @@ classes = [
     panel_export_geometry,
     panel_export_include,
     panel_export_main,
+    panel_export_modify,
     panel_export_shapekeysutil,
     panel_export_transform,
 

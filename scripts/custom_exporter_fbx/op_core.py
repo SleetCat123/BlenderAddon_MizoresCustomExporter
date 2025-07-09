@@ -315,6 +315,12 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
     use_variants_merge: BoolProperty(name="Use Variants Merge", default=True)
 
+    enable_fix_vertex_group_collisions: BoolProperty(
+        name="Fix Vertex Group Name Collisions", 
+        default=True,
+        description="Fix vertex group name collisions before export (duplicate groups will be merged using max weight)"
+    )
+
     scene = None
 
     def draw(self, context):
