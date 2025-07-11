@@ -49,6 +49,7 @@ else:
     )
     from .scripts.custom_exporter_fbx import (
         op_core,
+        op_panel_addon_connect,
         op_remove_saved_path,
         op_remove_export_prefs,
         op_save_export_settings,
@@ -81,6 +82,7 @@ classes = [
     panel_object_list,
 
     op_core,
+    op_panel_addon_connect,
     op_remove_saved_path,
     op_save_export_settings,
     panel_export_armature,
@@ -102,19 +104,31 @@ classes = [
 def register():
     for cls in classes:
         try:
-            getattr(cls, "register", None)()
+            register_func = getattr(cls, "register", None)
+            if register_func:
+                print(f"Registering {cls.__name__}")
+                register_func()
+            else:
+                print(f"No register function found for {cls.__name__}")
         except Exception as e:
-            print(f"Error registering {cls.__name__}")
-            print(e)
+            print(f"Error registering {cls.__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
 
 def unregister():
     for cls in classes:
         try:
-            getattr(cls, "unregister", None)()
+            unregister_func = getattr(cls, "unregister", None)
+            if unregister_func:
+                print(f"Unregistering {cls.__name__}")
+                unregister_func()
+            else:
+                print(f"No unregister function found for {cls.__name__}")
         except Exception as e:
-            print(f"Error unregistering {cls.__name__}")
-            print(e)
+            print(f"Error unregistering {cls.__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
