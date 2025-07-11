@@ -142,9 +142,14 @@ def export_preprocess(operator):
             if obj.type != 'MESH':
                 continue
             func_object_utils.set_active_object(obj)
-            fixed_count, affected_vertices = func_fix_vertex_group_collisions.fix_vertex_group_name_collisions(obj)
-            if fixed_count > 0:
-                print(f"Fixed {fixed_count} vertex group collisions in {obj.name}")
+            fixed_count, attr_removed_count, affected_vertices, attr_affected_vertices = func_fix_vertex_group_collisions.fix_vertex_group_name_collisions(obj)
+            if fixed_count > 0 or attr_removed_count > 0:
+                report_parts = []
+                if fixed_count > 0:
+                    report_parts.append(f"{fixed_count} vertex group collisions")
+                if attr_removed_count > 0:
+                    report_parts.append(f"{attr_removed_count} attribute collisions")
+                print(f"Fixed {', '.join(report_parts)} in {obj.name}")
     
     # その他のModify処理（オブジェクト個別設定）
     for obj in bpy.context.selected_objects:

@@ -30,7 +30,7 @@ class MIZORE_FBX_PT_export_transform(bpy.types.Panel):
         sfile = context.space_data
         operator = sfile.active_operator
 
-        return operator.bl_idname == "export_scene.custom_export_mizore_fbx"
+        return operator.bl_idname == "EXPORT_SCENE_OT_custom_export_mizore_fbx"
 
     def draw(self, context):
         layout = self.layout
