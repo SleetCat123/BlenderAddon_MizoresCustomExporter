@@ -32,7 +32,7 @@ from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     bl_idname = "export_scene.custom_export_mizore_fbx"
     bl_label = "Mizore's Custom Exporter (.fbx)"
-    bl_description = ""
+    bl_description = "Export selected objects as FBX with custom settings"
     bl_options = {'UNDO', 'PRESET'}
 
     ######################################################
@@ -415,6 +415,8 @@ translations_dict = {
             f"If you want to delete the saved settings, execute \"Remove Export Settings\" in the right-click menu of the Object mode."): 
             "エクスポート設定をblendファイルに保存します。"
             f"保存された設定を削除したい場合は、オブジェクトモードの右クリックメニューから\"Remove Export Settings\"を実行してください。",
+
+        ("*", "Export selected objects as FBX with custom settings"): "カスタム設定でFBXファイルとしてオブジェクトをエクスポート",
     },
 }
 
