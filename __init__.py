@@ -17,7 +17,6 @@
 # ##### END GPL LICENSE BLOCK #####
 from .scripts.funcs.utils import func_package_utils
 
-
 bl_info = {
     "name" : "MizoresCustomExporter",
     "author" : "@sleetcat123(Twitter)",
@@ -29,8 +28,8 @@ bl_info = {
 }
 
 if 'bpy' in locals():
-    from importlib import reload
     import sys
+    from importlib import reload
     for k, v in list(sys.modules.items()):
         if k.startswith(func_package_utils.get_package_root()):
             reload(v)
@@ -43,15 +42,11 @@ else:
     from .scripts.assign_prop_panel import (
         register_classes,
     )
-    from .scripts.panels import (
-        panel_assign_object_groups,
-        panel_object_list,
-    )
     from .scripts.custom_exporter_fbx import (
         op_core,
         op_panel_addon_connect,
-        op_remove_saved_path,
         op_remove_export_prefs,
+        op_remove_saved_path,
         op_save_export_settings,
         panel_export_armature,
         panel_export_automerge,
@@ -68,6 +63,10 @@ else:
     )
     from .scripts.ops import (
         op_convert_collections,
+    )
+    from .scripts.panels import (
+        panel_assign_object_groups,
+        panel_object_list,
     )
 
 import bpy

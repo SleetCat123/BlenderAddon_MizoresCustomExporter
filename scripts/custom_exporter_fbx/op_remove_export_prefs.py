@@ -17,7 +17,8 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from .. import consts, preferences_scene
+
+from .. import preferences_scene
 
 
 class OBJECT_OT_mizore_remove_export_settings(bpy.types.Operator):

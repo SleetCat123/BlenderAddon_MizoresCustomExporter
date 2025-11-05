@@ -15,9 +15,11 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
+
 import bpy
-import re
+
 from .utils import func_object_utils
+
 
 def remove_groups_not_bones():
     print("--- Remove Groups Other Than Bone Names ---")

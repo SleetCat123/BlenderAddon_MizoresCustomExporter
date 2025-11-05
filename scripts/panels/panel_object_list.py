@@ -1,10 +1,12 @@
-import bpy, operator
+import operator
 import os
-import bpy.utils.previews
-from bpy.props import StringProperty, BoolProperty
-from ..funcs.utils import func_object_utils, func_custom_props_utils
-from ..assign_prop_panel.op_assign_prop import OBJECT_OT_mizore_assign_prop
 
+import bpy
+import bpy.utils.previews
+from bpy.props import BoolProperty, StringProperty
+
+from ..assign_prop_panel.op_assign_prop import OBJECT_OT_mizore_assign_prop
+from ..funcs.utils import func_custom_props_utils, func_object_utils
 
 custom_icons = {}
 

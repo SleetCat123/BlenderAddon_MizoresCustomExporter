@@ -17,9 +17,12 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from ..funcs.utils import func_custom_props_utils
+
 from .. import consts
+from ..funcs.utils import func_custom_props_utils
 from . import func_get_target_objects
+
+
 class OBJECT_OT_mizore_assign_prop(bpy.types.Operator):
     bl_idname = "object.mizore_assign_prop_" + consts.ADDON_NAME.lower()
     bl_label = "Assign Prop"

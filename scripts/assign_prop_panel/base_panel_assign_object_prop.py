@@ -16,9 +16,10 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 import bpy
+
 from ..funcs.utils import func_custom_props_utils
-from .op_assign_prop import OBJECT_OT_mizore_assign_prop
 from . import func_get_target_objects
+from .op_assign_prop import OBJECT_OT_mizore_assign_prop
 from .panel_select_prop_objects import OBJECT_OT_mizore_utilspanel_select_prop_objects
 
 

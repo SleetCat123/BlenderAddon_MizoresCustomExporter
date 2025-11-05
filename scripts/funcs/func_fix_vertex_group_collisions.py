@@ -16,9 +16,10 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import bpy
-import bmesh
 from collections import defaultdict
+
+import bmesh
+import bpy
 
 
 def fix_vertex_group_name_collisions(obj):
@@ -176,7 +177,7 @@ def fix_vertex_group_name_collisions(obj):
             obj.vertex_groups.remove(vg)
     
     # AttributeとVertex Groupの衝突で統合されたAttributeを削除
-    for attr_name in attribute_vg_collisions.keys():
+    for attr_name in attribute_vg_collisions:
         try:
             # 名前ベースでAttributeを検索して削除
             if attr_name in obj.data.attributes:

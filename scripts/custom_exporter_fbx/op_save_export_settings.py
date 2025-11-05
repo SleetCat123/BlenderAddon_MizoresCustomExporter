@@ -16,7 +16,9 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 import bpy
+
 from .. import preferences_scene
+
 
 class OBJECT_OT_mizore_save_export_settings(bpy.types.Operator):
     bl_idname = "object.mizore_save_export_settings"

@@ -16,7 +16,10 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 import bpy
-from ..assign_prop_panel.base_panel_assign_object_prop import OBJECT_PT_mizores_assign_group_panel
+
+from ..assign_prop_panel.base_panel_assign_object_prop import (
+    OBJECT_PT_mizores_assign_group_panel,
+)
 
 
 class OBJECT_PT_mizores_assign_export_targets_group_panel(OBJECT_PT_mizores_assign_group_panel):

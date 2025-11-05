@@ -15,9 +15,11 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-import bpy
 import bmesh
+import bpy
+
 from .utils import func_object_utils
+
 
 def convert_uv_tiles_to_single():
     obj = func_object_utils.get_active_object()

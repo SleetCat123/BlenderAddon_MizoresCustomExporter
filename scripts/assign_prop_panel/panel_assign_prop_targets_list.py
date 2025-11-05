@@ -17,8 +17,9 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from . import func_get_target_objects
+
 from .. import consts
+from . import func_get_target_objects
 
 
 class OBJECT_PT_mizores_assign_prop_targets_list_panel(bpy.types.Panel):

@@ -15,9 +15,12 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-import bpy
 import re
+
+import bpy
+
 from .utils import func_object_utils
+
 
 def invert_lr(name):
     sep = "[/._-]"

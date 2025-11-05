@@ -1,6 +1,5 @@
 import bpy
 
-
 DONT_EXPORT_GROUP_NAME = "DontExport"  # エクスポートから除外するオブジェクトのグループ名
 ALWAYS_EXPORT_GROUP_NAME = "AlwaysExport"  # 非表示状態であっても常にエクスポートさせるオブジェクトのグループ名
 RESET_POSE_GROUP_NAME = "ResetPoseWhenExport"  # エクスポート時にポーズをリセットするオブジェクトのグループ名

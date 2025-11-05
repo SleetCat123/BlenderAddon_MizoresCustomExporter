@@ -17,8 +17,9 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from ..funcs.utils import func_custom_props_utils, func_object_utils
+
 from .. import consts
+from ..funcs.utils import func_custom_props_utils, func_object_utils
 
 
 class OBJECT_OT_mizore_utilspanel_select_prop_objects(bpy.types.Operator):

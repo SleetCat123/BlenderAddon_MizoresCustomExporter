@@ -16,6 +16,7 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 import bpy
+
 from .. import preferences_scene
 
 

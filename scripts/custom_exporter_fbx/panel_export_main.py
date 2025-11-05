@@ -16,8 +16,9 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+
 import bpy
-import os
+
 from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 
 

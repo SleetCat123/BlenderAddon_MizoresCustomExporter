@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from bpy.props import StringProperty, IntProperty, CollectionProperty
+from bpy.props import CollectionProperty, IntProperty, StringProperty
 
 
 class PR_IntPropertyCollection(bpy.types.PropertyGroup):

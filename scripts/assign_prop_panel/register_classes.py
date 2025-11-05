@@ -16,11 +16,13 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 import bpy
-from .panel_assign_prop_targets_list import OBJECT_PT_mizores_assign_prop_targets_list_panel
-from .panel_select_prop_objects import OBJECT_OT_mizore_utilspanel_select_prop_objects
-from . import op_assign_prop
-from .. import consts
 
+from .. import consts
+from . import op_assign_prop
+from .panel_assign_prop_targets_list import (
+    OBJECT_PT_mizores_assign_prop_targets_list_panel,
+)
+from .panel_select_prop_objects import OBJECT_OT_mizore_utilspanel_select_prop_objects
 
 translations_dict = {
     "en_US": {

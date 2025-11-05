@@ -17,14 +17,20 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import os
+
 import bpy
-from .. import consts
-from ..funcs.utils import func_object_utils, func_collection_utils, func_custom_props_utils
-from ..funcs import func_addon_link
-from . import func_export_preprocess
 from bpy_extras.io_utils import axis_conversion
-from mathutils import Matrix
 from io_scene_fbx import export_fbx_bin
+from mathutils import Matrix
+
+from .. import consts
+from ..funcs import func_addon_link
+from ..funcs.utils import (
+    func_collection_utils,
+    func_custom_props_utils,
+    func_object_utils,
+)
+from . import func_export_preprocess
 from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 
 
@@ -116,7 +122,7 @@ def execute_main(operator, context):
     selected_objects = bpy.context.selected_objects
     for obj in selected_objects:
         # 接尾辞をつけたときに名前の文字数が63文字（Blenderの最大文字数）を超えるオブジェクトがあるならエラー
-        if consts.ACTUAL_MAX_NAME_LENGTH < len(obj.name):
+        if len(obj.name) > consts.ACTUAL_MAX_NAME_LENGTH:
             t = bpy.app.translations.pgettext("error_longname_object").format(
                 str(consts.ACTUAL_MAX_NAME_LENGTH),
                 obj.name,
@@ -124,7 +130,7 @@ def execute_main(operator, context):
             )
             operator.report({'ERROR'}, t)
             return {'CANCELLED'}
-        if obj.data and consts.ACTUAL_MAX_NAME_LENGTH < len(obj.data.name):
+        if obj.data and len(obj.data.name) > consts.ACTUAL_MAX_NAME_LENGTH:
             t = bpy.app.translations.pgettext("error_longname_data").format(
                 str(consts.ACTUAL_MAX_NAME_LENGTH),
                 obj.name,

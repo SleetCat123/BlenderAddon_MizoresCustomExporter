@@ -1,10 +1,18 @@
-import bpy
 import traceback
+
+import bpy
 from mathutils import Matrix
+
 from .. import consts
-from ..funcs import func_addon_link, func_convert_uv_tiles_to_single
-from ..funcs.utils import func_object_utils, func_custom_props_utils
-from ..funcs import func_remove_unused_groups, func_remove_groups_not_bones, func_fix_vertex_group_collisions
+from ..funcs import (
+    func_addon_link,
+    func_convert_uv_tiles_to_single,
+    func_fix_vertex_group_collisions,
+    func_remove_groups_not_bones,
+    func_remove_unused_groups,
+)
+from ..funcs.utils import func_custom_props_utils, func_object_utils
+
 
 class ExportPostprocessResult:
     success_shapekey_util: bool = False
@@ -74,7 +82,7 @@ def export_preprocess(operator):
                 use_variants_merge=operator.use_variants_merge,
                 use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon
             )
-        except AttributeError as e:
+        except AttributeError:
             t = "!!! Failed to load AutoMerge !!!"
             print(t)
             operator.report({'WARNING'}, t)

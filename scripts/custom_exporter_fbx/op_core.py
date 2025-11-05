@@ -17,14 +17,16 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import traceback
+
 import bpy
-from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy_extras.io_utils import ExportHelper, orientation_helper, path_reference_mode
-from .. import preferences_scene, consts
+
+from .. import preferences_scene
 from . import func_execute_main
+from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 from .op_remove_saved_path import OBJECT_OT_mizore_remove_saved_path
 from .op_save_export_settings import OBJECT_OT_mizore_save_export_settings
-from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 
 
 # エクスポート
@@ -280,7 +282,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         name="Save Settings",
         default=True,
         description="Export settings are saved in a blend file.\n"
-            f"If you want to delete the saved settings, execute \"Remove Export Settings\" in the right-click menu of the Object mode."
+            "If you want to delete the saved settings, execute \"Remove Export Settings\" in the right-click menu of the Object mode."
     )
     save_path: BoolProperty(
         name="Save Export Path",
@@ -412,9 +414,9 @@ translations_dict = {
             "!!! blendファイルを他人に送る予定がある場合は注意して使用してください。",
 
         ("*", "Export settings are saved in a blend file.\n"
-            f"If you want to delete the saved settings, execute \"Remove Export Settings\" in the right-click menu of the Object mode."): 
+            "If you want to delete the saved settings, execute \"Remove Export Settings\" in the right-click menu of the Object mode."): 
             "エクスポート設定をblendファイルに保存します。"
-            f"保存された設定を削除したい場合は、オブジェクトモードの右クリックメニューから\"Remove Export Settings\"を実行してください。",
+            "保存された設定を削除したい場合は、オブジェクトモードの右クリックメニューから\"Remove Export Settings\"を実行してください。",
 
         ("*", "Export selected objects as FBX with custom settings"): "カスタム設定でFBXファイルとしてオブジェクトをエクスポート",
     },

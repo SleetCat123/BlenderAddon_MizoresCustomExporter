@@ -18,6 +18,7 @@
 
 import os
 
+
 class BatchExportFilepathFormatData:
     batch_file_format_default = "{name}_{batch}"
     batch_file_formats = [

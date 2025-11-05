@@ -17,7 +17,9 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
+
 from ..funcs.utils import func_object_utils
+
 
 def get_target_objects():
     result = []

@@ -1,6 +1,6 @@
 import bpy
-from .funcs.utils import func_package_utils
 
+from .funcs.utils import func_package_utils
 
 translations_dict = {
     "en_US": {
