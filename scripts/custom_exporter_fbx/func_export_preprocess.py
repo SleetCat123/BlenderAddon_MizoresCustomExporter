@@ -113,6 +113,14 @@ def export_preprocess(operator):
                         obj.data.shape_keys.key_blocks) != 0:
                     func_object_utils.set_active_object(obj)
                     bpy.ops.object.shapekeys_util_separate_lr_shapekey_for_exporter()
+        
+        if operator.enable_subtract_base_shapekey:
+            for obj in bpy.context.selected_objects:
+                if obj.type == 'MESH' and obj.data.shape_keys is not None and len(
+                        obj.data.shape_keys.key_blocks) != 0:
+                    func_object_utils.set_active_object(obj)
+                    bpy.ops.object.shapekeys_util_subtract_base_shapekey_for_exporter()
+        
         result.success_shapekey_util = True
     else:
         t = "!!! Failed to load ShapeKeysUtil !!! - apply_modifiers_with_shapekeys"

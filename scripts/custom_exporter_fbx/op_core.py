@@ -312,6 +312,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
     enable_apply_modifiers_with_shapekeys: BoolProperty(name="Apply Modifier with Shape Keys", default=True)
     enable_separate_lr_shapekey: BoolProperty(name="Separate Shape Keys LR", default=True)
+    enable_subtract_base_shapekey: BoolProperty(name="Subtract Base Shape Keys", default=True)
 
     bake_anim_use_bone_constraint: BoolProperty(name="Use Bone Constraint", default=True)
 

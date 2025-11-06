@@ -44,6 +44,7 @@ class MIZORE_FBX_PT_export_shapekeysutil(bpy.types.Panel):
 
         layout.prop(operator, "enable_apply_modifiers_with_shapekeys")
         layout.prop(operator, "enable_separate_lr_shapekey")
+        layout.prop(operator, "enable_subtract_base_shapekey")
 
         box = layout.box()
         box.label(text=bpy.app.translations.pgettext("box_warning_slow_method_1"))
