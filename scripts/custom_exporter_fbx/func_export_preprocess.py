@@ -19,8 +19,13 @@ class ExportPostprocessResult:
 
 def apply_or_clear_shapekeys():
     for obj in bpy.context.selected_objects:
-        if not hasattr(obj, 'data') or not hasattr(obj.data, 'shape_keys') or not hasattr(obj.data.shape_keys, 'key_blocks'):
+        if not hasattr(obj, 'data') or obj.data is None:
             continue
+        if not hasattr(obj.data, 'shape_keys') or obj.data.shape_keys is None:
+            continue
+        if not hasattr(obj.data.shape_keys, 'key_blocks') or len(obj.data.shape_keys.key_blocks) == 0:
+            continue
+
         # 処理対象のオブジェクトを選択
         func_object_utils.set_active_object(obj)
 
@@ -28,14 +33,25 @@ def apply_or_clear_shapekeys():
             # シェイプキーを適用
             if obj.mode != 'OBJECT':
                 bpy.ops.object.mode_set(mode='OBJECT')
-            print(f"Apply All ShapeKeys: {obj.name}")
-            bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+            print(f"Apply All ShapeKeys: {obj.name} (ShapeKey count: {len(obj.data.shape_keys.key_blocks)})")
+            try:
+                bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+                print(f"  -> Successfully applied all shapekeys for {obj.name}")
+            except Exception as e:
+                print(f"  -> Failed to apply shapekeys for {obj.name}: {e}")
+                traceback.print_exc()
+
         if func_custom_props_utils.prop_is_true(obj, consts.CLEAR_ALL_SHAPEKEYS_GROUP_NAME):
             # シェイプキーを全て削除
             if obj.mode != 'OBJECT':
                 bpy.ops.object.mode_set(mode='OBJECT')
-            print(f"Clear All ShapeKeys: {obj.name}")
-            bpy.ops.object.shape_key_remove(all=True, apply_mix=False)
+            print(f"Clear All ShapeKeys: {obj.name} (ShapeKey count: {len(obj.data.shape_keys.key_blocks)})")
+            try:
+                bpy.ops.object.shape_key_remove(all=True, apply_mix=False)
+                print(f"  -> Successfully cleared all shapekeys for {obj.name}")
+            except Exception as e:
+                print(f"  -> Failed to clear shapekeys for {obj.name}: {e}")
+                traceback.print_exc()
 
 def export_preprocess(operator):
     result = ExportPostprocessResult()
