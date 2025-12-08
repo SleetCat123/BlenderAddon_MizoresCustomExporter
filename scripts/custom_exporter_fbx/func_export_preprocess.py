@@ -1,4 +1,5 @@
 import traceback
+from collections.abc import Generator
 
 import bpy
 from mathutils import Matrix
@@ -11,11 +12,13 @@ from ..funcs import (
     func_remove_groups_not_bones,
     func_remove_unused_groups,
 )
+from ..funcs.modal.progress_info import ProgressInfo, T
 from ..funcs.utils import func_custom_props_utils, func_object_utils
 
 
 class ExportPostprocessResult:
     success_shapekey_util: bool = False
+
 
 def apply_or_clear_shapekeys():
     for obj in bpy.context.selected_objects:
@@ -53,10 +56,27 @@ def apply_or_clear_shapekeys():
                 print(f"  -> Failed to clear shapekeys for {obj.name}: {e}")
                 traceback.print_exc()
 
-def export_preprocess(operator):
+def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPostprocessResult]:
+    """エクスポート前処理（ジェネレータ版）
+
+    Args:
+        operator: エクスポートオペレーター
+
+    Yields:
+        ProgressInfo: 進捗情報
+
+    Returns:
+        ExportPostprocessResult: 処理結果
+    """
     result = ExportPostprocessResult()
 
     print("xxxxxx Export Preprocess xxxxxx")
+
+    yield ProgressInfo(
+        phase="reset_pose",
+        progress=0.0,
+        message=T("mce_progress_reset_pose")
+    )
 
     # Armatureのポーズをリセットする
     print("--- Reset Pose ---")
@@ -70,6 +90,12 @@ def export_preprocess(operator):
         for pose_bone in obj.pose.bones:
             pose_bone.matrix_basis = Matrix()
 
+    yield ProgressInfo(
+        phase="reset_shapekey",
+        progress=0.05,
+        message=T("mce_progress_reset_shapekey")
+    )
+
     # シェイプキーをリセットする
     print("--- Reset ShapeKey ---")
     for obj in selected_objects:
@@ -82,22 +108,53 @@ def export_preprocess(operator):
         for shape_key in obj.data.shape_keys.key_blocks:
             shape_key.value = 0.0
 
+    yield ProgressInfo(
+        phase="apply_shapekeys_before",
+        progress=0.1,
+        message=T("mce_progress_apply_shapekeys_before")
+    )
+
     # マージ前にシェイプキーを適用/削除することでシェイプキー関連処理を省略可能にする
     print("--- Apply/Clear ShapeKeys (Before Merge) ---")
     apply_or_clear_shapekeys()
+
+    yield ProgressInfo(
+        phase="auto_merge",
+        progress=0.15,
+        message=T("mce_progress_automerge")
+    )
 
     # ↓ AutoMergeアドオン連携
     print("--- AutoMerge ---")
     if operator.enable_auto_merge:
         try:
             print("AutoMerge: Start")
-            # オブジェクトを結合
-            bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon(
-                use_shapekeys_util=operator.enable_apply_modifiers_with_shapekeys,
-                remove_non_render_mod=operator.use_mesh_modifiers_render,
-                use_variants_merge=operator.use_variants_merge,
-                use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon
-            )
+            # ジェネレータが利用可能ならジェネレータを使用
+            if func_addon_link.auto_merge_iter_is_available():
+                merge_gen = bpy.types.WindowManager.automerge_get_merge_iter(
+                    operator=operator,
+                    use_shapekeys_util=operator.enable_apply_modifiers_with_shapekeys,
+                    use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon,
+                    remove_non_render_mod=operator.use_mesh_modifiers_render,
+                    use_variants_merge=operator.use_variants_merge
+                )
+                # サブ進捗を伝播（15%〜40%の範囲）
+                for sub_progress in merge_gen:
+                    mapped_progress = 0.15 + (sub_progress.progress * 0.25)
+                    yield ProgressInfo(
+                        phase=f"merge_{sub_progress.phase}",
+                        progress=mapped_progress,
+                        message=sub_progress.message,
+                        object_name=sub_progress.object_name
+                    )
+            else:
+                # 同期版オペレーターにフォールバック
+                bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon(
+                    use_shapekeys_util=operator.enable_apply_modifiers_with_shapekeys,
+                    remove_non_render_mod=operator.use_mesh_modifiers_render,
+                    use_variants_merge=operator.use_variants_merge,
+                    use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon
+                )
         except AttributeError:
             t = "!!! Failed to load AutoMerge !!!"
             print(t)
@@ -108,40 +165,116 @@ def export_preprocess(operator):
     print("xxxxxx Export Targets xxxxxx\n" + '\n'.join(
         [obj.name for obj in bpy.context.selected_objects]) + "\nxxxxxxxxxxxxxxx")
 
+    yield ProgressInfo(
+        phase="shapekeys_util",
+        progress=0.4,
+        message=T("mce_progress_shapekeysutil")
+    )
+
     # ShapeKeysUtil連携
     print("--- ShapeKeysUtil ---")
     if func_addon_link.shapekey_util_is_found():
+        use_iter = func_addon_link.shapekey_util_iter_is_available()
+
         if operator.enable_apply_modifiers_with_shapekeys and operator.use_mesh_modifiers:
             active = func_object_utils.get_active_object()
             selected_objects = bpy.context.selected_objects
             all_export_targets = [d for d in selected_objects if d.type == 'MESH']
-            for obj in all_export_targets:
+            total_targets = len(all_export_targets)
+
+            for idx, obj in enumerate(all_export_targets):
+                base_progress = 0.4 + (0.2 * idx / max(total_targets, 1))
+                yield ProgressInfo(
+                    phase="apply_modifiers",
+                    progress=base_progress,
+                    message=T("mce_progress_apply_modifiers").format(obj=obj.name),
+                    object_name=obj.name
+                )
                 func_object_utils.set_active_object(obj)
-                bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon(
-                    use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon)
+
+                if use_iter:
+                    # ジェネレータを使用して進捗を伝播
+                    apply_gen = bpy.types.WindowManager.shapekeys_util_get_apply_modifiers_iter(
+                        remove_nonrender=False,
+                        use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon
+                    )
+                    progress_range = 0.2 / max(total_targets, 1)
+                    for sub_progress in apply_gen:
+                        mapped_progress = base_progress + (sub_progress.progress * progress_range)
+                        yield ProgressInfo(
+                            phase=f"apply_{sub_progress.phase}",
+                            progress=mapped_progress,
+                            message=sub_progress.message,
+                            object_name=sub_progress.object_name or obj.name
+                        )
+                else:
+                    # 同期版オペレーターにフォールバック
+                    bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon(
+                        use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon)
+
             # 選択オブジェクトを復元
             for obj in selected_objects:
                 obj.select_set(True)
             func_object_utils.set_active_object(active)
+
+        yield ProgressInfo(
+            phase="separate_lr",
+            progress=0.6,
+            message=T("mce_progress_separate_lr_shapekey")
+        )
+
         if operator.enable_separate_lr_shapekey:
-            for obj in bpy.context.selected_objects:
-                if obj.type == 'MESH' and obj.data.shape_keys is not None and len(
-                        obj.data.shape_keys.key_blocks) != 0:
-                    func_object_utils.set_active_object(obj)
+            targets_for_lr = [
+                obj for obj in bpy.context.selected_objects
+                if obj.type == 'MESH' and obj.data.shape_keys is not None and len(obj.data.shape_keys.key_blocks) != 0
+            ]
+            total_lr = len(targets_for_lr)
+
+            for idx, obj in enumerate(targets_for_lr):
+                base_progress = 0.6 + (0.05 * idx / max(total_lr, 1))
+                func_object_utils.set_active_object(obj)
+
+                if use_iter:
+                    # ジェネレータを使用
+                    lr_gen = bpy.types.WindowManager.shapekeys_util_get_separate_lr_iter()
+                    progress_range = 0.05 / max(total_lr, 1)
+                    for sub_progress in lr_gen:
+                        mapped_progress = base_progress + (sub_progress.progress * progress_range)
+                        yield ProgressInfo(
+                            phase=f"lr_{sub_progress.phase}",
+                            progress=mapped_progress,
+                            message=sub_progress.message,
+                            object_name=sub_progress.object_name or obj.name
+                        )
+                else:
+                    # 同期版オペレーターにフォールバック
                     bpy.ops.object.shapekeys_util_separate_lr_shapekey_for_exporter()
-        
+
+        yield ProgressInfo(
+            phase="subtract_base",
+            progress=0.65,
+            message=T("mce_progress_subtract_base_shapekey")
+        )
+
         if operator.enable_subtract_base_shapekey:
             for obj in bpy.context.selected_objects:
                 if obj.type == 'MESH' and obj.data.shape_keys is not None and len(
                         obj.data.shape_keys.key_blocks) != 0:
                     func_object_utils.set_active_object(obj)
+                    # subtract_base_shapekeyはジェネレータ化していないので同期版を使用
                     bpy.ops.object.shapekeys_util_subtract_base_shapekey_for_exporter()
-        
+
         result.success_shapekey_util = True
     else:
         t = "!!! Failed to load ShapeKeysUtil !!! - apply_modifiers_with_shapekeys"
         print(t)
         operator.report({'ERROR'}, t)
+
+    yield ProgressInfo(
+        phase="transform",
+        progress=0.7,
+        message=T("mce_progress_transform")
+    )
 
     # Transform操作
     print("--- Transform ---")
@@ -152,7 +285,7 @@ def export_preprocess(operator):
             # オブジェクトを原点に移動する
             print("Move To Origin: " + obj.name)
             obj.location = (0, 0, 0)
-        
+
         apply_location = func_custom_props_utils.prop_is_true(obj, consts.APPLY_LOCATIONS_GROUP_NAME)
         apply_rotation = func_custom_props_utils.prop_is_true(obj, consts.APPLY_ROTATIONS_GROUP_NAME)
         apply_scale = func_custom_props_utils.prop_is_true(obj, consts.APPLY_SCALES_GROUP_NAME)
@@ -165,6 +298,12 @@ def export_preprocess(operator):
             bpy.ops.object.transform_apply(location=apply_location, rotation=apply_rotation, scale=apply_scale)
     func_object_utils.select_objects(temp_selected, True)
     func_object_utils.set_active_object(temp_active)
+
+    yield ProgressInfo(
+        phase="modify",
+        progress=0.8,
+        message=T("mce_progress_modify")
+    )
 
     print("--- Modify ---")
     # Name Collision修復（全体設定）
@@ -182,7 +321,7 @@ def export_preprocess(operator):
                 if attr_removed_count > 0:
                     report_parts.append(f"{attr_removed_count} attribute collisions")
                 print(f"Fixed {', '.join(report_parts)} in {obj.name}")
-    
+
     # その他のModify処理（オブジェクト個別設定）
     for obj in bpy.context.selected_objects:
         if obj.type != 'MESH':
@@ -199,10 +338,22 @@ def export_preprocess(operator):
             # UVタイルを1つにする
             func_object_utils.set_active_object(obj)
             func_convert_uv_tiles_to_single.convert_uv_tiles_to_single()
-    
+
+    yield ProgressInfo(
+        phase="apply_shapekeys_after",
+        progress=0.9,
+        message=T("mce_progress_apply_shapekeys_after")
+    )
+
     # マージやApply Modifierで増えたシェイプキーを適用/削除する
     print("--- Apply/Clear ShapeKeys (After Merge) ---")
     apply_or_clear_shapekeys()
+
+    yield ProgressInfo(
+        phase="constraints",
+        progress=0.95,
+        message=T("mce_progress_constraints")
+    )
 
     print("--- Constraints ---")
     if operator.bake_anim and operator.bake_anim_use_bone_constraint == False:
@@ -212,5 +363,27 @@ def export_preprocess(operator):
                 for bone in obj.pose.bones:
                     for c in bone.constraints:
                         c.enabled = False
+
+    yield ProgressInfo(
+        phase="complete",
+        progress=1.0,
+        message=T("mce_progress_preprocess_complete")
+    )
+
     print("xxxxxx Export Preprocess End xxxxxx")
     return result
+
+
+def export_preprocess(operator) -> ExportPostprocessResult:
+    """エクスポート前処理（同期版ラッパー）
+
+    既存コードとの互換性のため、ジェネレータ版を消費して実行します。
+    """
+    gen = export_preprocess_iter(operator)
+    result = None
+    try:
+        while True:
+            next(gen)
+    except StopIteration as e:
+        result = e.value
+    return result if result is not None else ExportPostprocessResult()

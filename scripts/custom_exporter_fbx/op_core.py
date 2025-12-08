@@ -16,6 +16,7 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+import time
 import traceback
 
 import bpy
@@ -23,6 +24,7 @@ from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy_extras.io_utils import ExportHelper, orientation_helper, path_reference_mode
 
 from .. import preferences_scene
+from ..funcs.modal.modal_base import create_progress_bar
 from . import func_execute_main
 from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 from .op_remove_saved_path import OBJECT_OT_mizore_remove_saved_path
@@ -352,34 +354,146 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         self.scene = bpy.context.scene
         return super().invoke(context, event)
 
+    # Modal処理用の設定
+    _timer_interval: float = 0.001  # 1000Hz
+    _batch_time_limit: float = 0.05  # 50ms per frame
+
     def execute(self, context):
+        """Modal処理を開始"""
+        # インスタンス変数の初期化
+        self._timer = None
+        self._generator = None
+        self._is_cancelled = False
+        self._last_progress = None
+        self._export_error = None
+        self._batch_scenes = []
+        self._current_scene_index = 0
+        self._temp_scene = None
+
         try:
-            if self.batch_mode == 'COLLECTION' or self.batch_mode == 'SCENE' or self.batch_mode == 'SCENE_COLLECTION':
-                # TODO: デフォルトの'COLLECTION'って全シーンで実行される？
-                temp_scene = bpy.context.window.scene
-                for scene in bpy.data.scenes:
-                    bpy.context.window.scene = scene
-                    print("Scene: " + scene.name)
-                    func_execute_main.execute_main(self, context)
-                bpy.context.window.scene = temp_scene
-                log = bpy.app.translations.pgettext("export_completed")
-                print(log)
-                self.report({'INFO'}, log)
-                result = {'FINISHED'}
+            # 復元ポイントを作成
+            bpy.ops.ed.undo_push(message="Before Export")
+
+            # バッチモードでシーンごとの処理が必要な場合
+            if self.batch_mode in ('COLLECTION', 'SCENE', 'SCENE_COLLECTION'):
+                self._temp_scene = bpy.context.window.scene
+                self._batch_scenes = list(bpy.data.scenes)
+                self._current_scene_index = 0
+                if self._batch_scenes:
+                    bpy.context.window.scene = self._batch_scenes[0]
+                    print("Scene: " + self._batch_scenes[0].name)
+                    self._generator = func_execute_main.execute_main_iter(self, context)
             else:
-                func_execute_main.execute_main(self, context)
-                log = bpy.app.translations.pgettext("export_completed")
-                print(log)
-                self.report({'INFO'}, log)
-                result = {'FINISHED'}
+                self._generator = func_execute_main.execute_main_iter(self, context)
+
+            if self._generator is None:
+                return {'CANCELLED'}
+
+            # タイマーを開始
+            self._timer = context.window_manager.event_timer_add(
+                self._timer_interval,
+                window=context.window
+            )
+
+            context.window_manager.modal_handler_add(self)
+            return {'RUNNING_MODAL'}
+
         except Exception as e:
             traceback.print_exc()
-            log = bpy.app.translations.pgettext("export_interrupted") + "\n\n" + str(e)
-            self.report({'ERROR'}, log)
-            result = {'CANCELLED'}
+            self._on_error(context, e)
+            return {'CANCELLED'}
 
+    def modal(self, context, event):
+        """Modalイベント処理"""
+        # キャンセル判定
+        if event.type in {'ESC', 'RIGHTMOUSE'} and event.value == 'PRESS':
+            self._is_cancelled = True
+            self._cleanup(context)
+            self._on_cancel(context)
+            return {'CANCELLED'}
+
+        # タイマーイベント
+        if event.type == 'TIMER':
+            try:
+                # バッチ処理：時間制限内で複数のyieldを処理
+                start_time = time.perf_counter()
+
+                while True:
+                    try:
+                        progress = next(self._generator)
+                        self._last_progress = progress
+
+                        # 時間制限チェック
+                        elapsed = time.perf_counter() - start_time
+                        if elapsed >= self._batch_time_limit:
+                            break
+                    except StopIteration:
+                        # 現在のジェネレータが完了
+                        # バッチモードで次のシーンがあるかチェック
+                        if self._batch_scenes and self._current_scene_index < len(self._batch_scenes) - 1:
+                            self._current_scene_index += 1
+                            next_scene = self._batch_scenes[self._current_scene_index]
+                            bpy.context.window.scene = next_scene
+                            print("Scene: " + next_scene.name)
+                            self._generator = func_execute_main.execute_main_iter(self, context)
+                            break
+                        else:
+                            # 全て完了
+                            if self._temp_scene:
+                                bpy.context.window.scene = self._temp_scene
+                            self._cleanup(context)
+                            self._on_complete(context)
+                            return {'FINISHED'}
+
+                # 進捗を更新
+                if self._last_progress:
+                    self._update_progress(context, self._last_progress)
+
+                return {'RUNNING_MODAL'}
+
+            except Exception as e:
+                traceback.print_exc()
+                self._cleanup(context)
+                self._on_error(context, e)
+                return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
+
+    def _update_progress(self, context, progress):
+        """進捗表示を更新"""
+        percent = int(progress.progress * 100)
+        bar = create_progress_bar(progress.progress, width=15)
+
+        # メッセージ構築: プログレスバー + パーセント + メッセージ
+        # messageフィールドを優先表示（処理内容がわかりやすい）
+        parts = [f"{bar} {percent:3d}%"]
+
+        if progress.message:
+            # メッセージがある場合はそれを表示
+            parts.append(progress.message)
+        else:
+            # メッセージがない場合はフェーズとオブジェクト名を表示
+            if progress.phase:
+                phase_short = progress.phase[:12]
+                parts.append(f"[{phase_short}]")
+            if progress.object_name:
+                parts.append(progress.object_name)
+
+        display_message = " ".join(parts)
+        context.workspace.status_text_set(display_message)
+
+    def _cleanup(self, context):
+        """クリーンアップ処理"""
+        if self._timer is not None:
+            context.window_manager.event_timer_remove(self._timer)
+            self._timer = None
+        context.workspace.status_text_set(None)
+        self._generator = None
+
+    def _on_complete(self, context):
+        """処理完了時のコールバック"""
         # 実行前の状態に戻す
-        bpy.ops.ed.undo_push(message = "Restore point 1")
+        bpy.ops.ed.undo_push(message="Restore point 1")
         bpy.ops.ed.undo()
         # シーンに設定を保存
         if self.save_prefs:
@@ -388,8 +502,26 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                 ignore_key.append("filepath")
             preferences_scene.clear_export_props()
             preferences_scene.save_scene_prefs(operator=self, ignore_key=ignore_key)
-        bpy.ops.ed.undo_push(message = "Restore point")
-        return result
+        bpy.ops.ed.undo_push(message="Restore point")
+
+        log = bpy.app.translations.pgettext("export_completed")
+        print(log)
+        self.report({'INFO'}, log)
+
+    def _on_cancel(self, context):
+        """キャンセル時のコールバック"""
+        # 実行前の状態に戻す
+        if bpy.ops.ed.undo.poll():
+            bpy.ops.ed.undo()
+        self.report({'WARNING'}, "Export cancelled")
+
+    def _on_error(self, context, error):
+        """エラー時のコールバック"""
+        # 実行前の状態に戻す
+        if bpy.ops.ed.undo.poll():
+            bpy.ops.ed.undo()
+        log = bpy.app.translations.pgettext("export_interrupted") + "\n\n" + str(error)
+        self.report({'ERROR'}, log)
 
 
 # ExportメニューにOperatorを登録

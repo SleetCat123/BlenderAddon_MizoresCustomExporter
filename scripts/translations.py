@@ -24,6 +24,27 @@ translations_dict = {
                                  "Object: {1}\n"
                                  "Data Name: {2}\n"
                                  "({3}characters)",
+
+        # Progress messages - func_execute_main
+        ("*", "mce_progress_initializing"): "Initializing export",
+        ("*", "mce_progress_starting_preprocess"): "Starting preprocess",
+        ("*", "mce_progress_exporting_fbx"): "Exporting FBX",
+        ("*", "mce_progress_export_complete"): "Export complete",
+
+        # Progress messages - func_export_preprocess
+        ("*", "mce_progress_reset_pose"): "Reset Pose",
+        ("*", "mce_progress_reset_shapekey"): "Reset ShapeKey",
+        ("*", "mce_progress_apply_shapekeys_before"): "Apply/Clear ShapeKeys (Before Merge)",
+        ("*", "mce_progress_automerge"): "AutoMerge",
+        ("*", "mce_progress_shapekeysutil"): "ShapeKeysUtil",
+        ("*", "mce_progress_apply_modifiers"): "Apply Modifiers: {obj}",
+        ("*", "mce_progress_separate_lr_shapekey"): "Separate LR ShapeKey",
+        ("*", "mce_progress_subtract_base_shapekey"): "Subtract Base ShapeKey",
+        ("*", "mce_progress_transform"): "Transform",
+        ("*", "mce_progress_modify"): "Modify",
+        ("*", "mce_progress_apply_shapekeys_after"): "Apply/Clear ShapeKeys (After Merge)",
+        ("*", "mce_progress_constraints"): "Constraints",
+        ("*", "mce_progress_preprocess_complete"): "Preprocess Complete",
     },
     "ja_JP": {
         ("*", "box_warning_slow_method_1"): "注意：",
@@ -40,6 +61,27 @@ translations_dict = {
                                  "オブジェクト: {1}\n"
                                  "{2}\n"
                                  "（{3}文字）",
+
+        # Progress messages - func_execute_main
+        ("*", "mce_progress_initializing"): "エクスポート初期化中",
+        ("*", "mce_progress_starting_preprocess"): "前処理開始",
+        ("*", "mce_progress_exporting_fbx"): "FBXエクスポート中",
+        ("*", "mce_progress_export_complete"): "エクスポート完了",
+
+        # Progress messages - func_export_preprocess
+        ("*", "mce_progress_reset_pose"): "ポーズリセット",
+        ("*", "mce_progress_reset_shapekey"): "シェイプキーリセット",
+        ("*", "mce_progress_apply_shapekeys_before"): "シェイプキー適用/クリア (マージ前)",
+        ("*", "mce_progress_automerge"): "AutoMerge処理",
+        ("*", "mce_progress_shapekeysutil"): "ShapeKeysUtil処理",
+        ("*", "mce_progress_apply_modifiers"): "モディファイア適用: {obj}",
+        ("*", "mce_progress_separate_lr_shapekey"): "左右シェイプキー分割",
+        ("*", "mce_progress_subtract_base_shapekey"): "基準シェイプキー差分",
+        ("*", "mce_progress_transform"): "トランスフォーム",
+        ("*", "mce_progress_modify"): "修正処理",
+        ("*", "mce_progress_apply_shapekeys_after"): "シェイプキー適用/クリア (マージ後)",
+        ("*", "mce_progress_constraints"): "コンストレイント処理",
+        ("*", "mce_progress_preprocess_complete"): "前処理完了",
     },
 }
 

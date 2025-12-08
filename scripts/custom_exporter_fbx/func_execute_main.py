@@ -17,6 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import os
+from collections.abc import Generator
 
 import bpy
 from bpy_extras.io_utils import axis_conversion
@@ -25,6 +26,7 @@ from mathutils import Matrix
 
 from .. import consts
 from ..funcs import func_addon_link
+from ..funcs.modal.progress_info import ProgressInfo, T
 from ..funcs.utils import (
     func_collection_utils,
     func_custom_props_utils,
@@ -34,7 +36,21 @@ from . import func_export_preprocess
 from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 
 
-def execute_main(operator, context):
+def execute_main_iter(operator, context) -> Generator[ProgressInfo, None, None]:
+    """エクスポートメイン処理（ジェネレータ版）
+
+    Args:
+        operator: エクスポートオペレーター
+        context: Blenderコンテキスト
+
+    Yields:
+        ProgressInfo: 進捗情報
+    """
+    yield ProgressInfo(
+        phase="init",
+        progress=0.0,
+        message=T("mce_progress_initializing")
+    )
     # 常時エクスポートするオブジェクトを表示
     always_export_objects = set(func_custom_props_utils.get_objects_prop_is_true(prop_name=consts.ALWAYS_EXPORT_GROUP_NAME))
     # AlwaysExportのPropをもつオブジェクトをコレクションに追加（親コレクションが非表示な場合でも表示できるように）
@@ -170,11 +186,39 @@ def execute_main(operator, context):
         print(o.name)
     print("]")
 
-    # region Preprocess
-    postprocess_result = func_export_preprocess.export_preprocess(
-        operator=operator,
+    yield ProgressInfo(
+        phase="preprocess",
+        progress=0.1,
+        message=T("mce_progress_starting_preprocess")
     )
+
+    # region Preprocess
+    # ジェネレータ版を使用して進捗を伝播
+    preprocess_gen = func_export_preprocess.export_preprocess_iter(operator=operator)
+    postprocess_result = None
+    try:
+        while True:
+            sub_progress = next(preprocess_gen)
+            # サブ進捗を全体進捗にマッピング（10%〜80%の範囲）
+            mapped_progress = 0.1 + (sub_progress.progress * 0.7)
+            yield ProgressInfo(
+                phase=sub_progress.phase,
+                progress=mapped_progress,
+                message=sub_progress.message,
+                object_name=sub_progress.object_name
+            )
+    except StopIteration as e:
+        postprocess_result = e.value
+
+    if postprocess_result is None:
+        postprocess_result = func_export_preprocess.ExportPostprocessResult()
     # endregion
+
+    yield ProgressInfo(
+        phase="export",
+        progress=0.8,
+        message=T("mce_progress_exporting_fbx")
+    )
 
     # region # Export based on io_scene_fbx
     if not operator.filepath:
@@ -300,3 +344,19 @@ def execute_main(operator, context):
     else:
         operator.report({'ERROR'}, str(operator.batch_mode) + " は未定義です。")
     # endregion
+
+    yield ProgressInfo(
+        phase="complete",
+        progress=1.0,
+        message=T("mce_progress_export_complete")
+    )
+
+
+def execute_main(operator, context):
+    """エクスポートメイン処理（同期版ラッパー）
+
+    既存コードとの互換性のため、ジェネレータ版を消費して実行します。
+    """
+    gen = execute_main_iter(operator, context)
+    for _ in gen:
+        pass

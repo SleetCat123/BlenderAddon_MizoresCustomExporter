@@ -26,11 +26,22 @@ def shapekey_util_is_found():
         return False
 
 
+def shapekey_util_iter_is_available():
+    """ShapeKeysUtilのジェネレータ取得関数が利用可能かチェック"""
+    return hasattr(bpy.types.WindowManager, 'shapekeys_util_get_apply_modifiers_iter')
+
+
 def auto_merge_is_found():
     try:
         return hasattr(bpy.types, bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon.idname())
     except AttributeError:
         return False
+
+
+def auto_merge_iter_is_available():
+    """AutoMergeのジェネレータ取得関数が利用可能かチェック"""
+    return hasattr(bpy.types.WindowManager, 'automerge_get_merge_iter')
+
 
 def update_mesh_deform_addon_is_found():
     try:
