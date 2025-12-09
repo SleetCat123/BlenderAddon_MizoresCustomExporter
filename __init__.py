@@ -105,10 +105,7 @@ def register():
         try:
             register_func = getattr(cls, "register", None)
             if register_func:
-                print(f"Registering {cls.__name__}")
                 register_func()
-            else:
-                print(f"No register function found for {cls.__name__}")
         except Exception as e:
             print(f"Error registering {cls.__name__}: {str(e)}")
             import traceback
@@ -120,10 +117,7 @@ def unregister():
         try:
             unregister_func = getattr(cls, "unregister", None)
             if unregister_func:
-                print(f"Unregistering {cls.__name__}")
                 unregister_func()
-            else:
-                print(f"No unregister function found for {cls.__name__}")
         except Exception as e:
             print(f"Error unregistering {cls.__name__}: {str(e)}")
             import traceback
