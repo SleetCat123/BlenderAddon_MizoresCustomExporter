@@ -20,7 +20,7 @@ from .scripts.funcs.utils import func_package_utils
 bl_info = {
     "name" : "MizoresCustomExporter",
     "author" : "@sleetcat123(Twitter)",
-    "version" : (1,1,0),
+    "version" : (1,2,0),
     "blender" : (2, 80, 0),
     "location": "File > Export > Mizore's Custom Exporter",
     "description" : "Custom exporter by Mizore Nekoyanagi",
@@ -37,6 +37,7 @@ else:
     from .scripts import (
         consts,
         preferences_scene,
+        shapekey_operations,
         translations,
     )
     from .scripts.assign_prop_panel import (
@@ -44,6 +45,7 @@ else:
     )
     from .scripts.custom_exporter_fbx import (
         op_core,
+        op_export_result_dialog,
         op_panel_addon_connect,
         op_remove_export_prefs,
         op_remove_saved_path,
@@ -79,8 +81,10 @@ classes = [
     register_classes,
     panel_assign_object_groups,
     panel_object_list,
+    shapekey_operations,
 
     op_core,
+    op_export_result_dialog,
     op_panel_addon_connect,
     op_remove_saved_path,
     op_save_export_settings,

@@ -43,6 +43,16 @@ def auto_merge_iter_is_available():
     return hasattr(bpy.types.WindowManager, 'automerge_get_merge_iter')
 
 
+def shapekey_util_change_base_is_available():
+    """ShapeKeysUtilのベース変更ジェネレータが利用可能かチェック"""
+    return hasattr(bpy.types.WindowManager, 'shapekeys_util_get_change_base_iter')
+
+
+def shapekey_util_reorder_is_available():
+    """ShapeKeysUtilの並び替えジェネレータが利用可能かチェック"""
+    return hasattr(bpy.types.WindowManager, 'shapekeys_util_get_reorder_iter')
+
+
 def update_mesh_deform_addon_is_found():
     try:
         return hasattr(bpy.types, bpy.ops.object.mizore_update_mesh_deform.idname())

@@ -20,12 +20,25 @@ import time
 import traceback
 
 import bpy
-from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
+from bpy.props import (
+    BoolProperty,
+    EnumProperty,
+    FloatProperty,
+    IntProperty,
+    StringProperty,
+)
 from bpy_extras.io_utils import ExportHelper, orientation_helper, path_reference_mode
 
 from .. import preferences_scene
+from ..funcs.modal.export_result import ExportResult
 from ..funcs.modal.modal_base import create_progress_bar
-from . import func_execute_main
+from ..funcs.progress import (
+    gpu_progress_begin,
+    gpu_progress_end,
+    gpu_progress_update,
+    is_gpu_progress_available,
+)
+from . import func_execute_main, op_export_result_dialog
 from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 from .op_remove_saved_path import OBJECT_OT_mizore_remove_saved_path
 from .op_save_export_settings import OBJECT_OT_mizore_save_export_settings
@@ -315,6 +328,8 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     enable_apply_modifiers_with_shapekeys: BoolProperty(name="Apply Modifier with Shape Keys", default=True)
     enable_separate_lr_shapekey: BoolProperty(name="Separate Shape Keys LR", default=True)
     enable_subtract_base_shapekey: BoolProperty(name="Subtract Base Shape Keys", default=True)
+    enable_change_base_shapekey: BoolProperty(name="Change Base Shape Key", default=True)
+    enable_reorder_shapekeys: BoolProperty(name="Reorder Shape Keys", default=True)
 
     bake_anim_use_bone_constraint: BoolProperty(name="Use Bone Constraint", default=True)
 
@@ -325,6 +340,16 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         default=True,
         description="Fix vertex group name collisions before export (duplicate groups will be merged using max weight)"
     )
+
+    enable_limit_vertex_group_count: BoolProperty(
+        name="Limit Vertex Weight Count", 
+        default=True,
+    )
+    limit_vertex_group_count: IntProperty(
+        name="Limit Vertex Group Count", 
+        default=4,
+    )
+    
 
     scene = None
 
@@ -369,8 +394,14 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         self._batch_scenes = []
         self._current_scene_index = 0
         self._temp_scene = None
+        self._export_result = ExportResult()  # エクスポート結果
+        self._gpu_progress_started = False  # GPUプログレスバーの状態
 
         try:
+            # GPUプログレスバーを開始（可能な場合）
+            if is_gpu_progress_available():
+                self._gpu_progress_started = gpu_progress_begin(0.0, 100.0)
+
             # 復元ポイントを作成
             bpy.ops.ed.undo_push(message="Before Export")
 
@@ -427,8 +458,18 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                         elapsed = time.perf_counter() - start_time
                         if elapsed >= self._batch_time_limit:
                             break
-                    except StopIteration:
+                    except StopIteration as e:
                         # 現在のジェネレータが完了
+                        # ジェネレータの戻り値（ExportResult）を取得してマージ
+                        if e.value is not None and isinstance(e.value, ExportResult):
+                            scene_result = e.value
+                            # 結果をマージ
+                            self._export_result.exported_files.extend(scene_result.exported_files)
+                            self._export_result.warnings.extend(scene_result.warnings)
+                            self._export_result.errors.extend(scene_result.errors)
+                            self._export_result.processed_objects_count += scene_result.processed_objects_count
+                            self._export_result.elapsed_time += scene_result.elapsed_time
+
                         # バッチモードで次のシーンがあるかチェック
                         if self._batch_scenes and self._current_scene_index < len(self._batch_scenes) - 1:
                             self._current_scene_index += 1
@@ -470,17 +511,36 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
         if progress.message:
             # メッセージがある場合はそれを表示
-            parts.append(progress.message)
+            display_msg = progress.message
+            parts.append(display_msg)
         else:
             # メッセージがない場合はフェーズとオブジェクト名を表示
+            display_msg = ""
             if progress.phase:
                 phase_short = progress.phase[:12]
                 parts.append(f"[{phase_short}]")
+                display_msg = progress.phase
             if progress.object_name:
                 parts.append(progress.object_name)
+                if display_msg:
+                    display_msg += f": {progress.object_name}"
+                else:
+                    display_msg = progress.object_name
 
-        display_message = " ".join(parts)
-        context.workspace.status_text_set(display_message)
+        # ステータスバー表示
+        status_message = " ".join(parts)
+        context.workspace.status_text_set(status_message)
+
+        # GPUプログレスバー更新
+        if self._gpu_progress_started:
+            gpu_progress_update(
+                progress.progress * 100,
+                progress.message,
+                current_index=progress.current_object_index,
+                total_count=progress.total_objects,
+                phase=progress.phase,
+                object_name=progress.object_name
+            )
 
     def _cleanup(self, context):
         """クリーンアップ処理"""
@@ -489,6 +549,11 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             self._timer = None
         context.workspace.status_text_set(None)
         self._generator = None
+
+        # GPUプログレスバーを終了
+        if self._gpu_progress_started:
+            gpu_progress_end()
+            self._gpu_progress_started = False
 
     def _on_complete(self, context):
         """処理完了時のコールバック"""
@@ -504,8 +569,22 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             preferences_scene.save_scene_prefs(operator=self, ignore_key=ignore_key)
         bpy.ops.ed.undo_push(message="Restore point")
 
+        # コンソールログ出力
         log = bpy.app.translations.pgettext("export_completed")
         print(log)
+        print(f"  Files: {self._export_result.file_count}")
+        print(f"  Total Size: {self._export_result.total_size_formatted}")
+        print(f"  Time: {self._export_result.elapsed_time_formatted}")
+        print(f"  Objects: {self._export_result.processed_objects_count}")
+        if self._export_result.warning_count > 0:
+            print(f"  Warnings: {self._export_result.warning_count}")
+        if self._export_result.error_count > 0:
+            print(f"  Errors: {self._export_result.error_count}")
+
+        # 結果をグローバル変数に保存してダイアログを表示
+        op_export_result_dialog.set_last_export_result(self._export_result)
+        bpy.ops.mizore.export_result_dialog('INVOKE_DEFAULT')
+
         self.report({'INFO'}, log)
 
     def _on_cancel(self, context):
@@ -525,7 +604,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
 
 
 # ExportメニューにOperatorを登録
-def INFO_MT_file_custom_export_mizore_menu(self, context):
+def draw_custom_export_mizore_menu(self, context):
     self.layout.operator(INFO_MT_file_custom_export_mizore_fbx.bl_idname)
 
 
@@ -565,7 +644,7 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.types.TOPBAR_MT_file_export.append(INFO_MT_file_custom_export_mizore_menu)
+    bpy.types.TOPBAR_MT_file_export.append(draw_custom_export_mizore_menu)
     bpy.app.translations.register(__name__, translations_dict)
 
 
@@ -574,6 +653,6 @@ def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
-    bpy.types.TOPBAR_MT_file_export.remove(INFO_MT_file_custom_export_mizore_menu)
+    bpy.types.TOPBAR_MT_file_export.remove(draw_custom_export_mizore_menu)
     bpy.app.translations.unregister(__name__)
 

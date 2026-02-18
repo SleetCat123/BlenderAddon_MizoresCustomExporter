@@ -1,3 +1,4 @@
+import time
 import traceback
 from collections.abc import Generator
 
@@ -18,6 +19,63 @@ from ..funcs.utils import func_custom_props_utils, func_object_utils
 
 class ExportPostprocessResult:
     success_shapekey_util: bool = False
+
+
+def limit_vertex_group_count_iter(
+    max_groups: int
+) -> Generator[ProgressInfo, None, None]:
+    """頂点グループ数制限処理（ジェネレータ版）
+
+    Args:
+        max_groups: 最大頂点グループ数
+
+    Yields:
+        ProgressInfo: 進捗情報
+    """
+    start_time = time.perf_counter()
+    print("--- Limit Vertex Group Count ---")
+
+    # 処理対象オブジェクトを収集
+    targets = [
+        obj for obj in bpy.context.selected_objects
+        if obj.type == 'MESH' and any(m.type == 'ARMATURE' for m in obj.modifiers)
+    ]
+    total = len(targets)
+
+    if total == 0:
+        print("[Preprocess] Limit Vertex Group Count: no targets")
+        return
+
+    yield ProgressInfo(
+        phase="limit_vertex_groups",
+        progress=0.0,
+        message=T("mce_progress_limit_vertex_groups").format(current=0, total=total)
+    )
+
+    for idx, obj in enumerate(targets):
+        func_object_utils.set_active_object(obj)
+
+        if obj.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        try:
+            obj_start = time.perf_counter()
+            bpy.ops.smoothweights.limit_groups(maxGroups=max_groups, vertexGroups='DEFORM')
+            print(f"[Preprocess] Limit vertex groups {obj.name}: {time.perf_counter() - obj_start:.3f}s")
+        except Exception as e:
+            print(f"Failed to limit vertex group count for {obj.name}: {e}")
+            import traceback
+            traceback.print_exc()
+
+        progress = (idx + 1) / total
+        yield ProgressInfo(
+            phase="limit_vertex_groups",
+            progress=progress,
+            message=T("mce_progress_limit_vertex_groups_obj").format(obj=obj.name, current=idx + 1, total=total),
+            object_name=obj.name
+        )
+
+    print(f"[Preprocess] Limit Vertex Group Count total ({total} objects): {time.perf_counter() - start_time:.3f}s")
 
 
 def apply_or_clear_shapekeys():
@@ -69,6 +127,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
         ExportPostprocessResult: 処理結果
     """
     result = ExportPostprocessResult()
+    preprocess_start = time.perf_counter()
+    section_start = preprocess_start
 
     print("xxxxxx Export Preprocess xxxxxx")
 
@@ -89,6 +149,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
         print("Reset Pose: " + obj.name)
         for pose_bone in obj.pose.bones:
             pose_bone.matrix_basis = Matrix()
+    print(f"[Preprocess] Reset Pose: {time.perf_counter() - section_start:.3f}s")
+    section_start = time.perf_counter()
 
     yield ProgressInfo(
         phase="reset_shapekey",
@@ -107,6 +169,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
         obj.show_only_shape_key = False
         for shape_key in obj.data.shape_keys.key_blocks:
             shape_key.value = 0.0
+    print(f"[Preprocess] Reset ShapeKey: {time.perf_counter() - section_start:.3f}s")
+    section_start = time.perf_counter()
 
     yield ProgressInfo(
         phase="apply_shapekeys_before",
@@ -114,9 +178,11 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
         message=T("mce_progress_apply_shapekeys_before")
     )
 
-    # マージ前にシェイプキーを適用/削除することでシェイプキー関連処理を省略可能にする
+    # マージ前にシェイプキーを適用/削除して、後続のシェイプキー関連処理をスキップ可能にする
     print("--- Apply/Clear ShapeKeys (Before Merge) ---")
     apply_or_clear_shapekeys()
+    print(f"[Preprocess] Apply/Clear ShapeKeys: {time.perf_counter() - section_start:.3f}s")
+    section_start = time.perf_counter()
 
     yield ProgressInfo(
         phase="auto_merge",
@@ -128,8 +194,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
     print("--- AutoMerge ---")
     if operator.enable_auto_merge:
         try:
-            print("AutoMerge: Start")
             # ジェネレータが利用可能ならジェネレータを使用
+            # （計測はジェネレータ内部で行われる）
             if func_addon_link.auto_merge_iter_is_available():
                 merge_gen = bpy.types.WindowManager.automerge_get_merge_iter(
                     operator=operator,
@@ -160,6 +226,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
             print(t)
             operator.report({'WARNING'}, t)
             traceback.print_exc()
+    print(f"[Preprocess] AutoMerge: {time.perf_counter() - section_start:.3f}s")
+    section_start = time.perf_counter()
     # ↑ AutoMergeアドオン連携
 
     print("xxxxxx Export Targets xxxxxx\n" + '\n'.join(
@@ -173,6 +241,7 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
 
     # ShapeKeysUtil連携
     print("--- ShapeKeysUtil ---")
+    shapekeys_util_start = time.perf_counter()
     if func_addon_link.shapekey_util_is_found():
         use_iter = func_addon_link.shapekey_util_iter_is_available()
 
@@ -264,11 +333,88 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
                     # subtract_base_shapekeyはジェネレータ化していないので同期版を使用
                     bpy.ops.object.shapekeys_util_subtract_base_shapekey_for_exporter()
 
+        # ベースシェイプキー変更
+        yield ProgressInfo(
+            phase="change_base_shapekey",
+            progress=0.66,
+            message=T("mce_progress_change_base_shapekey")
+        )
+
+        if operator.enable_change_base_shapekey and func_addon_link.shapekey_util_change_base_is_available():
+            objects_with_change_base = []
+            for obj in bpy.context.selected_objects:
+                if obj.type != 'MESH' or obj.data.shape_keys is None:
+                    continue
+                if not hasattr(obj, 'mizore_change_base_shapekeys') or len(obj.mizore_change_base_shapekeys) == 0:
+                    continue
+                settings = [
+                    (item.source_shapekey_name, item.reverse_shapekey_name)
+                    for item in obj.mizore_change_base_shapekeys
+                    if item.source_shapekey_name
+                ]
+                if settings:
+                    objects_with_change_base.append((obj, settings))
+
+            if objects_with_change_base:
+                change_base_gen = bpy.types.WindowManager.shapekeys_util_get_change_base_iter(
+                    objects_with_change_base
+                )
+                for sub_progress in change_base_gen:
+                    mapped_progress = 0.66 + (sub_progress.progress * 0.01)
+                    yield ProgressInfo(
+                        phase=f"change_base_{sub_progress.phase}",
+                        progress=mapped_progress,
+                        message=sub_progress.message,
+                        object_name=sub_progress.object_name
+                    )
+
+        # シェイプキー並び替え
+        yield ProgressInfo(
+            phase="reorder_shapekeys",
+            progress=0.68,
+            message=T("mce_progress_reorder_shapekeys")
+        )
+
+        if operator.enable_reorder_shapekeys and func_addon_link.shapekey_util_reorder_is_available():
+            objects_with_reorder = []
+            for obj in bpy.context.selected_objects:
+                if obj.type != 'MESH' or obj.data.shape_keys is None:
+                    continue
+                if not hasattr(obj, 'mizore_reorder_shapekeys') or len(obj.mizore_reorder_shapekeys) == 0:
+                    continue
+                operations = []
+                for item in obj.mizore_reorder_shapekeys:
+                    op = {'type': item.operation_type}
+                    if item.operation_type in ('MOVE_TO_INDEX', 'SWAP', 'MOVE_BEFORE'):
+                        op['target'] = item.target_shapekey_name
+                    if item.operation_type == 'MOVE_TO_INDEX':
+                        op['index'] = item.destination_index
+                    if item.operation_type in ('SWAP', 'MOVE_BEFORE'):
+                        op['second'] = item.second_shapekey_name
+                    operations.append(op)
+                if operations:
+                    objects_with_reorder.append((obj, operations))
+
+            if objects_with_reorder:
+                reorder_gen = bpy.types.WindowManager.shapekeys_util_get_reorder_iter(
+                    objects_with_reorder
+                )
+                for sub_progress in reorder_gen:
+                    mapped_progress = 0.68 + (sub_progress.progress * 0.01)
+                    yield ProgressInfo(
+                        phase=f"reorder_{sub_progress.phase}",
+                        progress=mapped_progress,
+                        message=sub_progress.message,
+                        object_name=sub_progress.object_name
+                    )
+
         result.success_shapekey_util = True
     else:
         t = "!!! Failed to load ShapeKeysUtil !!! - apply_modifiers_with_shapekeys"
         print(t)
         operator.report({'ERROR'}, t)
+    print(f"[Preprocess] ShapeKeysUtil: {time.perf_counter() - shapekeys_util_start:.3f}s")
+    section_start = time.perf_counter()
 
     yield ProgressInfo(
         phase="transform",
@@ -298,6 +444,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
             bpy.ops.object.transform_apply(location=apply_location, rotation=apply_rotation, scale=apply_scale)
     func_object_utils.select_objects(temp_selected, True)
     func_object_utils.set_active_object(temp_active)
+    print(f"[Preprocess] Transform: {time.perf_counter() - section_start:.3f}s")
+    section_start = time.perf_counter()
 
     yield ProgressInfo(
         phase="modify",
@@ -322,6 +470,21 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
                     report_parts.append(f"{attr_removed_count} attribute collisions")
                 print(f"Fixed {', '.join(report_parts)} in {obj.name}")
 
+    if operator.enable_limit_vertex_group_count:
+        # Limit Vertex Group処理（ジェネレータで進捗表示・負荷分散）
+        # 進捗範囲: 0.80 - 0.85
+        limit_gen = limit_vertex_group_count_iter(
+            max_groups=operator.limit_vertex_group_count
+        )
+        for sub_progress in limit_gen:
+            mapped_progress = 0.80 + (sub_progress.progress * 0.05)
+            yield ProgressInfo(
+                phase=f"modify_{sub_progress.phase}",
+                progress=mapped_progress,
+                message=sub_progress.message,
+                object_name=sub_progress.object_name
+            )
+
     # その他のModify処理（オブジェクト個別設定）
     for obj in bpy.context.selected_objects:
         if obj.type != 'MESH':
@@ -338,6 +501,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
             # UVタイルを1つにする
             func_object_utils.set_active_object(obj)
             func_convert_uv_tiles_to_single.convert_uv_tiles_to_single()
+    print(f"[Preprocess] Modify: {time.perf_counter() - section_start:.3f}s")
+    section_start = time.perf_counter()
 
     yield ProgressInfo(
         phase="apply_shapekeys_after",
@@ -348,6 +513,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
     # マージやApply Modifierで増えたシェイプキーを適用/削除する
     print("--- Apply/Clear ShapeKeys (After Merge) ---")
     apply_or_clear_shapekeys()
+    print(f"[Preprocess] Apply/Clear ShapeKeys (After): {time.perf_counter() - section_start:.3f}s")
+    section_start = time.perf_counter()
 
     yield ProgressInfo(
         phase="constraints",
@@ -356,13 +523,14 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
     )
 
     print("--- Constraints ---")
-    if operator.bake_anim and operator.bake_anim_use_bone_constraint == False:
+    if operator.bake_anim and not operator.bake_anim_use_bone_constraint:
         # Constraintsを無効化
         for obj in bpy.context.selected_objects:
             if obj.type == 'ARMATURE':
                 for bone in obj.pose.bones:
                     for c in bone.constraints:
                         c.enabled = False
+    print(f"[Preprocess] Constraints: {time.perf_counter() - section_start:.3f}s")
 
     yield ProgressInfo(
         phase="complete",
@@ -370,6 +538,7 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
         message=T("mce_progress_preprocess_complete")
     )
 
+    print(f"[Preprocess] total: {time.perf_counter() - preprocess_start:.3f}s")
     print("xxxxxx Export Preprocess End xxxxxx")
     return result
 
