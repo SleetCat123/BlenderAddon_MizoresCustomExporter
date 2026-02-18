@@ -23,7 +23,7 @@ UIListの追加/削除/上下移動を提供する。
 """
 
 import bpy
-from bpy.props import EnumProperty, IntProperty, StringProperty
+from bpy.props import EnumProperty
 
 # --- ベース変更リスト操作 ---
 
