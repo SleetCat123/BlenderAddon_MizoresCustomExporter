@@ -342,14 +342,15 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     )
 
     enable_limit_vertex_group_count: BoolProperty(
-        name="Limit Vertex Weight Count", 
+        name="Limit Vertex Weight Count",
         default=True,
     )
     limit_vertex_group_count: IntProperty(
-        name="Limit Vertex Group Count", 
+        name="Limit Vertex Group Count",
         default=4,
     )
-    
+
+    # モディファイアタイプフィルター用のBoolPropertyはmodifier_type_filter.register_properties()で動的に登録
 
     scene = None
 
@@ -641,6 +642,10 @@ classes = [
 
 
 def register():
+    # モディファイアタイプフィルターのBoolPropertyを動的に登録（クラス登録前に実行）
+    from . import modifier_type_filter
+    modifier_type_filter.register_properties(INFO_MT_file_custom_export_mizore_fbx)
+
     for cls in classes:
         bpy.utils.register_class(cls)
 
@@ -648,10 +653,13 @@ def register():
     bpy.app.translations.register(__name__, translations_dict)
 
 
-
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+
+    # モディファイアタイプフィルターのBoolPropertyを削除
+    from . import modifier_type_filter
+    modifier_type_filter.unregister_properties(INFO_MT_file_custom_export_mizore_fbx)
 
     bpy.types.TOPBAR_MT_file_export.remove(draw_custom_export_mizore_menu)
     bpy.app.translations.unregister(__name__)

@@ -132,6 +132,11 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
 
     print("xxxxxx Export Preprocess xxxxxx")
 
+    # モディファイアタイプフィルターからスキップ対象を取得
+    from . import modifier_type_filter
+    skip_modifier_types = modifier_type_filter.get_skip_modifier_types(operator)
+    print(f"[Preprocess] skip_modifier_types: {skip_modifier_types}")
+
     yield ProgressInfo(
         phase="reset_pose",
         progress=0.0,
@@ -194,32 +199,25 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
     print("--- AutoMerge ---")
     if operator.enable_auto_merge:
         try:
-            # ジェネレータが利用可能ならジェネレータを使用
-            # （計測はジェネレータ内部で行われる）
-            if func_addon_link.auto_merge_iter_is_available():
-                merge_gen = bpy.types.WindowManager.automerge_get_merge_iter(
-                    operator=operator,
-                    use_shapekeys_util=operator.enable_apply_modifiers_with_shapekeys,
-                    use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon,
-                    remove_non_render_mod=operator.use_mesh_modifiers_render,
-                    use_variants_merge=operator.use_variants_merge
-                )
-                # サブ進捗を伝播（15%〜40%の範囲）
-                for sub_progress in merge_gen:
-                    mapped_progress = 0.15 + (sub_progress.progress * 0.25)
-                    yield ProgressInfo(
-                        phase=f"merge_{sub_progress.phase}",
-                        progress=mapped_progress,
-                        message=sub_progress.message,
-                        object_name=sub_progress.object_name
-                    )
-            else:
-                # 同期版オペレーターにフォールバック
-                bpy.ops.object.apply_modifier_and_merge_grouped_exporter_addon(
-                    use_shapekeys_util=operator.enable_apply_modifiers_with_shapekeys,
-                    remove_non_render_mod=operator.use_mesh_modifiers_render,
-                    use_variants_merge=operator.use_variants_merge,
-                    use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon
+            if not func_addon_link.auto_merge_iter_is_available():
+                raise AttributeError("AutoMerge iter API not available")
+
+            merge_gen = bpy.types.WindowManager.automerge_get_merge_iter(
+                operator=operator,
+                use_shapekeys_util=operator.enable_apply_modifiers_with_shapekeys,
+                use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon,
+                remove_non_render_mod=operator.use_mesh_modifiers_render,
+                use_variants_merge=operator.use_variants_merge,
+                skip_modifier_types=skip_modifier_types
+            )
+            # サブ進捗を伝播（15%〜40%の範囲）
+            for sub_progress in merge_gen:
+                mapped_progress = 0.15 + (sub_progress.progress * 0.25)
+                yield ProgressInfo(
+                    phase=f"merge_{sub_progress.phase}",
+                    progress=mapped_progress,
+                    message=sub_progress.message,
+                    object_name=sub_progress.object_name
                 )
         except AttributeError:
             t = "!!! Failed to load AutoMerge !!!"
@@ -265,7 +263,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
                     # ジェネレータを使用して進捗を伝播
                     apply_gen = bpy.types.WindowManager.shapekeys_util_get_apply_modifiers_iter(
                         remove_nonrender=False,
-                        use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon
+                        use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon,
+                        skip_modifier_types=skip_modifier_types
                     )
                     progress_range = 0.2 / max(total_targets, 1)
                     for sub_progress in apply_gen:
@@ -279,7 +278,8 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
                 else:
                     # 同期版オペレーターにフォールバック
                     bpy.ops.object.shapekeys_util_apply_mod_for_exporter_addon(
-                        use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon)
+                        use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon,
+                        skip_modifier_types_str=','.join(skip_modifier_types))
 
             # 選択オブジェクトを復元
             for obj in selected_objects:
