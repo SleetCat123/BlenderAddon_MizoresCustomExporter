@@ -15,10 +15,41 @@ from ..funcs import (
 )
 from ..funcs.modal.progress_info import ProgressInfo, T
 from ..funcs.utils import func_custom_props_utils, func_object_utils
+from ..export_sets.shapekey_order_override import resolver as shapekey_order_override_resolver
 
 
 class ExportPostprocessResult:
     success_shapekey_util: bool = False
+
+
+def _phase_progress(start: float, end: float, current_index: int, total_count: int) -> float:
+    if total_count <= 0:
+        return start
+    return start + ((current_index + 1) / total_count) * (end - start)
+
+
+def _build_phase_progress(
+    *,
+    phase: str,
+    message: str,
+    start: float,
+    end: float,
+    current_index: int,
+    total_count: int,
+    object_name: str = "",
+) -> ProgressInfo:
+    safe_total = max(total_count, 0)
+    progress = _phase_progress(start, end, current_index, safe_total)
+    sub_progress = 0.0 if safe_total <= 0 else (current_index + 1) / safe_total
+    return ProgressInfo(
+        phase=phase,
+        progress=progress,
+        message=message,
+        object_name=object_name,
+        sub_progress=sub_progress,
+        total_objects=safe_total,
+        current_object_index=(current_index + 1) if safe_total > 0 else 0,
+    )
 
 
 def limit_vertex_group_count_iter(
@@ -41,6 +72,8 @@ def limit_vertex_group_count_iter(
         if obj.type == 'MESH' and any(m.type == 'ARMATURE' for m in obj.modifiers)
     ]
     total = len(targets)
+    saved_selection = list(bpy.context.selected_objects)
+    saved_active = func_object_utils.get_active_object()
 
     if total == 0:
         print("[Preprocess] Limit Vertex Group Count: no targets")
@@ -49,10 +82,13 @@ def limit_vertex_group_count_iter(
     yield ProgressInfo(
         phase="limit_vertex_groups",
         progress=0.0,
-        message=T("mce_progress_limit_vertex_groups").format(current=0, total=total)
+        message=T("mce_progress_limit_vertex_groups").format(current=0, total=total),
+        total_objects=total,
     )
 
     for idx, obj in enumerate(targets):
+        func_object_utils.deselect_all_objects()
+        func_object_utils.select_object(obj, True)
         func_object_utils.set_active_object(obj)
 
         if obj.mode != 'OBJECT':
@@ -60,7 +96,10 @@ def limit_vertex_group_count_iter(
 
         try:
             obj_start = time.perf_counter()
-            bpy.ops.smoothweights.limit_groups(maxGroups=max_groups, vertexGroups='DEFORM')
+            bpy.ops.object.vertex_group_limit_total(
+                group_select_mode='BONE_DEFORM',
+                limit=max_groups,
+            )
             print(f"[Preprocess] Limit vertex groups {obj.name}: {time.perf_counter() - obj_start:.3f}s")
         except Exception as e:
             print(f"Failed to limit vertex group count for {obj.name}: {e}")
@@ -72,8 +111,16 @@ def limit_vertex_group_count_iter(
             phase="limit_vertex_groups",
             progress=progress,
             message=T("mce_progress_limit_vertex_groups_obj").format(obj=obj.name, current=idx + 1, total=total),
-            object_name=obj.name
+            object_name=obj.name,
+            sub_progress=progress,
+            total_objects=total,
+            current_object_index=idx + 1,
         )
+
+    func_object_utils.deselect_all_objects()
+    func_object_utils.select_objects(saved_selection, True)
+    if saved_active is not None:
+        func_object_utils.set_active_object(saved_active)
 
     print(f"[Preprocess] Limit Vertex Group Count total ({total} objects): {time.perf_counter() - start_time:.3f}s")
 
@@ -114,6 +161,75 @@ def apply_or_clear_shapekeys():
                 print(f"  -> Failed to clear shapekeys for {obj.name}: {e}")
                 traceback.print_exc()
 
+
+def iter_apply_or_clear_shapekeys(
+    *,
+    phase: str,
+    message: str,
+    start: float,
+    end: float,
+) -> Generator[ProgressInfo, None, None]:
+    targets = []
+    for obj in bpy.context.selected_objects:
+        if not hasattr(obj, 'data') or obj.data is None:
+            continue
+        if not hasattr(obj.data, 'shape_keys') or obj.data.shape_keys is None:
+            continue
+        if not hasattr(obj.data.shape_keys, 'key_blocks') or len(obj.data.shape_keys.key_blocks) == 0:
+            continue
+
+        apply_all = func_custom_props_utils.prop_is_true(obj, consts.APPLY_ALL_SHAPEKEYS_GROUP_NAME)
+        clear_all = func_custom_props_utils.prop_is_true(obj, consts.CLEAR_ALL_SHAPEKEYS_GROUP_NAME)
+        if not apply_all and not clear_all:
+            continue
+        targets.append((obj, apply_all, clear_all))
+
+    total_targets = len(targets)
+    for idx, (obj, apply_all, clear_all) in enumerate(targets):
+        actions = []
+        if apply_all:
+            actions.append("apply")
+        if clear_all:
+            actions.append("clear")
+        print(
+            f"[Preprocess][{phase}] {idx + 1}/{total_targets} {obj.name} "
+            f"actions={','.join(actions)} shapekeys={len(obj.data.shape_keys.key_blocks)}"
+        )
+
+        func_object_utils.set_active_object(obj)
+        if obj.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        if apply_all:
+            print(f"Apply All ShapeKeys: {obj.name} (ShapeKey count: {len(obj.data.shape_keys.key_blocks)})")
+            try:
+                bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+                print(f"  -> Successfully applied all shapekeys for {obj.name}")
+            except Exception as e:
+                print(f"  -> Failed to apply shapekeys for {obj.name}: {e}")
+                traceback.print_exc()
+
+        if clear_all:
+            remaining_keys = 0 if obj.data.shape_keys is None else len(obj.data.shape_keys.key_blocks)
+            print(f"Clear All ShapeKeys: {obj.name} (ShapeKey count: {remaining_keys})")
+            try:
+                bpy.ops.object.shape_key_remove(all=True, apply_mix=False)
+                print(f"  -> Successfully cleared all shapekeys for {obj.name}")
+            except Exception as e:
+                print(f"  -> Failed to clear shapekeys for {obj.name}: {e}")
+                traceback.print_exc()
+
+        yield _build_phase_progress(
+            phase=phase,
+            message=message,
+            start=start,
+            end=end,
+            current_index=idx,
+            total_count=total_targets,
+            object_name=obj.name,
+        )
+
+
 def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPostprocessResult]:
     """エクスポート前処理（ジェネレータ版）
 
@@ -146,14 +262,26 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
     # Armatureのポーズをリセットする
     print("--- Reset Pose ---")
     selected_objects = bpy.context.selected_objects
-    for obj in selected_objects:
-        if obj.type != 'ARMATURE':
-            continue
-        if not func_custom_props_utils.prop_is_true(obj, consts.RESET_POSE_GROUP_NAME):
-            continue
+    reset_pose_targets = [
+        obj for obj in selected_objects
+        if obj.type == 'ARMATURE'
+        and func_custom_props_utils.prop_is_true(obj, consts.RESET_POSE_GROUP_NAME)
+    ]
+    total_reset_pose = len(reset_pose_targets)
+    for idx, obj in enumerate(reset_pose_targets):
+        print(f"[Preprocess][reset_pose] {idx + 1}/{total_reset_pose} {obj.name}")
         print("Reset Pose: " + obj.name)
         for pose_bone in obj.pose.bones:
             pose_bone.matrix_basis = Matrix()
+        yield _build_phase_progress(
+            phase="reset_pose",
+            message=T("mce_progress_reset_pose"),
+            start=0.0,
+            end=0.05,
+            current_index=idx,
+            total_count=total_reset_pose,
+            object_name=obj.name,
+        )
     print(f"[Preprocess] Reset Pose: {time.perf_counter() - section_start:.3f}s")
     section_start = time.perf_counter()
 
@@ -165,15 +293,32 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
 
     # シェイプキーをリセットする
     print("--- Reset ShapeKey ---")
-    for obj in selected_objects:
-        if not func_custom_props_utils.prop_is_true(obj, consts.RESET_SHAPEKEY_GROUP_NAME):
-            continue
-        if not obj.data or not hasattr(obj.data, 'shape_keys') or not hasattr(obj.data.shape_keys, 'key_blocks'):
-            continue
+    reset_shapekey_targets = [
+        obj for obj in selected_objects
+        if func_custom_props_utils.prop_is_true(obj, consts.RESET_SHAPEKEY_GROUP_NAME)
+        and obj.data
+        and hasattr(obj.data, 'shape_keys')
+        and hasattr(obj.data.shape_keys, 'key_blocks')
+    ]
+    total_reset_shapekey = len(reset_shapekey_targets)
+    for idx, obj in enumerate(reset_shapekey_targets):
+        print(
+            f"[Preprocess][reset_shapekey] {idx + 1}/{total_reset_shapekey} "
+            f"{obj.name} keys={len(obj.data.shape_keys.key_blocks)}"
+        )
         print("Reset ShapeKey: " + obj.name)
         obj.show_only_shape_key = False
         for shape_key in obj.data.shape_keys.key_blocks:
             shape_key.value = 0.0
+        yield _build_phase_progress(
+            phase="reset_shapekey",
+            message=T("mce_progress_reset_shapekey"),
+            start=0.05,
+            end=0.1,
+            current_index=idx,
+            total_count=total_reset_shapekey,
+            object_name=obj.name,
+        )
     print(f"[Preprocess] Reset ShapeKey: {time.perf_counter() - section_start:.3f}s")
     section_start = time.perf_counter()
 
@@ -185,7 +330,13 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
 
     # マージ前にシェイプキーを適用/削除して、後続のシェイプキー関連処理をスキップ可能にする
     print("--- Apply/Clear ShapeKeys (Before Merge) ---")
-    apply_or_clear_shapekeys()
+    for progress in iter_apply_or_clear_shapekeys(
+        phase="apply_shapekeys_before",
+        message=T("mce_progress_apply_shapekeys_before"),
+        start=0.1,
+        end=0.15,
+    ):
+        yield progress
     print(f"[Preprocess] Apply/Clear ShapeKeys: {time.perf_counter() - section_start:.3f}s")
     section_start = time.perf_counter()
 
@@ -201,13 +352,11 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
         try:
             if not func_addon_link.auto_merge_iter_is_available():
                 raise AttributeError("AutoMerge iter API not available")
-
             merge_gen = bpy.types.WindowManager.automerge_get_merge_iter(
                 operator=operator,
                 use_shapekeys_util=operator.enable_apply_modifiers_with_shapekeys,
                 use_update_mesh_deform_addon=operator.use_update_mesh_deform_addon,
                 remove_non_render_mod=operator.use_mesh_modifiers_render,
-                use_variants_merge=operator.use_variants_merge,
                 skip_modifier_types=skip_modifier_types
             )
             # サブ進捗を伝播（15%〜40%の範囲）
@@ -326,81 +475,39 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
         )
 
         if operator.enable_subtract_base_shapekey:
+            if not func_addon_link.shapekey_util_subtract_base_is_available():
+                raise AttributeError("ShapeKeysUtil subtract-base API is not available")
             for obj in bpy.context.selected_objects:
                 if obj.type == 'MESH' and obj.data.shape_keys is not None and len(
                         obj.data.shape_keys.key_blocks) != 0:
                     func_object_utils.set_active_object(obj)
-                    # subtract_base_shapekeyはジェネレータ化していないので同期版を使用
-                    bpy.ops.object.shapekeys_util_subtract_base_shapekey_for_exporter()
+                    if obj.mode != 'OBJECT':
+                        bpy.ops.object.mode_set(mode='OBJECT')
 
-        # ベースシェイプキー変更
-        yield ProgressInfo(
-            phase="change_base_shapekey",
-            progress=0.66,
-            message=T("mce_progress_change_base_shapekey")
-        )
-
-        if operator.enable_change_base_shapekey and func_addon_link.shapekey_util_change_base_is_available():
-            objects_with_change_base = []
-            for obj in bpy.context.selected_objects:
-                if obj.type != 'MESH' or obj.data.shape_keys is None:
-                    continue
-                if not hasattr(obj, 'mizore_change_base_shapekeys') or len(obj.mizore_change_base_shapekeys) == 0:
-                    continue
-                settings = [
-                    (item.source_shapekey_name, item.reverse_shapekey_name)
-                    for item in obj.mizore_change_base_shapekeys
-                    if item.source_shapekey_name
-                ]
-                if settings:
-                    objects_with_change_base.append((obj, settings))
-
-            if objects_with_change_base:
-                change_base_gen = bpy.types.WindowManager.shapekeys_util_get_change_base_iter(
-                    objects_with_change_base
-                )
-                for sub_progress in change_base_gen:
-                    mapped_progress = 0.66 + (sub_progress.progress * 0.01)
-                    yield ProgressInfo(
-                        phase=f"change_base_{sub_progress.phase}",
-                        progress=mapped_progress,
-                        message=sub_progress.message,
-                        object_name=sub_progress.object_name
-                    )
+                    bpy.types.WindowManager.shapekeys_util_subtract_base_for_exporter(obj)
 
         # シェイプキー並び替え
         yield ProgressInfo(
             phase="reorder_shapekeys",
-            progress=0.68,
+            progress=0.66,
             message=T("mce_progress_reorder_shapekeys")
         )
 
-        if operator.enable_reorder_shapekeys and func_addon_link.shapekey_util_reorder_is_available():
-            objects_with_reorder = []
-            for obj in bpy.context.selected_objects:
-                if obj.type != 'MESH' or obj.data.shape_keys is None:
-                    continue
-                if not hasattr(obj, 'mizore_reorder_shapekeys') or len(obj.mizore_reorder_shapekeys) == 0:
-                    continue
-                operations = []
-                for item in obj.mizore_reorder_shapekeys:
-                    op = {'type': item.operation_type}
-                    if item.operation_type in ('MOVE_TO_INDEX', 'SWAP', 'MOVE_BEFORE'):
-                        op['target'] = item.target_shapekey_name
-                    if item.operation_type == 'MOVE_TO_INDEX':
-                        op['index'] = item.destination_index
-                    if item.operation_type in ('SWAP', 'MOVE_BEFORE'):
-                        op['second'] = item.second_shapekey_name
-                    operations.append(op)
-                if operations:
-                    objects_with_reorder.append((obj, operations))
+        if (
+            operator.enable_reorder_shapekeys
+            and operator.batch_mode != 'EXPORT_SETS'
+            and func_addon_link.shapekey_util_reorder_is_available()
+        ):
+            objects_with_reorder = shapekey_order_override_resolver.build_base_reorder_targets(
+                bpy.context.selected_objects
+            )
 
             if objects_with_reorder:
                 reorder_gen = bpy.types.WindowManager.shapekeys_util_get_reorder_iter(
                     objects_with_reorder
                 )
                 for sub_progress in reorder_gen:
-                    mapped_progress = 0.68 + (sub_progress.progress * 0.01)
+                    mapped_progress = 0.66 + (sub_progress.progress * 0.01)
                     yield ProgressInfo(
                         phase=f"reorder_{sub_progress.phase}",
                         progress=mapped_progress,
@@ -426,15 +533,27 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
     print("--- Transform ---")
     temp_selected = bpy.context.selected_objects
     temp_active = func_object_utils.get_active_object()
+    transform_targets = []
     for obj in temp_selected:
+        move_to_origin = func_custom_props_utils.prop_is_true(obj, consts.MOVE_TO_ORIGIN_GROUP_NAME)
+        apply_location = func_custom_props_utils.prop_is_true(obj, consts.APPLY_LOCATIONS_GROUP_NAME)
+        apply_rotation = func_custom_props_utils.prop_is_true(obj, consts.APPLY_ROTATIONS_GROUP_NAME)
+        apply_scale = func_custom_props_utils.prop_is_true(obj, consts.APPLY_SCALES_GROUP_NAME)
+        if move_to_origin or apply_location or apply_rotation or apply_scale:
+            transform_targets.append((obj, move_to_origin, apply_location, apply_rotation, apply_scale))
+
+    total_transform_targets = len(transform_targets)
+    for idx, (obj, move_to_origin, apply_location, apply_rotation, apply_scale) in enumerate(transform_targets):
+        print(
+            f"[Preprocess][transform] {idx + 1}/{total_transform_targets} {obj.name} "
+            f"move_to_origin={move_to_origin} apply_location={apply_location} "
+            f"apply_rotation={apply_rotation} apply_scale={apply_scale}"
+        )
         if func_custom_props_utils.prop_is_true(obj, consts.MOVE_TO_ORIGIN_GROUP_NAME):
             # オブジェクトを原点に移動する
             print("Move To Origin: " + obj.name)
             obj.location = (0, 0, 0)
 
-        apply_location = func_custom_props_utils.prop_is_true(obj, consts.APPLY_LOCATIONS_GROUP_NAME)
-        apply_rotation = func_custom_props_utils.prop_is_true(obj, consts.APPLY_ROTATIONS_GROUP_NAME)
-        apply_scale = func_custom_props_utils.prop_is_true(obj, consts.APPLY_SCALES_GROUP_NAME)
         if apply_location or apply_rotation or apply_scale:
             # Transformを適用する
             print(f"Apply: {obj.name} - Location: {apply_location} / Rotation: {apply_rotation} / Scale: {apply_scale}")
@@ -442,6 +561,15 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
             func_object_utils.select_object(obj)
             func_object_utils.set_active_object(obj)
             bpy.ops.object.transform_apply(location=apply_location, rotation=apply_rotation, scale=apply_scale)
+        yield _build_phase_progress(
+            phase="transform",
+            message=T("mce_progress_transform"),
+            start=0.7,
+            end=0.8,
+            current_index=idx,
+            total_count=total_transform_targets,
+            object_name=obj.name,
+        )
     func_object_utils.select_objects(temp_selected, True)
     func_object_utils.set_active_object(temp_active)
     print(f"[Preprocess] Transform: {time.perf_counter() - section_start:.3f}s")
@@ -457,9 +585,10 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
     # Name Collision修復（全体設定）
     if operator.enable_fix_vertex_group_collisions:
         print("--- Fix Vertex Group Name Collisions ---")
-        for obj in bpy.context.selected_objects:
-            if obj.type != 'MESH':
-                continue
+        collision_targets = [obj for obj in bpy.context.selected_objects if obj.type == 'MESH']
+        total_collision_targets = len(collision_targets)
+        for idx, obj in enumerate(collision_targets):
+            print(f"[Preprocess][modify_collision] {idx + 1}/{total_collision_targets} {obj.name}")
             func_object_utils.set_active_object(obj)
             fixed_count, attr_removed_count, affected_vertices, attr_affected_vertices = func_fix_vertex_group_collisions.fix_vertex_group_name_collisions(obj)
             if fixed_count > 0 or attr_removed_count > 0:
@@ -469,38 +598,68 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
                 if attr_removed_count > 0:
                     report_parts.append(f"{attr_removed_count} attribute collisions")
                 print(f"Fixed {', '.join(report_parts)} in {obj.name}")
+            yield _build_phase_progress(
+                phase="modify",
+                message=T("mce_progress_modify"),
+                start=0.80,
+                end=0.83,
+                current_index=idx,
+                total_count=total_collision_targets,
+                object_name=obj.name,
+            )
 
     if operator.enable_limit_vertex_group_count:
         # Limit Vertex Group処理（ジェネレータで進捗表示・負荷分散）
-        # 進捗範囲: 0.80 - 0.85
+        # 進捗範囲: 0.83 - 0.87
         limit_gen = limit_vertex_group_count_iter(
             max_groups=operator.limit_vertex_group_count
         )
         for sub_progress in limit_gen:
-            mapped_progress = 0.80 + (sub_progress.progress * 0.05)
+            mapped_progress = 0.83 + (sub_progress.progress * 0.04)
             yield ProgressInfo(
                 phase=f"modify_{sub_progress.phase}",
                 progress=mapped_progress,
                 message=sub_progress.message,
-                object_name=sub_progress.object_name
+                object_name=sub_progress.object_name,
+                sub_progress=sub_progress.sub_progress,
+                total_objects=sub_progress.total_objects,
+                current_object_index=sub_progress.current_object_index,
             )
 
     # その他のModify処理（オブジェクト個別設定）
-    for obj in bpy.context.selected_objects:
-        if obj.type != 'MESH':
+    modify_targets = [obj for obj in bpy.context.selected_objects if obj.type == 'MESH']
+    total_modify_targets = len(modify_targets)
+    for idx, obj in enumerate(modify_targets):
+        remove_not_bone = func_custom_props_utils.prop_is_true(obj, consts.REMOVE_GROUPS_NOT_BONE_GROUP_NAME)
+        remove_unused = func_custom_props_utils.prop_is_true(obj, consts.REMOVE_UNUSED_GROUPS_GROUP_NAME)
+        convert_uv_tiles = func_custom_props_utils.prop_is_true(obj, consts.CONVERT_UV_TILES_TO_SINGLE_GROUP_NAME)
+        if not remove_not_bone and not remove_unused and not convert_uv_tiles:
             continue
-        if func_custom_props_utils.prop_is_true(obj, consts.REMOVE_GROUPS_NOT_BONE_GROUP_NAME):
+        print(
+            f"[Preprocess][modify_object] {idx + 1}/{total_modify_targets} {obj.name} "
+            f"remove_not_bone={remove_not_bone} remove_unused={remove_unused} convert_uv_tiles={convert_uv_tiles}"
+        )
+        if remove_not_bone:
             # ボーン名以外の頂点グループを削除
             func_object_utils.set_active_object(obj)
             func_remove_groups_not_bones.remove_groups_not_bones()
-        if func_custom_props_utils.prop_is_true(obj, consts.REMOVE_UNUSED_GROUPS_GROUP_NAME):
+        if remove_unused:
             # 使用されていない頂点グループを削除
             func_object_utils.set_active_object(obj)
             func_remove_unused_groups.remove_unused_groups(search_data_transfer_modifier=True)
-        if func_custom_props_utils.prop_is_true(obj, consts.CONVERT_UV_TILES_TO_SINGLE_GROUP_NAME):
+        if convert_uv_tiles:
             # UVタイルを1つにする
             func_object_utils.set_active_object(obj)
             func_convert_uv_tiles_to_single.convert_uv_tiles_to_single()
+        yield _build_phase_progress(
+            phase="modify",
+            message=T("mce_progress_modify"),
+            start=0.87,
+            end=0.90,
+            current_index=idx,
+            total_count=total_modify_targets,
+            object_name=obj.name,
+        )
     print(f"[Preprocess] Modify: {time.perf_counter() - section_start:.3f}s")
     section_start = time.perf_counter()
 
@@ -512,7 +671,13 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
 
     # マージやApply Modifierで増えたシェイプキーを適用/削除する
     print("--- Apply/Clear ShapeKeys (After Merge) ---")
-    apply_or_clear_shapekeys()
+    for progress in iter_apply_or_clear_shapekeys(
+        phase="apply_shapekeys_after",
+        message=T("mce_progress_apply_shapekeys_after"),
+        start=0.9,
+        end=0.95,
+    ):
+        yield progress
     print(f"[Preprocess] Apply/Clear ShapeKeys (After): {time.perf_counter() - section_start:.3f}s")
     section_start = time.perf_counter()
 
@@ -525,11 +690,22 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
     print("--- Constraints ---")
     if operator.bake_anim and not operator.bake_anim_use_bone_constraint:
         # Constraintsを無効化
-        for obj in bpy.context.selected_objects:
-            if obj.type == 'ARMATURE':
-                for bone in obj.pose.bones:
-                    for c in bone.constraints:
-                        c.enabled = False
+        constraint_targets = [obj for obj in bpy.context.selected_objects if obj.type == 'ARMATURE']
+        total_constraint_targets = len(constraint_targets)
+        for idx, obj in enumerate(constraint_targets):
+            print(f"[Preprocess][constraints] {idx + 1}/{total_constraint_targets} {obj.name}")
+            for bone in obj.pose.bones:
+                for c in bone.constraints:
+                    c.enabled = False
+            yield _build_phase_progress(
+                phase="constraints",
+                message=T("mce_progress_constraints"),
+                start=0.95,
+                end=0.99,
+                current_index=idx,
+                total_count=total_constraint_targets,
+                object_name=obj.name,
+            )
     print(f"[Preprocess] Constraints: {time.perf_counter() - section_start:.3f}s")
 
     yield ProgressInfo(

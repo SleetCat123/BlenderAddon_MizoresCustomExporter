@@ -15,11 +15,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-
-
 import bpy
-
-from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 
 
 class MIZORE_FBX_PT_export_main(bpy.types.Panel):
@@ -49,50 +45,6 @@ class MIZORE_FBX_PT_export_main(bpy.types.Panel):
         sub = row.row(align=True)
         sub.enabled = (operator.path_mode == 'COPY')
         sub.prop(operator, "embed_textures", text="", icon='PACKAGE' if operator.embed_textures else 'UGLYPACKAGE')
-
-        row = layout.row(align=True)
-        row.prop(operator, "batch_mode")
-        sub = row.row(align=True)
-        sub.prop(operator, "use_batch_own_dir", text="", icon='NEWFOLDER')
-
-        row = layout.row(align=True)
-        row.enabled = (
-                operator.batch_mode == 'COLLECTION' or
-                operator.batch_mode == 'SCENE_COLLECTION' or
-                operator.batch_mode == 'ACTIVE_SCENE_COLLECTION'
-        )
-        row.prop(operator, "only_root_collection")
-
-        BatchExportFilepathFormatData.update_batch_filename_format(operator)
-        use_batch = (operator.batch_mode != 'OFF')
-        sub = layout.column(heading="Batch Filename Format")
-        sub.enabled = use_batch
-        row = sub.row(align=True)
-        row.prop(operator, "batch_filename_format")
-        row = sub.row(align=True)
-        row.prop(operator, "batch_filename_format_presets")
-        # TODO: Batch対象となるコレクションを選択できるようにしたい
-        if use_batch:
-            # プレビュー
-            preview = BatchExportFilepathFormatData.convert_filename_format(
-                format_str=bpy.path.basename(operator.batch_filename_format),
-                path=operator.filepath,
-                batch="BATCH",
-                use_batch_own_dir=operator.use_batch_own_dir,
-                fullpath=False
-            )
-            row = sub.row(align=True)
-            row.label(text=preview)
-
-            preview = BatchExportFilepathFormatData.convert_filename_format(
-                format_str=operator.batch_filename_format,
-                path=operator.filepath,
-                batch="BATCH",
-                use_batch_own_dir=operator.use_batch_own_dir,
-                fullpath=True
-            )
-            row = sub.row(align=True)
-            row.label(text=preview)
 
 
 def register():

@@ -43,6 +43,13 @@ class MIZORE_FBX_PT_export_modify(bpy.types.Panel):
 
         layout.prop(operator, "enable_fix_vertex_group_collisions")
         
+        layout.separator()
+
+        layout.prop(operator, "enable_limit_vertex_group_count")
+        row = layout.row(align=True)
+        row.enabled = operator.enable_limit_vertex_group_count
+        row.prop(operator, "limit_vertex_group_count")
+
         # 他のModify系設定（remove_groups_not_bone、remove_unused_groups、convert_uv_tiles_to_single）は
         # オブジェクト固有のカスタムプロパティとして管理されているため、ここには追加しない
 

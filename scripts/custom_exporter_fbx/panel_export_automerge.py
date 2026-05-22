@@ -43,7 +43,10 @@ class MIZORE_FBX_PT_export_automerge(bpy.types.Panel):
         operator = sfile.active_operator
 
         layout.prop(operator, "enable_auto_merge")
-        layout.prop(operator, "use_variants_merge")
+        if func_addon_link.update_mesh_deform_addon_is_found():
+            row = layout.row(align=True)
+            row.enabled = operator.enable_auto_merge
+            row.prop(operator, "use_update_mesh_deform_addon")
 
 
 def register():

@@ -41,14 +41,14 @@ class MIZORE_FBX_PT_export_include(bpy.types.Panel):
         operator = sfile.active_operator
 
         sublayout = layout.column(heading="Limit to (Objects)")
-        sublayout.enabled = (operator.batch_mode == 'OFF')
+        sublayout.enabled = operator.batch_mode in {'OFF', 'EXPORT_SETS'}
         sublayout.prop(operator, "use_selection")
         row = sublayout.row(align=True)
         row.enabled = operator.use_selection
         row.prop(operator, "use_selection_children_objects")
 
         sublayout = layout.column(heading="Limit to (Collections)")
-        sublayout.enabled = (operator.batch_mode == 'OFF')
+        sublayout.enabled = operator.batch_mode in {'OFF', 'EXPORT_SETS'}
         sublayout.prop(operator, "use_active_collection")
         row = sublayout.row(align=True)
         row.enabled = operator.use_active_collection

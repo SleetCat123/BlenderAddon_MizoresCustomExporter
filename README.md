@@ -145,14 +145,14 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 オブジェクト単位で、エクスポート時にシェイプキーのベース形状を変更できます。
 指定したシェイプキーがBasis形状として適用され、元のBasis形状は逆シェイプキーとして保存されます。
 
-設定は `サイドメニュー（Nキー）→ Assign (Mizore) → Change Base ShapeKey (Export)` から行えます。
+通常設定は `サイドメニュー（Nキー）→ Assign (Mizore) → Change Base ShapeKey` から行えます。
+Export Sets では、この基準設定をそのまま引き継ぎます。
 この機能にはShapeKeysUtilアドオンが必要です。
 
 ### ◇シェイプキーの並び替え（エクスポート時）
-オブジェクト単位で、エクスポート時にシェイプキーの順序を変更できます。
-インデックス指定移動、名前ソート、入れ替え、指定シェイプキーの前に移動 の4種類の操作が可能です。
-
-設定は `サイドメニュー（Nキー）→ Assign (Mizore) → Reorder ShapeKeys (Export)` から行えます。
+通常設定は `サイドメニュー（Nキー）→ Assign (Mizore) → Reorder ShapeKeys` から行えます。
+Export Sets で個別設定したい場合は `Assign (Mizore) → Export Sets → ShapeKey Reorder Override` を使います。
+一覧には既存シェイプキーだけでなく、`%AS%`、`Change Base ShapeKey`、`%SHAPE%` 由来の候補も表示されます。
 この機能にはShapeKeysUtilアドオンが必要です。
 
 ※    

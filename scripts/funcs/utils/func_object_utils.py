@@ -19,6 +19,30 @@
 import bpy
 
 
+def _get_current_view_layer():
+    view_layer = getattr(bpy.context, "view_layer", None)
+    if view_layer is not None:
+        return view_layer
+
+    window = getattr(bpy.context, "window", None)
+    if window is not None:
+        return getattr(window, "view_layer", None)
+
+    window_manager = getattr(bpy.context, "window_manager", None)
+    windows = getattr(window_manager, "windows", None)
+    if windows:
+        return getattr(windows[0], "view_layer", None)
+
+    return None
+
+
+def _get_current_view_layer_object_names():
+    view_layer = _get_current_view_layer()
+    if view_layer is None:
+        return None
+    return set(view_layer.objects.keys())
+
+
 def select_object(obj, value=True):
     try:
         obj.select_set(value)
@@ -52,7 +76,9 @@ def set_active_object(obj):
 
 
 def get_current_view_layer_objects():
-    current_layer_objects_name = bpy.context.window.view_layer.objects.keys()
+    current_layer_objects_name = _get_current_view_layer_object_names()
+    if current_layer_objects_name is None:
+        return list(bpy.data.objects)
     all_objects = bpy.data.objects
     return [obj for obj in all_objects if obj.name in current_layer_objects_name]
 
@@ -60,7 +86,9 @@ def get_current_view_layer_objects():
 def get_children_objects(obj, only_current_view_layer: bool = True):
     all_objects = bpy.data.objects
     if only_current_view_layer:
-        current_layer_objects_name = bpy.context.window.view_layer.objects.keys()
+        current_layer_objects_name = _get_current_view_layer_object_names()
+        if current_layer_objects_name is None:
+            return [child for child in all_objects if child.parent == obj]
         return [child for child in all_objects if
                 child.parent == obj and child.name in current_layer_objects_name]
     else:
@@ -88,11 +116,11 @@ def get_children_recursive(targets, only_current_view_layer: bool = True, contai
 
 # key: parent, value: children nameなdictを返す
 def get_children_name_table(only_current_view_layer: bool = True):
-    current_layer_objects_name = bpy.context.window.view_layer.objects.keys()
+    current_layer_objects_name = _get_current_view_layer_object_names()
     all_objects = bpy.data.objects
     result = {}
     for obj in all_objects:
-        if only_current_view_layer and obj.name not in current_layer_objects_name:
+        if only_current_view_layer and current_layer_objects_name is not None and obj.name not in current_layer_objects_name:
             continue
         if obj.name not in result:
             result[obj.name] = []

@@ -40,15 +40,26 @@ class MIZORE_FBX_PT_export_transform(bpy.types.Panel):
         sfile = context.space_data
         operator = sfile.active_operator
 
-        layout.prop(operator, "global_scale")
-        layout.prop(operator, "apply_scale_options")
+        scale_col = layout.column(align=False)
+        scale_col.label(text="Scale")
+        scale_props = scale_col.column(align=False)
+        scale_props.prop(operator, "global_scale")
+        scale_props.prop(operator, "scale_value_mode")
+        scale_props.prop(operator, "scale_pivot")
+        scale_props.prop(operator, "apply_scale_options")
 
-        layout.prop(operator, "axis_forward")
-        layout.prop(operator, "axis_up")
+        axis_col = layout.column(align=False)
+        axis_col.label(text="Axes")
+        axis_props = axis_col.column(align=False)
+        axis_props.prop(operator, "axis_forward")
+        axis_props.prop(operator, "axis_up")
 
-        layout.prop(operator, "apply_unit_scale")
-        layout.prop(operator, "use_space_transform")
-        row = layout.row()
+        transform_col = layout.column(align=False)
+        transform_col.label(text="Transform")
+        transform_props = transform_col.column(align=False)
+        transform_props.prop(operator, "apply_unit_scale")
+        transform_props.prop(operator, "use_space_transform")
+        row = transform_props.row()
         row.prop(operator, "bake_space_transform")
         row.label(text="", icon='ERROR')
 

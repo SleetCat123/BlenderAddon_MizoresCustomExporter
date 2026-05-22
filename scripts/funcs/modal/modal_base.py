@@ -151,6 +151,25 @@ class GeneratorModalOperator(bpy.types.Operator):
         else:
             self.report({'ERROR'}, f"Error: {str(error)} - restore failed, use Ctrl+Z")
 
+    def _log_timing_complete(self):
+        """処理完了時のタイミングログ出力"""
+        now = time.perf_counter()
+        if self._last_phase is not None:
+            phase_elapsed = now - self._phase_start_time
+            print(f"[Modal] phase '{self._last_phase}' completed in {phase_elapsed:.3f}s")
+        elapsed = now - self._start_time
+        print(f"[Modal] {self.bl_idname} total: {elapsed:.3f}s (yields: {self._batch_total_count})")
+
+    def _log_timing_cancel(self):
+        """キャンセル時のタイミングログ出力"""
+        elapsed = time.perf_counter() - self._start_time
+        print(f"[Modal] {self.bl_idname} cancelled after {elapsed:.3f}s (yields: {self._batch_total_count})")
+
+    def _log_timing_error(self, error: Exception):
+        """エラー時のタイミングログ出力"""
+        elapsed = time.perf_counter() - self._start_time
+        print(f"[Modal] {self.bl_idname} error after {elapsed:.3f}s (yields: {self._batch_total_count}): {error}")
+
     def _restore_state(self) -> bool:
         """処理開始前の状態に復元
 
@@ -176,6 +195,12 @@ class GeneratorModalOperator(bpy.types.Operator):
         self._generator = None
         self._is_cancelled = False
         self._last_progress = None
+        self._start_time = time.perf_counter()  # 処理時間計測用
+        self._batch_total_count = 0  # 総バッチ数
+        self._last_phase = None  # 前回のフェーズ名
+        self._phase_start_time = self._start_time  # フェーズ開始時刻
+
+        print(f"[Modal] {self.bl_idname} started")
 
         try:
             # 復元ポイントを作成（キャンセル/エラー時のUndo用）
@@ -206,6 +231,7 @@ class GeneratorModalOperator(bpy.types.Operator):
         if event.type in {'ESC', 'RIGHTMOUSE'} and event.value == 'PRESS':
             self._is_cancelled = True
             self._cleanup(context)
+            self._log_timing_cancel()
             self.on_cancel(context)
             return {'CANCELLED'}
 
@@ -221,6 +247,16 @@ class GeneratorModalOperator(bpy.types.Operator):
                     progress = next(self._generator)
                     self._last_progress = progress
                     batch_count += 1
+                    self._batch_total_count += 1
+
+                    # フェーズが変わったら前フェーズの処理時間をログ出力
+                    if progress.phase and progress.phase != self._last_phase:
+                        now = time.perf_counter()
+                        if self._last_phase is not None:
+                            phase_elapsed = now - self._phase_start_time
+                            print(f"[Modal] phase '{self._last_phase}' completed in {phase_elapsed:.3f}s")
+                        self._last_phase = progress.phase
+                        self._phase_start_time = now
 
                     # 時間制限チェック（UIの応答性を維持するため）
                     elapsed = time.perf_counter() - start_time
@@ -236,12 +272,14 @@ class GeneratorModalOperator(bpy.types.Operator):
             except StopIteration:
                 # 処理完了
                 self._cleanup(context)
+                self._log_timing_complete()
                 self.on_complete(context)
                 return {'FINISHED'}
 
             except Exception as e:
                 # エラー発生
                 self._cleanup(context)
+                self._log_timing_error(e)
                 self.on_error(context, e)
                 return {'CANCELLED'}
 

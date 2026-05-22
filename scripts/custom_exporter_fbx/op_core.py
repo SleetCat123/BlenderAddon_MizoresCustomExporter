@@ -38,7 +38,7 @@ from ..funcs.progress import (
     gpu_progress_update,
     is_gpu_progress_available,
 )
-from . import func_execute_main, op_export_result_dialog
+from . import func_execute_main, func_export_scale_value_mode, op_export_result_dialog
 from .BatchExportFilepathFormatData import BatchExportFilepathFormatData
 from .op_remove_saved_path import OBJECT_OT_mizore_remove_saved_path
 from .op_save_export_settings import OBJECT_OT_mizore_save_export_settings
@@ -76,6 +76,40 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
         min=0.001, max=1000.0,
         soft_min=0.01, soft_max=1000.0,
         default=1.0,
+    )
+    scale_value_mode: EnumProperty(
+        name="Scale Value Mode",
+        items=[
+            (
+                func_export_scale_value_mode.SCALE_VALUE_MODE_NORMAL,
+                "Normal",
+                "Keep the existing FBX Scale behavior",
+            ),
+            (
+                func_export_scale_value_mode.SCALE_VALUE_MODE_KEEP,
+                "Keep Scale Value",
+                "Keep exported scale values unchanged and bake the Scale multiplier into the exported result",
+            ),
+        ],
+        description="Choose whether the Scale setting changes exported scale values or keeps the original scale values",
+        default=func_export_scale_value_mode.SCALE_VALUE_MODE_NORMAL,
+    )
+    scale_pivot: EnumProperty(
+        name="Scale Pivot",
+        items=[
+            (
+                func_export_scale_value_mode.SCALE_PIVOT_WORLD_ORIGIN,
+                "World Origin",
+                "Scale positions from the world origin",
+            ),
+            (
+                func_export_scale_value_mode.SCALE_PIVOT_EACH_OBJECT_ORIGIN,
+                "Each Object Origin",
+                "Scale each object around its own origin without moving the object origin",
+            ),
+        ],
+        description="Choose the pivot used by the Scale setting",
+        default=func_export_scale_value_mode.SCALE_PIVOT_WORLD_ORIGIN,
     )
     apply_unit_scale: BoolProperty(
         name="Apply Unit",
@@ -275,9 +309,13 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
                ('ACTIVE_SCENE_COLLECTION', "Active Scene Collections",
                 "Each collection (including master, non-data-block one) of the active scene as a file, "
                 "including content from children collections"),
+               ('COLLECTIONS_IN_ACTIVE_COLLECTION', "Collections in Active Collection",
+                "Each collection in the active collection hierarchy as a file, "
+                "and export only objects in the active collection hierarchy"),
 
                 # 追加
                 ('OBJECTS_IN_ACTIVE_COLLECTION', "Objects in Active Collection", "Each object in active collection as a file"),
+               ('EXPORT_SETS', "Export Sets", "Each enabled export set as a file"),
                ],
     )
     use_batch_own_dir: BoolProperty(
@@ -318,6 +356,7 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     use_selection_children_objects: BoolProperty(name="Include Children Objects", default=False)
     use_active_collection_children_objects: BoolProperty(name="Include Children Objects", default=False)
     use_active_collection_children_collections: BoolProperty(name="Include Children Collections", default=False)
+    use_batch_collection_children_collections: BoolProperty(name="Include Children Collections", default=False)
 
     only_root_collection: BoolProperty(name="Only Root Collections", default=False)
 
@@ -328,12 +367,9 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     enable_apply_modifiers_with_shapekeys: BoolProperty(name="Apply Modifier with Shape Keys", default=True)
     enable_separate_lr_shapekey: BoolProperty(name="Separate Shape Keys LR", default=True)
     enable_subtract_base_shapekey: BoolProperty(name="Subtract Base Shape Keys", default=True)
-    enable_change_base_shapekey: BoolProperty(name="Change Base Shape Key", default=True)
     enable_reorder_shapekeys: BoolProperty(name="Reorder Shape Keys", default=True)
 
     bake_anim_use_bone_constraint: BoolProperty(name="Use Bone Constraint", default=True)
-
-    use_variants_merge: BoolProperty(name="Use Variants Merge", default=True)
 
     enable_fix_vertex_group_collisions: BoolProperty(
         name="Fix Vertex Group Name Collisions", 
@@ -514,6 +550,12 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             # メッセージがある場合はそれを表示
             display_msg = progress.message
             parts.append(display_msg)
+            if progress.total_objects > 0:
+                parts.append(f"{progress.current_object_index}/{progress.total_objects}")
+            if progress.phase:
+                parts.append(f"[{progress.phase[:12]}]")
+            if progress.object_name:
+                parts.append(progress.object_name)
         else:
             # メッセージがない場合はフェーズとオブジェクト名を表示
             display_msg = ""
@@ -663,4 +705,3 @@ def unregister():
 
     bpy.types.TOPBAR_MT_file_export.remove(draw_custom_export_mizore_menu)
     bpy.app.translations.unregister(__name__)
-

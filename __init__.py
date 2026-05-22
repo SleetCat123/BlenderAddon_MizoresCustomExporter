@@ -36,6 +36,7 @@ if 'bpy' in locals():
 else:
     from .scripts import (
         consts,
+        export_sets,
         preferences_scene,
         shapekey_operations,
         translations,
@@ -46,12 +47,12 @@ else:
     from .scripts.custom_exporter_fbx import (
         op_core,
         op_export_result_dialog,
-        op_panel_addon_connect,
         op_remove_export_prefs,
         op_remove_saved_path,
         op_save_export_settings,
         panel_export_armature,
         panel_export_automerge,
+        panel_export_batch,
         panel_export_bake_animation,
         panel_export_geometry,
         panel_export_include,
@@ -76,6 +77,7 @@ import bpy
 
 classes = [
     consts,
+    export_sets,
     preferences_scene,
     translations,
 
@@ -86,11 +88,11 @@ classes = [
 
     op_core,
     op_export_result_dialog,
-    op_panel_addon_connect,
     op_remove_saved_path,
     op_save_export_settings,
     panel_export_armature,
     panel_export_automerge,
+    panel_export_batch,
     panel_export_bake_animation,
     panel_export_geometry,
     panel_export_include,
