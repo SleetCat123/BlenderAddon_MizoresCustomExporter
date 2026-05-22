@@ -17,32 +17,27 @@
 # ##### END GPL LICENSE BLOCK #####
 
 """
-エクスポート時のシェイプキー操作設定用PropertyGroup
+エクスポート時のシェイプキー並び替え設定用PropertyGroup
 
-オブジェクト単位でベース変更・並び替え設定を保持する。
+永続データはObjectのCustom Property(JSON)に保存し、
+UI編集用の一時状態はWindowManagerのCollectionPropertyで保持する。
 """
 
 import bpy
-from bpy.props import (
-    CollectionProperty,
-    EnumProperty,
-    IntProperty,
-    StringProperty,
-)
+from bpy.props import BoolProperty, CollectionProperty, EnumProperty, IntProperty, StringProperty
+
+from . import reorder_storage_utils
 
 
-class ChangeBaseShapekeyItem(bpy.types.PropertyGroup):
-    """ベースシェイプキー変更設定の1項目"""
-    source_shapekey_name: StringProperty(
-        name="Source Shape Key",
-        description="Shape key to apply as the new Basis",
-        default="",
-    )
-    reverse_shapekey_name: StringProperty(
-        name="Reverse Shape Key Name",
-        description="Name for the reverse shape key (stores original Basis shape)",
-        default="",
-    )
+def _save_reorder_from_context(context):
+    obj = getattr(context, "object", None)
+    if obj is None or obj.type != 'MESH':
+        return
+    reorder_storage_utils.save_reorder_ui_state(obj, context.window_manager)
+
+
+def _on_reorder_updated(self, context):
+    _save_reorder_from_context(context)
 
 
 class ReorderShapekeyItem(bpy.types.PropertyGroup):
@@ -56,27 +51,30 @@ class ReorderShapekeyItem(bpy.types.PropertyGroup):
             ('MOVE_BEFORE', "Move Before", "Move shape key before another"),
         ],
         default='SORT_BY_NAME',
+        update=_on_reorder_updated,
     )
     target_shapekey_name: StringProperty(
         name="Target",
         description="Target shape key name",
         default="",
+        update=_on_reorder_updated,
     )
     destination_index: IntProperty(
         name="Index",
         description="Destination index for MOVE_TO_INDEX",
         default=1,
         min=0,
+        update=_on_reorder_updated,
     )
     second_shapekey_name: StringProperty(
         name="Second",
         description="Second shape key name (for SWAP / MOVE_BEFORE)",
         default="",
+        update=_on_reorder_updated,
     )
 
 
 classes = [
-    ChangeBaseShapekeyItem,
     ReorderShapekeyItem,
 ]
 
@@ -85,26 +83,27 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.types.Object.mizore_change_base_shapekeys = CollectionProperty(
-        type=ChangeBaseShapekeyItem,
-    )
-    bpy.types.Object.mizore_change_base_shapekeys_index = IntProperty()
-
-    bpy.types.Object.mizore_reorder_shapekeys = CollectionProperty(
+    bpy.types.WindowManager.mizore_reorder_shapekeys_ui = CollectionProperty(
         type=ReorderShapekeyItem,
     )
-    bpy.types.Object.mizore_reorder_shapekeys_index = IntProperty()
+    bpy.types.WindowManager.mizore_reorder_shapekeys_ui_index = IntProperty()
+    bpy.types.WindowManager.mizore_reorder_shapekeys_ui_object_name = StringProperty(
+        default="",
+    )
+    bpy.types.WindowManager.mizore_reorder_shapekeys_ui_syncing = BoolProperty(
+        default=False,
+    )
 
 
 def unregister():
-    if hasattr(bpy.types.Object, 'mizore_reorder_shapekeys_index'):
-        del bpy.types.Object.mizore_reorder_shapekeys_index
-    if hasattr(bpy.types.Object, 'mizore_reorder_shapekeys'):
-        del bpy.types.Object.mizore_reorder_shapekeys
-    if hasattr(bpy.types.Object, 'mizore_change_base_shapekeys_index'):
-        del bpy.types.Object.mizore_change_base_shapekeys_index
-    if hasattr(bpy.types.Object, 'mizore_change_base_shapekeys'):
-        del bpy.types.Object.mizore_change_base_shapekeys
+    if hasattr(bpy.types.WindowManager, 'mizore_reorder_shapekeys_ui_syncing'):
+        del bpy.types.WindowManager.mizore_reorder_shapekeys_ui_syncing
+    if hasattr(bpy.types.WindowManager, 'mizore_reorder_shapekeys_ui_object_name'):
+        del bpy.types.WindowManager.mizore_reorder_shapekeys_ui_object_name
+    if hasattr(bpy.types.WindowManager, 'mizore_reorder_shapekeys_ui_index'):
+        del bpy.types.WindowManager.mizore_reorder_shapekeys_ui_index
+    if hasattr(bpy.types.WindowManager, 'mizore_reorder_shapekeys_ui'):
+        del bpy.types.WindowManager.mizore_reorder_shapekeys_ui
 
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

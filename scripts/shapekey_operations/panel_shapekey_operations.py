@@ -19,33 +19,53 @@
 """
 シェイプキー操作設定UIパネル
 
-サイドバー "Assign (Mizore)" カテゴリ内にベース変更・並び替えパネルを表示する。
+サイドバー "Assign (Mizore)" カテゴリ内に並び替えパネルを表示する。
 """
 
 import bpy
 
 from .op_shapekey_operations import (
-    OBJECT_OT_mizore_change_base_shapekey_add,
-    OBJECT_OT_mizore_change_base_shapekey_move,
-    OBJECT_OT_mizore_change_base_shapekey_remove,
+    OBJECT_OT_mizore_clear_export_shapekey_candidate,
+    OBJECT_OT_mizore_pick_export_shapekey_candidate,
     OBJECT_OT_mizore_reorder_shapekey_add,
     OBJECT_OT_mizore_reorder_shapekey_move,
     OBJECT_OT_mizore_reorder_shapekey_remove,
 )
+from . import candidate_utils, reorder_storage_utils
 
-# --- UIList ---
 
-class MIZORE_UL_change_base_shapekey_list(bpy.types.UIList):
-    """ベース変更設定のUIList"""
-    def draw_item(self, context, layout, data, item, icon, active_data, active_property):
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            row = layout.row(align=True)
-            row.prop(item, "source_shapekey_name", text="", icon='SHAPEKEY_DATA')
-            row.label(text="", icon='FORWARD')
-            row.prop(item, "reverse_shapekey_name", text="", icon='LOOP_BACK')
-        elif self.layout_type == 'GRID':
-            layout.alignment = 'CENTER'
-            layout.label(text=item.source_shapekey_name, icon='SHAPEKEY_DATA')
+def _is_mesh_object(context):
+    obj = context.object
+    return obj is not None and obj.type == 'MESH'
+
+
+def _draw_picker_row(layout, label, value, pick_target_kind, item_index):
+    row = layout.row(align=True)
+    row.label(text=label)
+    row.label(text=value or "(Not selected)", icon='SHAPEKEY_DATA')
+
+    op = row.operator(
+        OBJECT_OT_mizore_pick_export_shapekey_candidate.bl_idname,
+        text="Pick",
+        icon='VIEWZOOM',
+    )
+    op.target_kind = pick_target_kind
+    op.item_index = item_index
+
+    clear_op = row.operator(
+        OBJECT_OT_mizore_clear_export_shapekey_candidate.bl_idname,
+        text="",
+        icon='X',
+    )
+    clear_op.target_kind = pick_target_kind
+    clear_op.item_index = item_index
+
+
+def _draw_prediction_hint(layout, obj):
+    if not candidate_utils.get_shapekey_candidates(obj):
+        layout.label(text="No current or predicted shape key candidates found.", icon='INFO')
+        return
+    layout.label(text="Candidates include current keys and %AS% outputs.", icon='INFO')
 
 
 class MIZORE_UL_reorder_shapekey_list(bpy.types.UIList):
@@ -57,73 +77,19 @@ class MIZORE_UL_reorder_shapekey_list(bpy.types.UIList):
             if item.operation_type == 'SORT_BY_NAME':
                 row.label(text="(All)")
             elif item.operation_type == 'MOVE_TO_INDEX':
-                row.prop(item, "target_shapekey_name", text="")
+                row.label(text=item.target_shapekey_name or "(Not selected)")
                 row.prop(item, "destination_index", text="")
             elif item.operation_type == 'SWAP':
-                row.prop(item, "target_shapekey_name", text="")
+                row.label(text=item.target_shapekey_name or "(Not selected)")
                 row.label(text="", icon='UV_SYNC_SELECT')
-                row.prop(item, "second_shapekey_name", text="")
+                row.label(text=item.second_shapekey_name or "(Not selected)")
             elif item.operation_type == 'MOVE_BEFORE':
-                row.prop(item, "target_shapekey_name", text="")
+                row.label(text=item.target_shapekey_name or "(Not selected)")
                 row.label(text="", icon='FORWARD')
-                row.prop(item, "second_shapekey_name", text="")
+                row.label(text=item.second_shapekey_name or "(Not selected)")
         elif self.layout_type == 'GRID':
             layout.alignment = 'CENTER'
             layout.label(text=item.operation_type, icon='SORTALPHA')
-
-
-# --- パネル ---
-
-class OBJECT_PT_mizore_change_base_shapekey(bpy.types.Panel):
-    """ベースシェイプキー変更設定パネル"""
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = "Assign (Mizore)"
-    bl_label = "Change Base ShapeKey (Export)"
-    bl_order = 1100
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        obj = context.object
-        return (
-            obj is not None
-            and obj.type == 'MESH'
-            and obj.data.shape_keys is not None
-            and len(obj.data.shape_keys.key_blocks) > 1
-        )
-
-    def draw(self, context):
-        layout = self.layout
-        obj = context.object
-
-        row = layout.row()
-        row.template_list(
-            "MIZORE_UL_change_base_shapekey_list", "",
-            obj, "mizore_change_base_shapekeys",
-            obj, "mizore_change_base_shapekeys_index",
-            rows=3,
-        )
-
-        col = row.column(align=True)
-        col.operator(OBJECT_OT_mizore_change_base_shapekey_add.bl_idname, icon='ADD', text="")
-        col.operator(OBJECT_OT_mizore_change_base_shapekey_remove.bl_idname, icon='REMOVE', text="")
-        col.separator()
-        op = col.operator(OBJECT_OT_mizore_change_base_shapekey_move.bl_idname, icon='TRIA_UP', text="")
-        op.direction = 'UP'
-        op = col.operator(OBJECT_OT_mizore_change_base_shapekey_move.bl_idname, icon='TRIA_DOWN', text="")
-        op.direction = 'DOWN'
-
-        # 選択中アイテムの詳細
-        if obj.mizore_change_base_shapekeys and obj.mizore_change_base_shapekeys_index < len(obj.mizore_change_base_shapekeys):
-            item = obj.mizore_change_base_shapekeys[obj.mizore_change_base_shapekeys_index]
-            box = layout.box()
-            box.prop_search(
-                item, "source_shapekey_name",
-                obj.data.shape_keys, "key_blocks",
-                text="Source",
-            )
-            box.prop(item, "reverse_shapekey_name", text="Reverse Name")
 
 
 class OBJECT_PT_mizore_reorder_shapekeys(bpy.types.Panel):
@@ -137,23 +103,19 @@ class OBJECT_PT_mizore_reorder_shapekeys(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        obj = context.object
-        return (
-            obj is not None
-            and obj.type == 'MESH'
-            and obj.data.shape_keys is not None
-            and len(obj.data.shape_keys.key_blocks) > 1
-        )
+        return _is_mesh_object(context)
 
     def draw(self, context):
         layout = self.layout
         obj = context.object
+        wm = context.window_manager
+        reorder_storage_utils.ensure_ui_state_for_object(obj, wm)
 
         row = layout.row()
         row.template_list(
             "MIZORE_UL_reorder_shapekey_list", "",
-            obj, "mizore_reorder_shapekeys",
-            obj, "mizore_reorder_shapekeys_index",
+            wm, "mizore_reorder_shapekeys_ui",
+            wm, "mizore_reorder_shapekeys_ui_index",
             rows=3,
         )
 
@@ -167,56 +129,63 @@ class OBJECT_PT_mizore_reorder_shapekeys(bpy.types.Panel):
         op.direction = 'DOWN'
 
         # 選択中アイテムの詳細
-        if obj.mizore_reorder_shapekeys and obj.mizore_reorder_shapekeys_index < len(obj.mizore_reorder_shapekeys):
-            item = obj.mizore_reorder_shapekeys[obj.mizore_reorder_shapekeys_index]
+        if wm.mizore_reorder_shapekeys_ui and wm.mizore_reorder_shapekeys_ui_index < len(wm.mizore_reorder_shapekeys_ui):
+            item = wm.mizore_reorder_shapekeys_ui[wm.mizore_reorder_shapekeys_ui_index]
             box = layout.box()
             box.prop(item, "operation_type")
             if item.operation_type in ('MOVE_TO_INDEX', 'SWAP', 'MOVE_BEFORE'):
-                box.prop_search(
-                    item, "target_shapekey_name",
-                    obj.data.shape_keys, "key_blocks",
-                    text="Target",
+                _draw_picker_row(
+                    box,
+                    "Target",
+                    item.target_shapekey_name,
+                    'REORDER_TARGET',
+                    wm.mizore_reorder_shapekeys_ui_index,
                 )
             if item.operation_type == 'MOVE_TO_INDEX':
                 box.prop(item, "destination_index")
             if item.operation_type in ('SWAP', 'MOVE_BEFORE'):
-                box.prop_search(
-                    item, "second_shapekey_name",
-                    obj.data.shape_keys, "key_blocks",
-                    text="Second" if item.operation_type == 'SWAP' else "Before",
+                _draw_picker_row(
+                    box,
+                    "Second" if item.operation_type == 'SWAP' else "Before",
+                    item.second_shapekey_name,
+                    'REORDER_SECOND',
+                    wm.mizore_reorder_shapekeys_ui_index,
                 )
+            _draw_prediction_hint(box, obj)
 
 
 classes = [
-    MIZORE_UL_change_base_shapekey_list,
     MIZORE_UL_reorder_shapekey_list,
-    OBJECT_PT_mizore_change_base_shapekey,
     OBJECT_PT_mizore_reorder_shapekeys,
 ]
 
 
 translations_dict = {
     "ja_JP": {
-        ("*", "Change Base ShapeKey (Export)"): "ベースシェイプキー変更 (エクスポート用)",
         ("*", "Reorder ShapeKeys (Export)"): "シェイプキー並び替え (エクスポート用)",
-        ("*", "Add a new change base shape key entry"): "ベースシェイプキー変更設定を追加",
         ("*", "Add a new reorder shape key entry"): "並び替え設定を追加",
         ("*", "Remove the selected entry"): "選択中の設定を削除",
         ("*", "Move the selected entry"): "選択中の設定を移動",
-        ("*", "Source Shape Key"): "ソースシェイプキー",
-        ("*", "Shape key to apply as the new Basis"): "新しいBasisとして適用するシェイプキー",
-        ("*", "Reverse Shape Key Name"): "逆シェイプキー名",
-        ("*", "Name for the reverse shape key (stores original Basis shape)"): "逆シェイプキーの名前（元のBasis形状を保存）",
         ("*", "Target shape key name"): "操作対象のシェイプキー名",
         ("*", "Destination index for MOVE_TO_INDEX"): "移動先インデックス",
         ("*", "Second shape key name (for SWAP / MOVE_BEFORE)"): "2つ目のシェイプキー名（SWAP / MOVE_BEFORE用）",
         ("*", "Move to Index"): "インデックス指定移動",
         ("*", "Sort by Name"): "名前でソート",
+        ("*", "Pick Shape Key Candidate"): "シェイプキー候補を選択",
+        ("*", "Pick from current or predicted export shape key candidates"):
+            "現在またはエクスポート時に生成予定のシェイプキー候補から選択",
         ("*", "Move shape key to specified index"): "シェイプキーを指定インデックスに移動",
         ("*", "Sort all shape keys alphabetically"): "全シェイプキーを名前順にソート",
         ("*", "Swap two shape keys"): "2つのシェイプキーを入れ替え",
         ("*", "Move shape key before another"): "シェイプキーを指定の前に移動",
         ("*", "Move Before"): "指定の前に移動",
+        ("*", "Pick"): "選択",
+        ("*", "(Not selected)"): "未選択",
+        ("*", "(Auto)"): "自動",
+        ("*", "No current or predicted shape key candidates found."):
+            "現在またはエクスポート後に存在するシェイプキー候補が見つかりません",
+        ("*", "Candidates include current keys and %AS% outputs."):
+            "候補には現在のシェイプキーと %AS% 出力が含まれます",
     },
 }
 
