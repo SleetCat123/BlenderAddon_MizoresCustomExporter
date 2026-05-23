@@ -57,6 +57,20 @@ def update_export_set_item_targets(self, context):
 
     shapekey_override_storage.sync_override_entries(export_set)
 
+
+def sync_export_set_item_armature_from_root(item):
+    root_object = getattr(item, "root_object", None)
+    if root_object is None or getattr(root_object, "type", None) != 'ARMATURE':
+        return
+    if getattr(item, "armature_object", None) == root_object:
+        return
+    item.armature_object = root_object
+
+
+def update_export_set_item_root_object(self, context):
+    sync_export_set_item_armature_from_root(self)
+    update_export_set_item_targets(self, context)
+
 def poll_any_object(_self, obj):
     return obj is not None
 
@@ -107,6 +121,7 @@ def migrate_legacy_export_set_data(scene):
             migrated_target = export_set.target_armature
 
         for item in getattr(export_set, "items", []):
+            sync_export_set_item_armature_from_root(item)
             legacy_primary = bool(item.get(_LEGACY_PRIMARY_ARMATURE_KEY, False))
             if migrated_target is None and legacy_primary:
                 migrated_target = _resolve_legacy_primary_target(item)
@@ -137,7 +152,7 @@ class MIZORE_ExportSetItem(bpy.types.PropertyGroup):
         name="Root Object",
         type=bpy.types.Object,
         poll=poll_any_object,
-        update=update_export_set_item_targets,
+        update=update_export_set_item_root_object,
     )
     armature_object: PointerProperty(
         name="Armature",

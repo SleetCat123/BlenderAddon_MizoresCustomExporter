@@ -142,7 +142,12 @@ def draw_shapekey_reorder_override(layout, context, export_set):
             candidate_rows=candidate_rows,
         )
         preview_rows = resolver.format_rows_for_entry(
-            resolver.build_resolved_rows(entry.target_object, base_order, context)
+            resolver.build_resolved_rows(
+                entry.target_object,
+                base_order,
+                context,
+                allow_write=False,
+            )
         )
         preview_box = box.box()
         preview_box.label(text="Inherited AutoMerge Order", icon='INFO')

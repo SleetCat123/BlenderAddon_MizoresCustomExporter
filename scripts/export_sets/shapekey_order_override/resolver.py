@@ -36,8 +36,8 @@ def build_candidate_rows(obj, context=None, *, allow_write=True):
     return _candidate_module().build_candidate_rows(obj, context, allow_write=allow_write)
 
 
-def build_resolved_rows(obj, ordered_names, context=None):
-    candidate_rows = build_candidate_rows(obj, context)
+def build_resolved_rows(obj, ordered_names, context=None, *, allow_write=True):
+    candidate_rows = build_candidate_rows(obj, context, allow_write=allow_write)
     return _order_module().resolve_rows(candidate_rows, ordered_names)
 
 

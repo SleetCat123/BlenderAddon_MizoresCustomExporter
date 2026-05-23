@@ -1026,7 +1026,10 @@ def _find_inferred_primary_armature_runtime(runtime: ExportSetRuntime):
     candidates = [
         armature_runtime
         for armature_runtime in armature_runtimes
-        if not armature_runtime.item.attach_to_bone.strip()
+        if (
+            not armature_runtime.item.attach_to_bone.strip()
+            and armature_runtime.item.root_object == armature_runtime.source_armature
+        )
     ]
     if len(candidates) == 1:
         export_set_name = get_export_set_display_name(runtime.export_set)
@@ -1049,7 +1052,7 @@ def validate_runtime_armature_merge(runtime: ExportSetRuntime):
             for armature_runtime in armature_runtimes
             if armature_runtime.source_armature == target_armature
         ]
-        if len(matching_runtimes) != 1:
+        if not matching_runtimes:
             export_set_name = get_export_set_display_name(runtime.export_set)
             _log_armature_merge_state(runtime, "target armature was not resolved")
             raise RuntimeError(

@@ -183,7 +183,8 @@ def draw_export_sets_editor(layout, context):
 
     armature_col = item_box.column(align=True)
     armature_col.enabled = export_set.merge_armatures
-    armature_col.prop(item, "armature_object")
+    if item.root_object is None or item.root_object.type != 'ARMATURE':
+        armature_col.prop(item, "armature_object")
     armature_col.prop(item, "attach_to_bone")
     if export_set.merge_armatures and item.armature_object is None:
         item_box.label(text="Armature is inferred from the root when possible.", icon='INFO')
