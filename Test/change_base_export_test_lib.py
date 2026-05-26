@@ -144,6 +144,12 @@ def get_delta_lengths(coords_a, coords_b):
     return result
 
 
+def get_delta_length_signature(coords_a, coords_b, digits=6):
+    delta_lengths = get_delta_lengths(coords_a, coords_b)
+    rounded = [f"{value:.{digits}f}" for value in sorted(delta_lengths)]
+    return hashlib.sha1("\n".join(rounded).encode("utf-8")).hexdigest()
+
+
 def assert_coords_close(actual, expected, label, tolerance=1e-6):
     if len(actual) != len(expected):
         raise AssertionError(
@@ -1013,6 +1019,12 @@ def create_automerge_modifier_stack_stress_scene(change_base_settings):
         "required_names": ["Basis", "Smile", "Look_Down", "Look_Up", "Eyes_Smile"],
         "forbidden_names": ["Default"],
         "nonzero_names": ["Smile", "Look_Down", "Look_Up", "Eyes_Smile"],
+        "delta_signatures": {
+            "Smile": "4a51c3a895db9a47ec96f52d8fdc9ccbdeef78f1",
+            "Look_Down": "f88726b5ba5bf8c47f2b31236b917d0c36d9d279",
+            "Look_Up": "fab8354ed67ef48e8d9052036b402104dabfa06e",
+            "Eyes_Smile": "3532fc946a0cca7a05e790b945ea3966c15c372d",
+        },
     }
     log(
         "Created AutoMerge modifier-stack stress scene: "
@@ -1144,6 +1156,16 @@ def create_automerge_crash_log_regression_scene(
             "EyesManual",
             "Eyes_Smile",
         ],
+        "delta_signatures": {
+            "RootManual": "a9d3c074f768097a1b0f19dadee8ef33662f9614",
+            "RootLift": "e92738dffc86d2083c647cac633bfb538f0b4ed6",
+            "MainManual": "31a156d9d31d99026fd65497ec88ce32ca063d55",
+            "Smile": "6aa01af501687e02add5ae58e91f73dd12df5b86",
+            "Look_Down": "67addf7186e5da02764a0aa17051a6d9a770a153",
+            "Look_Up": "9f91a0f98ed7398c18fe2420ef084184649148b0",
+            "EyesManual": "f09f05bc65d186e5ef112daf43adfb2377f64fcf",
+            "Eyes_Smile": "8b31fa77deaedfaf249af4d82787bcc414ebc9f4",
+        },
         "root_name": merge_root.name,
         "face_main_name": face_main.name,
     }
@@ -1785,6 +1807,18 @@ def assert_shape_key_has_nonzero_delta(obj, shape_key_name, tolerance=1e-5):
         )
 
 
+def assert_shape_key_delta_signature(obj, shape_key_name, expected_signature, basis_name="Basis"):
+    actual_signature = get_delta_length_signature(
+        get_shape_key_coords(obj, shape_key_name),
+        get_shape_key_coords(obj, basis_name),
+    )
+    if actual_signature != expected_signature:
+        raise AssertionError(
+            f"Shape key '{shape_key_name}' on '{obj.name}' delta signature mismatch. "
+            f"actual={actual_signature} expected={expected_signature}"
+        )
+
+
 def assert_imported_as_default_with_other_as_result(imported_obj, expected_settings):
     assert_shape_key_names(imported_obj, ["Basis", "Smile", "Eyes_Up"])
     assert_shape_key_relative_keys_valid(imported_obj)
@@ -1892,6 +1926,9 @@ def assert_imported_automerge_modifier_stack_stress_result(imported_obj, expecte
 
     for shape_key_name in expected.get("nonzero_names", ("Smile", "Look_Down", "Look_Up", "Eyes_Smile")):
         assert_shape_key_has_nonzero_delta(imported_obj, shape_key_name)
+
+    for shape_key_name, expected_signature in expected.get("delta_signatures", {}).items():
+        assert_shape_key_delta_signature(imported_obj, shape_key_name, expected_signature)
 
     log("Imported FBX preserved modifier-stack stress shape keys without Default")
 
@@ -2301,7 +2338,7 @@ def run_automerge_crash_log_regression_scenario():
     if sorted(imported_meshes.keys()) != [expected["root_name"]]:
         raise AssertionError(
             f"Unexpected imported meshes for crash-log regression scenario: {sorted(imported_meshes.keys())}"
-        )
+    )
     assert_imported_automerge_modifier_stack_stress_result(imported_meshes[expected["root_name"]], expected)
 
 
