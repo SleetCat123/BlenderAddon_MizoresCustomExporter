@@ -1,4 +1,5 @@
 import os
+import time
 
 import bpy
 
@@ -18,6 +19,13 @@ def log_export_set_stage(export_set_name: str, stage: str, detail: str = ""):
         print(f"[ExportSets][{stage}] {export_set_name}: {detail}")
     else:
         print(f"[ExportSets][{stage}] {export_set_name}")
+
+
+def format_elapsed_detail(elapsed_seconds: float, detail: str = "") -> str:
+    elapsed_detail = f"elapsed={elapsed_seconds:.3f}s"
+    if detail:
+        return f"{elapsed_detail} {detail}"
+    return elapsed_detail
 
 
 def build_export_set_progress(
@@ -120,6 +128,7 @@ def build_export_set_runtime_for_job(
         message=f"Export Set {index + 1}/{total_sets}: resolve targets",
     )
     log_export_set_stage(export_set_name, "build_runtime", "start")
+    stage_start = time.perf_counter()
     runtime = func_export_sets.build_export_set_runtime(
         export_set=export_set,
         available_objects=export_set_available_roots if export_set_available_roots is not None else all_export_targets,
@@ -130,8 +139,14 @@ def build_export_set_runtime_for_job(
             else None
         ),
     )
+    elapsed = time.perf_counter() - stage_start
     if not runtime.duplicate_objects:
         warning = f"Export Set '{export_set_name}': no export targets resolved"
+        log_export_set_stage(
+            export_set_name,
+            "build_runtime",
+            format_elapsed_detail(elapsed, "duplicate_objects=0 export_targets=0"),
+        )
         print(warning)
         operator.report({'WARNING'}, warning)
         result.add_warning(warning)
@@ -141,7 +156,10 @@ def build_export_set_runtime_for_job(
     log_export_set_stage(
         export_set_name,
         "build_runtime",
-        f"resolved duplicate_objects={len(runtime.duplicate_objects)} export_targets={len(runtime_targets)}",
+        format_elapsed_detail(
+            elapsed,
+            f"duplicate_objects={len(runtime.duplicate_objects)} export_targets={len(runtime_targets)}",
+        ),
     )
     yield build_export_set_progress(
         export_set_name=export_set_name,
@@ -165,6 +183,7 @@ def transform_export_set_runtime_for_job(
     runtime_targets,
 ):
     log_export_set_stage(export_set_name, "retarget", "start")
+    stage_start = time.perf_counter()
     yield build_export_set_progress(
         export_set_name=export_set_name,
         stage="retarget",
@@ -178,23 +197,36 @@ def transform_export_set_runtime_for_job(
     func_export_sets.validate_runtime_object_replace_references(runtime)
     func_export_sets.remove_runtime_object_replace_staging_duplicates(runtime)
     runtime_targets = func_export_sets.get_export_objects_from_runtime(runtime)
-    log_export_set_stage(export_set_name, "retarget", "done")
+    log_export_set_stage(
+        export_set_name,
+        "retarget",
+        format_elapsed_detail(
+            time.perf_counter() - stage_start,
+            f"export_targets={len(runtime_targets)}",
+        ),
+    )
 
     log_export_set_stage(export_set_name, "vertex_color", "start")
+    stage_start = time.perf_counter()
     yield build_export_set_progress(
         export_set_name=export_set_name,
         stage="vertex_color",
         set_index=index,
         total_sets=total_sets,
         stage_progress=0.24,
-        message=f"Export Set {index + 1}/{total_sets}: apply vertex color rules",
-        object_name=runtime_targets[0].name if runtime_targets else "",
-    )
+            message=f"Export Set {index + 1}/{total_sets}: apply vertex color rules",
+            object_name=runtime_targets[0].name if runtime_targets else "",
+        )
     func_export_sets.apply_runtime_vertex_color_replace_rules(runtime)
-    log_export_set_stage(export_set_name, "vertex_color", "done")
+    log_export_set_stage(
+        export_set_name,
+        "vertex_color",
+        format_elapsed_detail(time.perf_counter() - stage_start),
+    )
 
     if export_set.merge_armatures:
         log_export_set_stage(export_set_name, "merge_armatures", "start")
+        stage_start = time.perf_counter()
         yield build_export_set_progress(
             export_set_name=export_set_name,
             stage="merge_armatures",
@@ -206,10 +238,18 @@ def transform_export_set_runtime_for_job(
         )
         func_export_sets.merge_runtime_armatures(runtime)
         runtime_targets = func_export_sets.get_export_objects_from_runtime(runtime)
-        log_export_set_stage(export_set_name, "merge_armatures", "done")
+        log_export_set_stage(
+            export_set_name,
+            "merge_armatures",
+            format_elapsed_detail(
+                time.perf_counter() - stage_start,
+                f"export_targets={len(runtime_targets)}",
+            ),
+        )
 
     if export_set.join_meshes_to_one:
         log_export_set_stage(export_set_name, "join_meshes", "start")
+        stage_start = time.perf_counter()
         yield build_export_set_progress(
             export_set_name=export_set_name,
             stage="join_meshes",
@@ -221,20 +261,30 @@ def transform_export_set_runtime_for_job(
         )
         func_export_sets.join_runtime_meshes(runtime)
         runtime_targets = func_export_sets.get_export_objects_from_runtime(runtime)
-        log_export_set_stage(export_set_name, "join_meshes", "done")
+        log_export_set_stage(
+            export_set_name,
+            "join_meshes",
+            format_elapsed_detail(
+                time.perf_counter() - stage_start,
+                f"export_targets={len(runtime_targets)}",
+            ),
+        )
 
     if operator.enable_reorder_shapekeys and func_addon_link.shapekey_util_reorder_is_available():
         objects_with_reorder = shapekey_order_override_resolver.build_export_set_reorder_targets(
             export_set,
             runtime,
         )
+        reorder_target_count = len(objects_with_reorder)
+        reorder_operation_count = sum(len(operations) for _, operations in objects_with_reorder)
         if objects_with_reorder:
             first_reorder_target_name = get_reorder_target_name(objects_with_reorder[0])
             log_export_set_stage(
                 export_set_name,
                 "reorder_shapekeys",
-                f"start objects={len(objects_with_reorder)}",
+                f"start objects={reorder_target_count} operations={reorder_operation_count}",
             )
+            stage_start = time.perf_counter()
             yield build_export_set_progress(
                 export_set_name=export_set_name,
                 stage="reorder_shapekeys",
@@ -259,7 +309,20 @@ def transform_export_set_runtime_for_job(
                     message=f"Export Set {index + 1}/{total_sets}: reorder shapekeys",
                     object_name=reorder_object_name,
                 )
-            log_export_set_stage(export_set_name, "reorder_shapekeys", "done")
+            log_export_set_stage(
+                export_set_name,
+                "reorder_shapekeys",
+                format_elapsed_detail(
+                    time.perf_counter() - stage_start,
+                    f"objects={reorder_target_count} operations={reorder_operation_count}",
+                ),
+            )
+        else:
+            log_export_set_stage(
+                export_set_name,
+                "reorder_shapekeys",
+                "skip objects=0 operations=0",
+            )
 
     return func_export_sets.get_export_objects_from_runtime(runtime)
 
@@ -290,6 +353,7 @@ def export_export_set_runtime_for_job(
         "export_fbx",
         f"start target_count={len(targets)} path={export_path}",
     )
+    stage_start = time.perf_counter()
     yield build_export_set_progress(
         export_set_name=export_set_name,
         stage="export_fbx",
@@ -318,7 +382,14 @@ def export_export_set_runtime_for_job(
         scale_duplicate_objects=targets,
     )
     result.add_exported_file(export_path)
-    log_export_set_stage(export_set_name, "export_fbx", "done")
+    log_export_set_stage(
+        export_set_name,
+        "export_fbx",
+        format_elapsed_detail(
+            time.perf_counter() - stage_start,
+            f"target_count={len(targets)} path={export_path}",
+        ),
+    )
     yield build_export_set_progress(
         export_set_name=export_set_name,
         stage="export_fbx",
@@ -332,8 +403,13 @@ def export_export_set_runtime_for_job(
 
 def cleanup_export_set_runtime(export_set_name, runtime):
     log_export_set_stage(export_set_name, "cleanup_runtime", "start")
+    stage_start = time.perf_counter()
     func_export_sets.cleanup_runtime(runtime)
-    log_export_set_stage(export_set_name, "cleanup_runtime", "done")
+    log_export_set_stage(
+        export_set_name,
+        "cleanup_runtime",
+        format_elapsed_detail(time.perf_counter() - stage_start),
+    )
 
 
 def restore_saved_export_set_selection(saved_selection, saved_active):
