@@ -1575,6 +1575,87 @@ def export_selected_scene(
     return operator, result
 
 
+def validate_subtract_base_progress_includes_object_details():
+    log("Validating subtract-base progress includes object details")
+    modules = load_required_modules()
+    reset_scene()
+
+    first_obj, _ = create_subtract_base_export_object()
+    first_obj.name = "ExportMesh_A"
+    first_obj.data.name = "ExportMeshData_A"
+
+    second_obj, _ = create_subtract_base_export_object()
+    second_obj.location.x += 3.0
+    second_obj.name = "ExportMesh_B"
+    second_obj.data.name = "ExportMeshData_B"
+
+    select_objects([first_obj, second_obj], active=first_obj)
+
+    filepath = os.path.join(OUTPUT_DIR, "subtract_base_progress_probe.fbx")
+    remove_file_if_exists(filepath)
+
+    operator = ExportOperatorStub(
+        filepath=filepath,
+        enable_auto_merge=False,
+        enable_subtract_base_shapekey=True,
+    )
+
+    if bpy.ops.ed.undo_push.poll():
+        bpy.ops.ed.undo_push(message="Subtract base progress test")
+    else:
+        raise RuntimeError("Undo push is not available in this Blender context")
+
+    subtract_progress = []
+    try:
+        generator = modules["func_execute_main"].execute_main_iter(operator, bpy.context)
+        while True:
+            try:
+                progress = next(generator)
+            except StopIteration as stop:
+                result = stop.value
+                break
+            if progress.phase == "subtract_base" and progress.object_name:
+                subtract_progress.append({
+                    "message": progress.message,
+                    "object_name": progress.object_name,
+                    "current": progress.current_object_index,
+                    "total": progress.total_objects,
+                    "progress": progress.progress,
+                })
+        if result is None:
+            raise AssertionError("subtract-base progress test returned no result")
+        if not result.exported_files:
+            raise AssertionError("subtract-base progress test produced no exported files")
+    finally:
+        if bpy.ops.ed.undo_push.poll():
+            bpy.ops.ed.undo_push(message="Restore subtract base progress test scene")
+            bpy.ops.ed.undo()
+
+    expected_names = ["ExportMesh_A", "ExportMesh_B"]
+    observed_names = [snapshot["object_name"] for snapshot in subtract_progress]
+    if observed_names != expected_names:
+        raise AssertionError(
+            f"subtract-base progress should report each object in order. "
+            f"actual={subtract_progress} expected_names={expected_names}"
+        )
+
+    expected_pairs = [(1, 2), (2, 2)]
+    observed_pairs = [(snapshot["current"], snapshot["total"]) for snapshot in subtract_progress]
+    if observed_pairs != expected_pairs:
+        raise AssertionError(
+            f"subtract-base progress should include current/total counts. "
+            f"actual={subtract_progress} expected_pairs={expected_pairs}"
+        )
+
+    observed_progress = [snapshot["progress"] for snapshot in subtract_progress]
+    expected_progress = [0.555, 0.5585]
+    if any(abs(actual - expected) > 1e-6 for actual, expected in zip(observed_progress, expected_progress)):
+        raise AssertionError(
+            f"subtract-base progress should start each object at its segment boundary. "
+            f"actual={subtract_progress} expected_progress={expected_progress}"
+        )
+
+
 def import_fbx(filepath):
     reset_scene()
     ensure_addon_enabled(FBX_MODULE)
@@ -2515,6 +2596,7 @@ def run_selected_scenarios(mode):
     scenarios = {
         "basic": run_basic_scenario,
         "basic_standalone_target": run_basic_standalone_target_scenario,
+        "subtract_base_progress": validate_subtract_base_progress_includes_object_details,
         "automerge": run_automerge_scenario,
         "automerge_children_default": run_automerge_children_default_scenario,
         "automerge_default_with_other_as": run_automerge_default_with_other_as_scenario,
@@ -2531,6 +2613,7 @@ def run_selected_scenarios(mode):
         selected = [
             "basic",
             "basic_standalone_target",
+            "subtract_base_progress",
             "automerge",
             "automerge_children_default",
             "automerge_default_with_other_as",

@@ -22,10 +22,18 @@ class ExportPostprocessResult:
     success_shapekey_util: bool = False
 
 
-def _phase_progress(start: float, end: float, current_index: int, total_count: int) -> float:
+def _phase_progress(
+    start: float,
+    end: float,
+    current_index: int,
+    total_count: int,
+    *,
+    at_start: bool = False,
+) -> float:
     if total_count <= 0:
         return start
-    return start + ((current_index + 1) / total_count) * (end - start)
+    completed = current_index if at_start else (current_index + 1)
+    return start + (completed / total_count) * (end - start)
 
 
 def _build_phase_progress(
@@ -37,10 +45,16 @@ def _build_phase_progress(
     current_index: int,
     total_count: int,
     object_name: str = "",
+    at_start: bool = False,
 ) -> ProgressInfo:
     safe_total = max(total_count, 0)
-    progress = _phase_progress(start, end, current_index, safe_total)
-    sub_progress = 0.0 if safe_total <= 0 else (current_index + 1) / safe_total
+    progress = _phase_progress(start, end, current_index, safe_total, at_start=at_start)
+    if safe_total <= 0:
+        sub_progress = 0.0
+    elif at_start:
+        sub_progress = current_index / safe_total
+    else:
+        sub_progress = (current_index + 1) / safe_total
     return ProgressInfo(
         phase=phase,
         progress=progress,
@@ -450,6 +464,20 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
 
             for idx, obj in enumerate(targets_for_lr):
                 base_progress = 0.6 + (0.05 * idx / max(total_lr, 1))
+                yield _build_phase_progress(
+                    phase="separate_lr",
+                    message=T("mce_progress_separate_lr_shapekey_obj").format(
+                        obj=obj.name,
+                        current=idx + 1,
+                        total=total_lr,
+                    ),
+                    start=0.6,
+                    end=0.65,
+                    current_index=idx,
+                    total_count=total_lr,
+                    object_name=obj.name,
+                    at_start=True,
+                )
                 func_object_utils.set_active_object(obj)
 
                 if use_iter:
@@ -462,7 +490,9 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
                             phase=f"lr_{sub_progress.phase}",
                             progress=mapped_progress,
                             message=sub_progress.message,
-                            object_name=sub_progress.object_name or obj.name
+                            object_name=sub_progress.object_name or obj.name,
+                            total_objects=total_lr,
+                            current_object_index=idx + 1,
                         )
                 else:
                     # 同期版オペレーターにフォールバック
@@ -477,14 +507,31 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
         if operator.enable_subtract_base_shapekey:
             if not func_addon_link.shapekey_util_subtract_base_is_available():
                 raise AttributeError("ShapeKeysUtil subtract-base API is not available")
-            for obj in bpy.context.selected_objects:
-                if obj.type == 'MESH' and obj.data.shape_keys is not None and len(
-                        obj.data.shape_keys.key_blocks) != 0:
-                    func_object_utils.set_active_object(obj)
-                    if obj.mode != 'OBJECT':
-                        bpy.ops.object.mode_set(mode='OBJECT')
+            subtract_targets = [
+                obj for obj in bpy.context.selected_objects
+                if obj.type == 'MESH' and obj.data.shape_keys is not None and len(obj.data.shape_keys.key_blocks) != 0
+            ]
+            total_subtract_targets = len(subtract_targets)
+            for idx, obj in enumerate(subtract_targets):
+                yield _build_phase_progress(
+                    phase="subtract_base",
+                    message=T("mce_progress_subtract_base_shapekey_obj").format(
+                        obj=obj.name,
+                        current=idx + 1,
+                        total=total_subtract_targets,
+                    ),
+                    start=0.65,
+                    end=0.66,
+                    current_index=idx,
+                    total_count=total_subtract_targets,
+                    object_name=obj.name,
+                    at_start=True,
+                )
+                func_object_utils.set_active_object(obj)
+                if obj.mode != 'OBJECT':
+                    bpy.ops.object.mode_set(mode='OBJECT')
 
-                    bpy.types.WindowManager.shapekeys_util_subtract_base_for_exporter(obj)
+                bpy.types.WindowManager.shapekeys_util_subtract_base_for_exporter(obj)
 
         # シェイプキー並び替え
         yield ProgressInfo(
@@ -503,17 +550,37 @@ def export_preprocess_iter(operator) -> Generator[ProgressInfo, None, ExportPost
             )
 
             if objects_with_reorder:
-                reorder_gen = bpy.types.WindowManager.shapekeys_util_get_reorder_iter(
-                    objects_with_reorder
-                )
-                for sub_progress in reorder_gen:
-                    mapped_progress = 0.66 + (sub_progress.progress * 0.01)
-                    yield ProgressInfo(
-                        phase=f"reorder_{sub_progress.phase}",
-                        progress=mapped_progress,
-                        message=sub_progress.message,
-                        object_name=sub_progress.object_name
+                total_reorder_targets = len(objects_with_reorder)
+                for idx, reorder_target in enumerate(objects_with_reorder):
+                    reorder_obj = reorder_target[0]
+                    yield _build_phase_progress(
+                        phase="reorder_shapekeys",
+                        message=T("mce_progress_reorder_shapekeys_obj").format(
+                            obj=reorder_obj.name,
+                            current=idx + 1,
+                            total=total_reorder_targets,
+                        ),
+                        start=0.66,
+                        end=0.67,
+                        current_index=idx,
+                        total_count=total_reorder_targets,
+                        object_name=reorder_obj.name,
+                        at_start=True,
                     )
+                    reorder_gen = bpy.types.WindowManager.shapekeys_util_get_reorder_iter(
+                        [reorder_target]
+                    )
+                    progress_range = 0.01 / max(total_reorder_targets, 1)
+                    for sub_progress in reorder_gen:
+                        mapped_progress = 0.66 + (idx * progress_range) + (sub_progress.progress * progress_range)
+                        yield ProgressInfo(
+                            phase=f"reorder_{sub_progress.phase}",
+                            progress=mapped_progress,
+                            message=sub_progress.message,
+                            object_name=sub_progress.object_name or reorder_obj.name,
+                            total_objects=total_reorder_targets,
+                            current_object_index=idx + 1,
+                        )
 
         result.success_shapekey_util = True
     else:
