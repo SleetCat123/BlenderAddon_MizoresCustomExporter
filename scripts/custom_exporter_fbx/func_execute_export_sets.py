@@ -3,11 +3,12 @@ import time
 
 import bpy
 
+from .. import consts
 from ..export_sets import func_export_sets
 from ..export_sets.shapekey_order_override import resolver as shapekey_order_override_resolver
 from ..funcs import func_addon_link
 from ..funcs.modal.progress_info import ProgressInfo
-from ..funcs.utils import func_object_utils
+from ..funcs.utils import func_custom_props_utils, func_object_utils
 
 
 EXPORT_PROGRESS_START = 0.80
@@ -70,6 +71,8 @@ def prepare_export_set_preprocess_targets(export_sets, available_roots, object_t
     export_set_item_contexts_by_ptr = {}
     preprocess_targets = []
     preprocess_target_pointers = set()
+    preprocess_descendant_roots = []
+    preprocess_descendant_root_pointers = set()
 
     for export_set in export_sets:
         item_contexts = func_export_sets.resolve_export_set_item_contexts(
@@ -78,10 +81,19 @@ def prepare_export_set_preprocess_targets(export_sets, available_roots, object_t
         )
         export_set_item_contexts_by_ptr[export_set.as_pointer()] = item_contexts
         resolved_objects = func_export_sets.collect_export_set_objects_from_contexts(item_contexts)
+        for item_context in item_contexts:
+            effective_root = item_context.effective_root
+            if effective_root is None or not func_export_sets.object_exists(effective_root):
+                continue
+            effective_root_pointer = effective_root.as_pointer()
+            if effective_root_pointer in preprocess_descendant_root_pointers:
+                continue
+            preprocess_descendant_root_pointers.add(effective_root_pointer)
+            preprocess_descendant_roots.append(effective_root)
         for obj in resolved_objects:
             if not func_export_sets.object_exists(obj):
                 continue
-            if not is_object_type_enabled_for_export(object_types, obj):
+            if obj.type != 'ARMATURE' and not is_object_type_enabled_for_export(object_types, obj):
                 continue
             obj_pointer = obj.as_pointer()
             if obj_pointer in preprocess_target_pointers:
@@ -95,6 +107,16 @@ def prepare_export_set_preprocess_targets(export_sets, available_roots, object_t
         for obj in preprocess_targets:
             func_object_utils.force_unhide(obj)
         func_object_utils.select_objects(preprocess_targets, True)
+        if preprocess_descendant_roots:
+            func_object_utils.select_children_recursive(preprocess_descendant_roots)
+        dont_export_objects = func_custom_props_utils.get_objects_prop_is_true(
+            prop_name=consts.DONT_EXPORT_GROUP_NAME,
+            affect_children=True,
+            targets=list(bpy.context.selected_objects),
+        )
+        for obj in dont_export_objects:
+            func_object_utils.select_object(obj, False)
+            obj.hide_set(True)
         if active_object in preprocess_targets:
             func_object_utils.set_active_object(active_object)
         else:

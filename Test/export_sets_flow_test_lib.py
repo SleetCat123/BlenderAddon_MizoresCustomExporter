@@ -1709,6 +1709,102 @@ def validate_export_set_shared_target_armature_accepts_multiple_items():
     validate_exported_outputs(expected_files)
 
 
+
+def validate_export_set_preprocess_respects_support_object_props():
+    load_required_modules()
+    reset_scene()
+
+    func_execute_common = importlib.import_module(
+        f"{EXPORTER_MODULE}.scripts.custom_exporter_fbx.func_execute_common"
+    )
+    func_execute_export_sets = importlib.import_module(
+        f"{EXPORTER_MODULE}.scripts.custom_exporter_fbx.func_execute_export_sets"
+    )
+    func_export_preprocess = importlib.import_module(
+        f"{EXPORTER_MODULE}.scripts.custom_exporter_fbx.func_export_preprocess"
+    )
+    func_export_sets = importlib.import_module(
+        f"{EXPORTER_MODULE}.scripts.export_sets.func_export_sets"
+    )
+    consts = importlib.import_module(f"{EXPORTER_MODULE}.scripts.consts")
+
+    support_armature = _create_armature(
+        "SupportRig",
+        location=(0.0, 0.0, 0.0),
+        bones=[
+            {"name": "Root", "head": (0.0, 0.0, 0.0), "tail": (0.0, 0.0, 1.0)},
+        ],
+    )
+    support_mesh = _create_cube("SupportMesh", (0.0, 0.0, 0.5))
+    _add_full_weight_group(support_mesh, "Root")
+    _add_armature_modifier(support_mesh, support_armature)
+
+    support_mesh.shape_key_add(name="Basis")
+    support_key = support_mesh.shape_key_add(name="Smile")
+    support_key.data[0].co.x += 0.35
+    support_key.value = 1.0
+    support_mesh[consts.RESET_SHAPEKEY_GROUP_NAME] = True
+    support_armature[consts.RESET_POSE_GROUP_NAME] = True
+
+    with single_object_override(support_armature):
+        bpy.ops.object.mode_set(mode='POSE')
+        pose_bone = support_armature.pose.bones["Root"]
+        pose_bone.rotation_mode = 'XYZ'
+        pose_bone.rotation_euler.z = 0.75
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+    if abs(support_armature.pose.bones["Root"].rotation_euler.z) <= 1e-6:
+        raise AssertionError("support armature pose setup failed before preprocess test")
+    if abs(support_mesh.data.shape_keys.key_blocks["Smile"].value - 1.0) > 1e-6:
+        raise AssertionError("support mesh shapekey setup failed before preprocess test")
+
+    props = bpy.context.scene.mizore_export_sets
+    props.export_sets.clear()
+    props.active_export_set_index = 0
+    export_set = props.export_sets.add()
+    export_set.filename = "SupportProps"
+    item = export_set.items.add()
+    item.root_object = support_mesh
+    item.include_children = False
+    item.armature_object = support_armature
+
+    select_objects([support_mesh], active=support_mesh)
+
+    import change_base_export_test_lib as base_t
+
+    operator = base_t.ExportOperatorStub(
+        filepath=BASE_EXPORT_PATH,
+        enable_auto_merge=False,
+    )
+    operator.batch_mode = 'EXPORT_SETS'
+    operator.object_types = {'MESH'}
+
+    selection_context = func_execute_common.prepare_export_selection_context(
+        operator,
+        bpy.context,
+        func_export_sets.iter_enabled_export_sets,
+        func_execute_export_sets.prepare_export_set_preprocess_targets,
+    )
+
+    selected_names = sorted(obj.name for obj in get_selected_objects())
+    assert_equal(
+        selected_names,
+        ["SupportMesh", "SupportRig"],
+        "export set preprocess targets should include support armatures even in mesh-only mode",
+    )
+    assert_equal(
+        selection_context.export_set_available_roots,
+        [support_mesh],
+        "export set preprocess context should keep the original selected roots",
+    )
+
+    func_export_preprocess.export_preprocess(operator)
+
+    if abs(support_mesh.data.shape_keys.key_blocks["Smile"].value) > 1e-6:
+        raise AssertionError("ResetShapekeysWhenExport should reset export set mesh shapekeys")
+    if abs(support_armature.pose.bones["Root"].rotation_euler.z) > 1e-6:
+        raise AssertionError("Reset Pose should reset support armatures used by export set items")
+
 def validate_export_set_progress_updates_are_granular():
     modules = load_required_modules()
     func_execute_main = modules["func_execute_main"]

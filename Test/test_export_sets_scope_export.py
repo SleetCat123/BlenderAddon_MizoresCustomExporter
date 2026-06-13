@@ -25,6 +25,7 @@ def main():
         t.validate_export_set_mesh_root_explicit_armature_requires_target()
         t.validate_export_set_mesh_root_explicit_armature_merges_into_target()
         t.validate_export_set_shared_target_armature_accepts_multiple_items()
+        t.validate_export_set_preprocess_respects_support_object_props()
         t.validate_shapekey_override_preview_does_not_request_writes()
         t.validate_export_set_progress_updates_are_granular()
     except Exception as exc:
