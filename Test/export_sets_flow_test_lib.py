@@ -1124,6 +1124,74 @@ def build_shared_target_armature_multi_item_scene(filename="BodyFaceSharedTarget
     return expected_files
 
 
+def build_single_unique_armature_multi_item_scene(filename="BodyAccessoryImplicitTarget"):
+    ensure_output_dir()
+    remove_file_if_exists(STATUS_PATH)
+    remove_file_if_exists(BASE_EXPORT_PATH)
+    remove_file_if_exists(os.path.join(OUTPUT_DIR, f"{filename}.fbx"))
+
+    reset_scene()
+
+    body_rig = _create_armature(
+        "BodyRig",
+        location=(0.0, 0.0, 0.0),
+        bones=[
+            {"name": "Root", "head": (0.0, 0.0, 0.0), "tail": (0.0, 0.0, 0.9)},
+            {"name": "Head", "head": (0.0, 0.0, 0.9), "tail": (0.0, 0.0, 1.4), "parent": "Root"},
+        ],
+    )
+
+    body_mesh = _create_cube("BodyMesh", (0.0, 0.0, 0.0))
+    set_parent_keep_transform(body_mesh, body_rig)
+    _add_full_weight_group(body_mesh, "Root")
+    _add_armature_modifier(body_mesh, body_rig)
+
+    accessory_mesh = _create_cube("AccessoryMesh", (0.5, 0.0, 0.8))
+    set_parent_keep_transform(accessory_mesh, body_rig)
+    _add_full_weight_group(accessory_mesh, "Head")
+    _add_armature_modifier(accessory_mesh, body_rig)
+
+    props = bpy.context.scene.mizore_export_sets
+    props.export_sets.clear()
+    props.active_export_set_index = 0
+
+    export_set = props.export_sets.add()
+    export_set.filename = filename
+    export_set.join_meshes_to_one = False
+    export_set.merge_armatures = True
+
+    item = export_set.items.add()
+    item.root_object = body_mesh
+    item.include_children = False
+    item.armature_object = body_rig
+
+    item = export_set.items.add()
+    item.root_object = accessory_mesh
+    item.include_children = False
+    item.armature_object = body_rig
+    item.attach_to_bone = "Head"
+
+    expected_files = {
+        f"{filename}.fbx": {
+            "meshes": {
+                "BodyMesh": _vertex_count(body_mesh),
+                "AccessoryMesh": _vertex_count(accessory_mesh),
+            },
+            "armatures": {
+                "BodyRig": {
+                    "Root": None,
+                    "Head": "Root",
+                },
+            },
+        },
+    }
+
+    select_objects([body_mesh, accessory_mesh], active=body_mesh)
+    log(f"Single-unique-armature scene prepared. objects={[obj.name for obj in bpy.context.scene.objects]}")
+    log(f"Expected export files={expected_files}")
+    return expected_files
+
+
 def build_vertex_color_replace_export_set_scene():
     ensure_output_dir()
     remove_file_if_exists(STATUS_PATH)
@@ -1708,6 +1776,33 @@ def validate_export_set_shared_target_armature_accepts_multiple_items():
     )
     validate_exported_outputs(expected_files)
 
+
+def validate_export_set_single_unique_armature_does_not_require_target():
+    modules = load_required_modules()
+    func_execute_main = modules["func_execute_main"]
+
+    expected_files = build_single_unique_armature_multi_item_scene()
+
+    import change_base_export_test_lib as base_t
+
+    _operator, result = base_t.export_selected_scene(
+        func_execute_main_module=func_execute_main,
+        filepath=BASE_EXPORT_PATH,
+        enable_auto_merge=False,
+        operator_overrides={
+            "batch_mode": 'EXPORT_SETS',
+            "object_types": {'EMPTY', 'MESH', 'ARMATURE'},
+            "save_prefs": False,
+            "save_path": False,
+        },
+    )
+    exported_paths = [item.filepath for item in result.exported_files]
+    assert_equal(
+        exported_paths,
+        [os.path.join(OUTPUT_DIR, "BodyAccessoryImplicitTarget.fbx")],
+        "single unique armature should not require Target Armature",
+    )
+    validate_exported_outputs(expected_files)
 
 
 def validate_export_set_preprocess_respects_support_object_props():

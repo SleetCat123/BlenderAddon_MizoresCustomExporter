@@ -993,6 +993,20 @@ def _get_armature_item_runtimes(runtime: ExportSetRuntime):
     ]
 
 
+def _get_unique_armature_item_runtimes(runtime: ExportSetRuntime):
+    unique_runtimes = []
+    seen_source_pointers = set()
+    for armature_runtime in _get_armature_item_runtimes(runtime):
+        if not object_exists(armature_runtime.source_armature):
+            continue
+        source_pointer = armature_runtime.source_armature.as_pointer()
+        if source_pointer in seen_source_pointers:
+            continue
+        seen_source_pointers.add(source_pointer)
+        unique_runtimes.append(armature_runtime)
+    return unique_runtimes
+
+
 def _describe_armature_runtime(armature_runtime: ExportSetArmatureRuntime) -> str:
     source_name = armature_runtime.source_armature.name if object_exists(armature_runtime.source_armature) else "(None)"
     duplicate_name = armature_runtime.duplicate_armature.name if object_exists(armature_runtime.duplicate_armature) else "(None)"
@@ -1022,7 +1036,9 @@ def _log_armature_merge_state(runtime: ExportSetRuntime, prefix: str):
 
 
 def _find_inferred_primary_armature_runtime(runtime: ExportSetRuntime):
-    armature_runtimes = _get_armature_item_runtimes(runtime)
+    armature_runtimes = _get_unique_armature_item_runtimes(runtime)
+    if len(armature_runtimes) == 1:
+        return armature_runtimes[0]
     candidates = [
         armature_runtime
         for armature_runtime in armature_runtimes
@@ -1043,14 +1059,15 @@ def _find_inferred_primary_armature_runtime(runtime: ExportSetRuntime):
 
 def validate_runtime_armature_merge(runtime: ExportSetRuntime):
     armature_runtimes = _get_armature_item_runtimes(runtime)
+    unique_armature_runtimes = _get_unique_armature_item_runtimes(runtime)
     if not runtime.includes_armatures_in_export and not armature_runtimes:
         return
     target_armature = runtime.export_set.target_armature
     if target_armature is not None and object_exists(target_armature):
         matching_runtimes = [
-            armature_runtime
-            for armature_runtime in armature_runtimes
-            if armature_runtime.source_armature == target_armature
+            unique_armature_runtime
+            for unique_armature_runtime in unique_armature_runtimes
+            if unique_armature_runtime.source_armature == target_armature
         ]
         if not matching_runtimes:
             export_set_name = get_export_set_display_name(runtime.export_set)
@@ -1060,7 +1077,7 @@ def validate_runtime_armature_merge(runtime: ExportSetRuntime):
                 f"was not resolved from the enabled items."
             )
 
-    if len(armature_runtimes) <= 1:
+    if len(unique_armature_runtimes) <= 1:
         return
 
     if target_armature is None or not object_exists(target_armature):
@@ -1076,7 +1093,7 @@ def validate_runtime_armature_merge(runtime: ExportSetRuntime):
 
 
 def _find_primary_armature_runtime(runtime: ExportSetRuntime):
-    armature_runtimes = _get_armature_item_runtimes(runtime)
+    armature_runtimes = _get_unique_armature_item_runtimes(runtime)
     if not armature_runtimes:
         return None
     target_armature = runtime.export_set.target_armature
