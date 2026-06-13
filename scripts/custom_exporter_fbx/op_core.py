@@ -598,11 +598,17 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
             gpu_progress_end()
             self._gpu_progress_started = False
 
+    def _restore_pre_export_state(self):
+        """Undoで実行前の状態へ戻す"""
+        if not bpy.ops.ed.undo.poll():
+            return
+        bpy.ops.ed.undo_push(message="Restore point 1")
+        bpy.ops.ed.undo()
+
     def _on_complete(self, context):
         """処理完了時のコールバック"""
         # 実行前の状態に戻す
-        bpy.ops.ed.undo_push(message="Restore point 1")
-        bpy.ops.ed.undo()
+        self._restore_pre_export_state()
         # シーンに設定を保存
         if self.save_prefs:
             ignore_key = ["reset_path"]
@@ -633,15 +639,13 @@ class INFO_MT_file_custom_export_mizore_fbx(bpy.types.Operator, ExportHelper):
     def _on_cancel(self, context):
         """キャンセル時のコールバック"""
         # 実行前の状態に戻す
-        if bpy.ops.ed.undo.poll():
-            bpy.ops.ed.undo()
+        self._restore_pre_export_state()
         self.report({'WARNING'}, "Export cancelled")
 
     def _on_error(self, context, error):
         """エラー時のコールバック"""
         # 実行前の状態に戻す
-        if bpy.ops.ed.undo.poll():
-            bpy.ops.ed.undo()
+        self._restore_pre_export_state()
         log = bpy.app.translations.pgettext("export_interrupted") + "\n\n" + str(error)
         self.report({'ERROR'}, log)
 
