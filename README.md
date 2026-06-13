@@ -63,6 +63,8 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 - ConvertUvTilesToSingle: このプロパティが有効なオブジェクトは、エクスポート時にUVタイルを1x1に変換します。
   - UV頂点が[0,0]-[1,1]の範囲に収まるように調整されます。
   - UVタイルの境界をまたがるような配置のUVは正常に変換できない場合があります。
+- ClearAllShapekeysWhenExport: このプロパティが有効なオブジェクトは、エクスポート時にシェイプキーを全て削除します。
+- ApplyAllShapekeysWhenExport: このプロパティが有効なオブジェクトは、エクスポート時にシェイプキーを全て適用（Basis形状に統合して削除）します。
 
 **アドオン連携機能 ([AutoMerge](https://github.com/SleetCat123/BlenderAddon-AutoMerge))**  
 - MergeGroup: このプロパティが有効なオブジェクトは、エクスポート時に子オブジェクトを結合します。
@@ -79,6 +81,27 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 #### ・Active Collections (Include Children)
 通常のActive Collectionsはアクティブなコレクションに属しているオブジェクトしかエクスポートされませんが、この項目を有効にすることでコレクションに属するオブジェクトの子オブジェクトもエクスポートされるようになります。
 
+## ・バッチモード
+エクスポートダイアログの Batch パネルで Batch Mode を切り替えることで、複数のファイルを一括出力できます。
+
+| モード | 説明 |
+|--------|------|
+| Off | 通常の単一ファイル出力 |
+| Scene | シーンごとにファイルを出力 |
+| Collection | データブロックコレクションごとにファイルを出力 |
+| Scene Collections | 全シーンの全コレクション（マスター含む）をファイルを出力 |
+| Active Scene Collections | アクティブシーンの全コレクションをファイルを出力 |
+| Collections in Active Collection | アクティブコレクション内の各コレクションを個別ファイルとして出力 |
+| Objects in Active Collection | アクティブコレクション内の各オブジェクトを個別ファイルとして出力 |
+| Export Sets | Export Setsで定義した各エクスポートセットを個別ファイルとして出力 |
+
+### ・バッチファイル名フォーマット
+Batch Modeがバッチ系（Off・Export Sets以外）の場合、出力ファイル名のパターンを `{name}` と `{batch}` プレースホルダーで指定できます。  
+- `{name}`: ダイアログで指定したファイル名（拡張子なし）
+- `{batch}`: バッチ対象の名前（コレクション名・オブジェクト名など）
+
+プリセットから選ぶか、直接フォーマット文字列を入力できます。
+
 ## ・エクスポート設定
 エクスポート設定メニューは標準のfbxエクスポート（io_scene_fbx）を一部改変して使用しています。  
 
@@ -92,6 +115,25 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 - Batch Own Dir: デフォルト値をFalseに変更
 - Smoothing: デフォルト値をFaceに変更
 
+### ・Scale Value Mode（スケール値モード）
+Transform パネルの Scale Value Mode でスケール値の扱い方を選択できます。
+
+- Normal: 通常のFBXスケール動作（ScaleはFBXのスケール設定を通じて適用される）
+- Keep Scale Value: Scaleの倍率をオブジェクトデータに直接焼き付けてエクスポートし、FBX上のスケール値は変えません。他のツールへのインポート時にスケールの差異が生じにくくなります。
+
+Keep Scale Value 選択時は Scale Pivot も指定できます。
+- World Origin: ワールド原点を基準にスケール
+- Each Object Origin: 各オブジェクトの原点を基準にスケール（オブジェクト位置を動かさずにデータのみ拡縮）
+
+### ・モディファイアタイプフィルター
+エクスポート時に適用するモディファイアのタイプをチェックボックスで選択できます。  
+Generate / Modify / Deform / Physics / Nodes のカテゴリ別に表示されます。  
+デフォルトでは Armature と Multires が無効（適用しない）に設定されています。  
+
+### ・頂点グループ関連オプション
+- Fix Vertex Group Name Collisions: 同じオブジェクトに同名の頂点グループが複数存在する異常な状態になっている場合に修復を行います（デフォルト有効）。
+- Limit Vertex Weight Count: 1頂点あたりのウェイト数を指定した上限（デフォルト4）に制限してエクスポートします。
+
 ### ・設定項目の保存
 各種項目の設定状態はblendファイルに保存され、次回以降のエクスポート時に引き継がれます。
 
@@ -99,6 +141,50 @@ AlwaysExportと同時に有効化した場合はDontExportが優先されます�
 エクスポート後には処理前の状態が復元されます。
 （もしエクスポート後にオブジェクトが増えたり消えたりしていたら不具合です）
 
+## ・エクスポート処理の進捗表示とキャンセル
+エクスポート実行中は処理の進捗がプログレスバーで表示されます（GPU描画対応環境のみ）。  
+ESCキーまたは右クリックでエクスポートをキャンセルできます。  
+エクスポート完了後には、出力ファイル数・ファイルサイズ・処理時間などを示す結果ダイアログが表示されます。
+
+
+## ◆Export Sets
+`サイドメニュー（Nキー）→ Assign (Mizore) → Export Sets`  
+または  
+`エクスポートダイアログ → Batch → Batch Mode: Export Sets`
+
+名前付きのエクスポートセットを複数定義し、Batch Mode: Export Sets を使うことで各セットをそれぞれ個別のファイルとして一括出力できます。  
+セット内の設定はblendファイルに保存されます。
+
+### ◇エクスポートセットの構成
+各エクスポートセットには以下を設定できます。
+
+**Items（出力対象）**  
+- Root Object: 出力の起点となるオブジェクト
+- Include Children: 子オブジェクトを含めて出力するか
+- Armature: マージ元アーマチュア（Merge Into One Armature有効時）
+- Attach To Bone: 統合先アーマチュアのボーン名（省略時は現在の親ボーンから推定）
+
+**Object Replace（オブジェクト置換）**  
+エクスポート時に特定のオブジェクトを別のオブジェクトに置き換えます。  
+「バリエーション違いのアバターを同じアーマチュアで出力する」といった用途に使えます。  
+- Source Object → Replacement Object のペアで指定
+- Include Children: ソースのサブツリーごと置き換えるか
+
+**Vertex Color Replace（頂点カラー置換）**  
+エクスポート時に特定の頂点カラーを別の色に置き換えます。  
+- Layer: 対象の頂点カラーレイヤー名（空欄で全レイヤー対象）
+- From / To: 置換元・置換先カラー
+- Tolerance: 一致判定の許容誤差（チャンネルごとの最大差分）
+
+**Armature Merge（アーマチュアマージ）**  
+- Merge Into One Armature: Items内の複数アーマチュアを1つに統合してエクスポートします。
+- Target Armature: 統合先となるアーマチュア
+
+**Join Meshes To One**  
+エクスポート時にセット内のメッシュを全て1つに結合して出力します。
+
+**ShapeKey Reorder Override**  
+このセット専用のシェイプキー並び替え設定。通常の並び替え設定をセット単位で上書きできます。
 
 ## ◆アドオン連携機能
 
@@ -150,10 +236,14 @@ Export Sets では、この基準設定をそのまま引き継ぎます。
 この機能にはShapeKeysUtilアドオンが必要です。
 
 ### ◇シェイプキーの並び替え（エクスポート時）
-通常設定は `サイドメニュー（Nキー）→ Assign (Mizore) → Reorder ShapeKeys` から行えます。
-Export Sets で個別設定したい場合は `Assign (Mizore) → Export Sets → ShapeKey Reorder Override` を使います。
-一覧には既存シェイプキーだけでなく、`%AS%`、`Change Base ShapeKey`、`%SHAPE%` 由来の候補も表示されます。
+`サイドメニュー（Nキー）→ Assign (Mizore) → Reorder ShapeKeysパネル`
+
+エクスポート時されるシェイプキーの確認と、並び順の変更ができます。  
 この機能にはShapeKeysUtilアドオンが必要です。
+
+**Export Sets での上書き**  
+Export Sets で個別設定したい場合は `Assign (Mizore) → Export Sets → ShapeKey Reorder Override` を使います。  
+Export Sets の設定はオブジェクト単位の通常設定を上書きします。
 
 ※    
 シェイプキーを持つオブジェクトのモディファイア適用処理には時間がかかるため、エクスポート完了までの所要時間が長くなります。
