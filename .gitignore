@@ -130,9 +130,7 @@ dmypy.json
 
 # Custom
 Test/__pycache__/
-Test/output_change_base_export/
-Test/output_export_sets_flow/
-Test/output_scale_value_mode/
+Test/output_*/
 Test/*.blend
 Test/*.blend1
 Test/*.fbx
