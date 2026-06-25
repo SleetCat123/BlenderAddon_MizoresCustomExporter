@@ -42,6 +42,10 @@ def _copy_export_set_item(target_item, source_item):
     target_item.root_object = source_item.root_object
     target_item.armature_object = source_item.armature_object
     target_item.attach_to_bone = source_item.attach_to_bone
+    for source_rule in source_item.uv_transform_rules:
+        target_rule = target_item.uv_transform_rules.add()
+        _copy_export_set_uv_transform_rule(target_rule, source_rule)
+    target_item.active_uv_transform_rule_index = source_item.active_uv_transform_rule_index
 
 
 def _copy_export_set_vertex_color_replace_rule(target_rule, source_rule):
@@ -57,6 +61,14 @@ def _copy_export_set_object_replace_rule(target_rule, source_rule):
     target_rule.source_object = source_rule.source_object
     target_rule.replacement_object = source_rule.replacement_object
     target_rule.include_children = source_rule.include_children
+
+
+def _copy_export_set_uv_transform_rule(target_rule, source_rule):
+    target_rule.enabled = source_rule.enabled
+    target_rule.uv_layer_name = source_rule.uv_layer_name
+    target_rule.offset = source_rule.offset
+    target_rule.scale = source_rule.scale
+    target_rule.pivot = source_rule.pivot
 
 
 def _copy_export_set(target_set, source_set, collection):
@@ -75,7 +87,6 @@ def _copy_export_set(target_set, source_set, collection):
             target_rule = target_set.vertex_color_replace_rules.add()
             _copy_export_set_vertex_color_replace_rule(target_rule, source_rule)
         target_set.active_vertex_color_replace_rule_index = source_set.active_vertex_color_replace_rule_index
-
         for source_override in source_set.shapekey_reorder_overrides:
             target_override = target_set.shapekey_reorder_overrides.add()
             target_override.target_object = source_override.target_object
@@ -486,6 +497,100 @@ class SCENE_OT_mizore_move_export_set_vcol_replace_rule(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def _get_active_export_set_item(context):
+    props = context.scene.mizore_export_sets
+    if len(props.export_sets) == 0:
+        return None
+    export_set = props.export_sets[props.active_export_set_index]
+    if len(export_set.items) == 0:
+        return None
+    return export_set.items[export_set.active_item_index]
+
+
+class SCENE_OT_mizore_add_export_set_uv_transform_rule(bpy.types.Operator):
+    bl_idname = "scene.mizore_add_export_set_uv_transform_rule"
+    bl_label = "Add UV Transform Rule"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return _get_active_export_set_item(context) is not None
+
+    def execute(self, context):
+        item = _get_active_export_set_item(context)
+        item.uv_transform_rules.add()
+        item.active_uv_transform_rule_index = len(item.uv_transform_rules) - 1
+        return {'FINISHED'}
+
+
+class SCENE_OT_mizore_remove_export_set_uv_transform_rule(bpy.types.Operator):
+    bl_idname = "scene.mizore_remove_export_set_uv_transform_rule"
+    bl_label = "Remove UV Transform Rule"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        item = _get_active_export_set_item(context)
+        return item is not None and len(item.uv_transform_rules) > 0
+
+    def execute(self, context):
+        item = _get_active_export_set_item(context)
+        index = item.active_uv_transform_rule_index
+        item.uv_transform_rules.remove(index)
+        item.active_uv_transform_rule_index = max(
+            0,
+            min(index, len(item.uv_transform_rules) - 1),
+        )
+        return {'FINISHED'}
+
+
+class SCENE_OT_mizore_duplicate_export_set_uv_transform_rule(bpy.types.Operator):
+    bl_idname = "scene.mizore_duplicate_export_set_uv_transform_rule"
+    bl_label = "Duplicate UV Transform Rule"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        item = _get_active_export_set_item(context)
+        return item is not None and len(item.uv_transform_rules) > 0
+
+    def execute(self, context):
+        item = _get_active_export_set_item(context)
+        source_rule = item.uv_transform_rules[item.active_uv_transform_rule_index]
+        new_rule = item.uv_transform_rules.add()
+        _copy_export_set_uv_transform_rule(new_rule, source_rule)
+        item.active_uv_transform_rule_index = len(item.uv_transform_rules) - 1
+        return {'FINISHED'}
+
+
+class SCENE_OT_mizore_move_export_set_uv_transform_rule(bpy.types.Operator):
+    bl_idname = "scene.mizore_move_export_set_uv_transform_rule"
+    bl_label = "Move UV Transform Rule"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    direction: EnumProperty(
+        name="Direction",
+        items=[
+            ('UP', "Up", ""),
+            ('DOWN', "Down", ""),
+        ],
+    )
+
+    @classmethod
+    def poll(cls, context):
+        item = _get_active_export_set_item(context)
+        return item is not None and len(item.uv_transform_rules) > 1
+
+    def execute(self, context):
+        item = _get_active_export_set_item(context)
+        item.active_uv_transform_rule_index = _move_index(
+            item.uv_transform_rules,
+            item.active_uv_transform_rule_index,
+            self.direction,
+        )
+        return {'FINISHED'}
+
+
 classes = [
     SCENE_OT_mizore_add_export_set,
     SCENE_OT_mizore_remove_export_set,
@@ -503,6 +608,10 @@ classes = [
     SCENE_OT_mizore_remove_export_set_vcol_replace_rule,
     SCENE_OT_mizore_duplicate_export_set_vcol_replace_rule,
     SCENE_OT_mizore_move_export_set_vcol_replace_rule,
+    SCENE_OT_mizore_add_export_set_uv_transform_rule,
+    SCENE_OT_mizore_remove_export_set_uv_transform_rule,
+    SCENE_OT_mizore_duplicate_export_set_uv_transform_rule,
+    SCENE_OT_mizore_move_export_set_uv_transform_rule,
 ]
 
 

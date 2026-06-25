@@ -342,6 +342,22 @@ def validate_export_set_move_operators():
     assert_equal([item.attach_to_bone for item in export_set.items], ["Goblin", "Sword", "Shield"], "export set items should move down")
     assert_equal(export_set.active_item_index, 1, "active export set item index should follow moved item after moving down")
 
+    item = export_set.items[export_set.active_item_index]
+    for name in ("MainUV", "DetailUV", "LightmapUV"):
+        rule = item.uv_transform_rules.add()
+        rule.uv_layer_name = name
+    item.active_uv_transform_rule_index = 1
+
+    result = bpy.ops.scene.mizore_move_export_set_uv_transform_rule(direction='UP')
+    assert_equal(result, {'FINISHED'}, "move export set UV transform rule up should succeed")
+    assert_equal([rule.uv_layer_name for rule in item.uv_transform_rules], ["DetailUV", "MainUV", "LightmapUV"], "UV transform rules should move up")
+    assert_equal(item.active_uv_transform_rule_index, 0, "active UV transform rule index should follow moved rule")
+
+    result = bpy.ops.scene.mizore_move_export_set_uv_transform_rule(direction='DOWN')
+    assert_equal(result, {'FINISHED'}, "move export set UV transform rule down should succeed")
+    assert_equal([rule.uv_layer_name for rule in item.uv_transform_rules], ["MainUV", "DetailUV", "LightmapUV"], "UV transform rules should move down")
+    assert_equal(item.active_uv_transform_rule_index, 1, "active UV transform rule index should follow moved rule after moving down")
+
 
 def validate_export_set_item_add_operator_does_not_copy_active_object():
     reset_scene()
@@ -480,6 +496,40 @@ def _assign_polygon_color(obj, polygon_indices, color, layer_name="Color"):
         polygon = mesh.polygons[polygon_index]
         for loop_index in polygon.loop_indices:
             color_attr.data[loop_index].color = color_value
+
+
+def _assign_loop_uvs(obj, layer_name, coordinates):
+    mesh = obj.data
+    uv_layer = mesh.uv_layers.get(layer_name)
+    if uv_layer is None:
+        uv_layer = mesh.uv_layers.new(name=layer_name)
+    if not coordinates:
+        raise AssertionError("UV coordinates must not be empty")
+    for index, loop_uv in enumerate(uv_layer.data):
+        uv = coordinates[index % len(coordinates)]
+        loop_uv.uv = (float(uv[0]), float(uv[1]))
+    mesh.update()
+    return uv_layer
+
+
+def _collect_loop_uvs(obj, layer_name):
+    uv_layer = obj.data.uv_layers.get(layer_name)
+    if uv_layer is None:
+        raise AssertionError(f"UV layer was not found: {layer_name}")
+    return [
+        (round(float(loop_uv.uv.x), 6), round(float(loop_uv.uv.y), 6))
+        for loop_uv in uv_layer.data
+    ]
+
+
+def _transform_uvs(coordinates, offset, scale, pivot):
+    return [
+        (
+            round(float(pivot[0]) + ((float(uv[0]) - float(pivot[0])) * float(scale[0])) + float(offset[0]), 6),
+            round(float(pivot[1]) + ((float(uv[1]) - float(pivot[1])) * float(scale[1])) + float(offset[1]), 6),
+        )
+        for uv in coordinates
+    ]
 
 
 def is_fbx_leaf_bone_name(name):
@@ -1264,6 +1314,80 @@ def build_vertex_color_replace_export_set_scene():
     return expected_files
 
 
+def build_uv_transform_export_set_scene():
+    ensure_output_dir()
+    remove_file_if_exists(STATUS_PATH)
+    remove_file_if_exists(BASE_EXPORT_PATH)
+    remove_file_if_exists(os.path.join(OUTPUT_DIR, "UvTransform.fbx"))
+
+    reset_scene()
+
+    uv_mesh = _create_cube("UvTarget", (0.0, 0.0, 0.0))
+    other_mesh = _create_cube("OtherTarget", (2.0, 0.0, 0.0))
+    main_uvs = [
+        (0.0, 0.0),
+        (1.0, 0.0),
+        (1.0, 1.0),
+        (0.0, 1.0),
+    ]
+    detail_uvs = [
+        (0.25, 0.25),
+        (0.75, 0.25),
+        (0.75, 0.75),
+        (0.25, 0.75),
+    ]
+    _assign_loop_uvs(uv_mesh, "MainUV", main_uvs)
+    _assign_loop_uvs(uv_mesh, "DetailUV", detail_uvs)
+    _assign_loop_uvs(other_mesh, "MainUV", detail_uvs)
+    original_main = _collect_loop_uvs(uv_mesh, "MainUV")
+    original_detail = _collect_loop_uvs(uv_mesh, "DetailUV")
+    original_other = _collect_loop_uvs(other_mesh, "MainUV")
+
+    props = bpy.context.scene.mizore_export_sets
+    props.export_sets.clear()
+    props.active_export_set_index = 0
+
+    export_set = props.export_sets.add()
+    export_set.filename = "UvTransform"
+    item = export_set.items.add()
+    item.root_object = uv_mesh
+    item.include_children = False
+    other_item = export_set.items.add()
+    other_item.root_object = other_mesh
+    other_item.include_children = False
+
+    main_rule = item.uv_transform_rules.add()
+    main_rule.uv_layer_name = "MainUV"
+    main_rule.offset = (0.25, -0.5)
+    main_rule.scale = (2.0, 0.5)
+    main_rule.pivot = (0.5, 0.25)
+
+    detail_rule = item.uv_transform_rules.add()
+    detail_rule.uv_layer_name = "DetailUV"
+    detail_rule.offset = (-0.25, 0.75)
+    detail_rule.scale = (0.5, 2.0)
+    detail_rule.pivot = (0.25, 0.25)
+
+    expected_files = {
+        "UvTransform.fbx": {
+            "meshes": {
+                "UvTarget": _vertex_count(uv_mesh),
+            },
+            "uv_layers": {
+                "UvTarget": {
+                    "MainUV": sorted(set(_transform_uvs(original_main, main_rule.offset, main_rule.scale, main_rule.pivot))),
+                    "DetailUV": sorted(set(_transform_uvs(original_detail, detail_rule.offset, detail_rule.scale, detail_rule.pivot))),
+                },
+            },
+        },
+    }
+
+    select_objects([uv_mesh], active=uv_mesh)
+    log(f"UV transform scene prepared. objects={[obj.name for obj in bpy.context.scene.objects]}")
+    log(f"Expected export files={expected_files}")
+    return expected_files
+
+
 def build_export_set_scope_scene():
     ensure_output_dir()
     remove_file_if_exists(STATUS_PATH)
@@ -1512,6 +1636,113 @@ def validate_export_set_runtime_mapping():
             joined_mesh.name if joined_mesh else None,
             "Goblin",
             "joined mesh should keep the first item's root name",
+        )
+    finally:
+        func_export_sets.cleanup_runtime(runtime)
+
+
+def validate_export_set_uv_transform_runtime():
+    modules = load_required_modules()
+    func_export_sets = modules["func_export_sets"]
+
+    reset_scene()
+
+    uv_mesh = _create_cube("UvTarget", (0.0, 0.0, 0.0))
+    other_mesh = _create_cube("OtherTarget", (2.0, 0.0, 0.0))
+    main_uvs = [
+        (0.0, 0.0),
+        (1.0, 0.0),
+        (1.0, 1.0),
+        (0.0, 1.0),
+    ]
+    detail_uvs = [
+        (0.25, 0.25),
+        (0.75, 0.25),
+        (0.75, 0.75),
+        (0.25, 0.75),
+    ]
+    _assign_loop_uvs(uv_mesh, "MainUV", main_uvs)
+    _assign_loop_uvs(uv_mesh, "DetailUV", detail_uvs)
+    _assign_loop_uvs(other_mesh, "MainUV", detail_uvs)
+    original_main = _collect_loop_uvs(uv_mesh, "MainUV")
+    original_detail = _collect_loop_uvs(uv_mesh, "DetailUV")
+    original_other = _collect_loop_uvs(other_mesh, "MainUV")
+
+    props = bpy.context.scene.mizore_export_sets
+    props.export_sets.clear()
+    props.active_export_set_index = 0
+    export_set = props.export_sets.add()
+    export_set.filename = "UvTransform"
+    item = export_set.items.add()
+    item.root_object = uv_mesh
+    item.include_children = False
+    other_item = export_set.items.add()
+    other_item.root_object = other_mesh
+    other_item.include_children = False
+
+    main_rule = item.uv_transform_rules.add()
+    main_rule.uv_layer_name = "MainUV"
+    main_rule.offset = (0.25, -0.5)
+    main_rule.scale = (2.0, 0.5)
+    main_rule.pivot = (0.5, 0.25)
+
+    detail_rule = item.uv_transform_rules.add()
+    detail_rule.uv_layer_name = "DetailUV"
+    detail_rule.offset = (-0.25, 0.75)
+    detail_rule.scale = (0.5, 2.0)
+    detail_rule.pivot = (0.25, 0.25)
+
+    select_objects([uv_mesh, other_mesh], active=uv_mesh)
+    runtime = func_export_sets.build_export_set_runtime(
+        export_set=export_set,
+        available_objects=list(bpy.context.selected_objects),
+    )
+    try:
+        duplicate_mesh = None
+        other_duplicate_mesh = None
+        item_pointer = item.as_pointer()
+        other_item_pointer = other_item.as_pointer()
+        for item_runtime in runtime.item_runtimes:
+            if item_runtime.item.as_pointer() == item_pointer:
+                duplicate_mesh = item_runtime.duplicate_root
+            if item_runtime.item.as_pointer() == other_item_pointer:
+                other_duplicate_mesh = item_runtime.duplicate_root
+        if duplicate_mesh is None:
+            raise AssertionError("UV transform runtime should create a duplicate mesh")
+        if other_duplicate_mesh is None:
+            raise AssertionError("UV transform runtime should create the other item duplicate mesh")
+
+        func_export_sets.apply_runtime_uv_transform_rules(runtime)
+
+        assert_equal(
+            _collect_loop_uvs(duplicate_mesh, "MainUV"),
+            _transform_uvs(original_main, main_rule.offset, main_rule.scale, main_rule.pivot),
+            "UV transform should apply move and scale to the specified MainUV layer on the runtime duplicate",
+        )
+        assert_equal(
+            _collect_loop_uvs(duplicate_mesh, "DetailUV"),
+            _transform_uvs(original_detail, detail_rule.offset, detail_rule.scale, detail_rule.pivot),
+            "UV transform should apply independent settings to another UV layer on the same duplicate",
+        )
+        assert_equal(
+            _collect_loop_uvs(uv_mesh, "MainUV"),
+            original_main,
+            "UV transform should not modify the source MainUV layer",
+        )
+        assert_equal(
+            _collect_loop_uvs(uv_mesh, "DetailUV"),
+            original_detail,
+            "UV transform should not modify the source DetailUV layer",
+        )
+        assert_equal(
+            _collect_loop_uvs(other_duplicate_mesh, "MainUV"),
+            original_other,
+            "UV transform should not affect another export set item without its own UV rules",
+        )
+        assert_equal(
+            _collect_loop_uvs(other_mesh, "MainUV"),
+            original_other,
+            "UV transform should not modify another source item",
         )
     finally:
         func_export_sets.cleanup_runtime(runtime)
@@ -2356,6 +2587,34 @@ def validate_export_set_object_replace_export():
     validate_exported_outputs(expected_files)
 
 
+def validate_export_set_uv_transform_export():
+    modules = load_required_modules()
+    func_execute_main = modules["func_execute_main"]
+
+    expected_files = build_uv_transform_export_set_scene()
+
+    import change_base_export_test_lib as base_t
+
+    _operator, result = base_t.export_selected_scene(
+        func_execute_main_module=func_execute_main,
+        filepath=BASE_EXPORT_PATH,
+        enable_auto_merge=False,
+        operator_overrides={
+            "batch_mode": 'EXPORT_SETS',
+            "object_types": {'MESH'},
+            "save_prefs": False,
+            "save_path": False,
+        },
+    )
+    exported_paths = [item.filepath for item in result.exported_files]
+    assert_equal(
+        exported_paths,
+        [os.path.join(OUTPUT_DIR, "UvTransform.fbx")],
+        "UV transform export should produce the export-set file",
+    )
+    validate_exported_outputs(expected_files)
+
+
 def _create_empty_temp_scene(name):
     scene = bpy.data.scenes.new(name=name)
     for obj in list(scene.objects):
@@ -2385,6 +2644,16 @@ def _collect_unique_attribute_colors(color_attr):
     return sorted({_quantize_color(item.color) for item in color_attr.data})
 
 
+def _collect_unique_uv_coordinates(uv_layer):
+    return sorted({
+        (
+            round(float(loop_uv.uv.x), 6),
+            round(float(loop_uv.uv.y), 6),
+        )
+        for loop_uv in uv_layer.data
+    })
+
+
 def validate_exported_file(filepath, expected):
     if not os.path.exists(filepath):
         raise AssertionError(f"Exported file was not created: {filepath}")
@@ -2398,6 +2667,7 @@ def validate_exported_file(filepath, expected):
     expected_meshes = expected["meshes"]
     expected_armatures = expected.get("armatures", {})
     expected_vertex_colors = expected.get("vertex_colors", {})
+    expected_uv_layers = expected.get("uv_layers", {})
 
     mesh_objects = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
     actual_names = sorted(obj.name for obj in mesh_objects)
@@ -2444,6 +2714,27 @@ def validate_exported_file(filepath, expected):
                 f"{os.path.basename(filepath)}:{obj.name} vertex colors mismatch. "
                 f"actual={actual_colors} expected={expected_colors}"
             )
+
+    for obj in mesh_objects:
+        if obj.name not in expected_uv_layers:
+            continue
+        expected_layers = expected_uv_layers[obj.name]
+        for layer_name, expected_coordinates in expected_layers.items():
+            uv_layer = obj.data.uv_layers.get(layer_name)
+            if uv_layer is None:
+                raise AssertionError(
+                    f"{os.path.basename(filepath)}:{obj.name} is missing UV layer '{layer_name}'"
+                )
+            actual_coordinates = _collect_unique_uv_coordinates(uv_layer)
+            expected_coordinates = sorted(
+                (round(float(uv[0]), 6), round(float(uv[1]), 6))
+                for uv in expected_coordinates
+            )
+            if actual_coordinates != expected_coordinates:
+                raise AssertionError(
+                    f"{os.path.basename(filepath)}:{obj.name}:{layer_name} UV coordinates mismatch. "
+                    f"actual={actual_coordinates} expected={expected_coordinates}"
+                )
 
     armature_objects = [obj for obj in bpy.context.scene.objects if obj.type == 'ARMATURE']
     actual_armature_names = sorted(obj.name for obj in armature_objects)

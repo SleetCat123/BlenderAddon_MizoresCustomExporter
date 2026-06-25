@@ -98,6 +98,33 @@ def update_export_set_filename(self, _context):
     self.name = get_export_set_display_name(self)
 
 
+class MIZORE_ExportSetUvTransformRule(bpy.types.PropertyGroup):
+    enabled: BoolProperty(name="Enabled", default=True)
+    uv_layer_name: StringProperty(
+        name="UV Layer",
+        default="",
+        description="UV layer name to transform",
+    )
+    offset: FloatVectorProperty(
+        name="Move",
+        default=(0.0, 0.0),
+        size=2,
+        description="UV offset added after scaling",
+    )
+    scale: FloatVectorProperty(
+        name="Scale",
+        default=(1.0, 1.0),
+        size=2,
+        description="UV scale applied around the pivot",
+    )
+    pivot: FloatVectorProperty(
+        name="Pivot",
+        default=(0.0, 0.0),
+        size=2,
+        description="UV coordinate used as scale pivot",
+    )
+
+
 def _resolve_legacy_primary_target(item):
     armature_object = getattr(item, "armature_object", None)
     if armature_object is not None and getattr(armature_object, "type", None) == 'ARMATURE':
@@ -164,6 +191,11 @@ class MIZORE_ExportSetItem(bpy.types.PropertyGroup):
         name="Attach To Bone",
         default="",
         description="Bone name on the primary armature where this armature should be attached; leave empty to infer from the current bone parent",
+    )
+    uv_transform_rules: CollectionProperty(type=MIZORE_ExportSetUvTransformRule)
+    active_uv_transform_rule_index: IntProperty(
+        name="Active UV Transform Rule Index",
+        default=0,
     )
 
 
@@ -263,6 +295,7 @@ class MIZORE_ExportSetsSceneProps(bpy.types.PropertyGroup):
 
 
 classes = [
+    MIZORE_ExportSetUvTransformRule,
     MIZORE_ExportSetItem,
     MIZORE_ExportSetVertexColorReplaceRule,
     MIZORE_ExportSetObjectReplaceRule,

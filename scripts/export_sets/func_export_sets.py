@@ -76,6 +76,14 @@ def _iter_enabled_object_replace_rules(export_set):
     ]
 
 
+def _iter_enabled_uv_transform_rules(item):
+    return [
+        rule
+        for rule in getattr(item, "uv_transform_rules", [])
+        if rule.enabled
+    ]
+
+
 def _iter_color_attributes(mesh, layer_name=""):
     color_attributes = getattr(mesh, "color_attributes", None)
     if color_attributes is None:
@@ -132,6 +140,70 @@ def apply_runtime_vertex_color_replace_rules(runtime: ExportSetRuntime):
             continue
         _apply_vertex_color_replace_rules_to_mesh(mesh, rules)
         processed_meshes.add(mesh_pointer)
+
+
+def _apply_uv_transform_rule_to_mesh(mesh, rule):
+    if mesh is None:
+        return False
+
+    uv_layer_name = rule.uv_layer_name.strip()
+    if not uv_layer_name:
+        return False
+
+    uv_layers = getattr(mesh, "uv_layers", None)
+    if uv_layers is None:
+        return False
+
+    uv_layer = uv_layers.get(uv_layer_name)
+    if uv_layer is None:
+        return False
+
+    offset_x, offset_y = (float(rule.offset[0]), float(rule.offset[1]))
+    scale_x, scale_y = (float(rule.scale[0]), float(rule.scale[1]))
+    pivot_x, pivot_y = (float(rule.pivot[0]), float(rule.pivot[1]))
+
+    for loop_uv in uv_layer.data:
+        uv = loop_uv.uv
+        uv.x = pivot_x + ((uv.x - pivot_x) * scale_x) + offset_x
+        uv.y = pivot_y + ((uv.y - pivot_y) * scale_y) + offset_y
+    mesh.update()
+    return True
+
+
+def apply_runtime_uv_transform_rules(runtime: ExportSetRuntime):
+    export_set_name = get_export_set_display_name(runtime.export_set)
+    for item_runtime in runtime.item_runtimes:
+        rules = _iter_enabled_uv_transform_rules(item_runtime.item)
+        if not rules:
+            continue
+
+        duplicate_obj = item_runtime.duplicate_root
+        root_name = (
+            item_runtime.source_root.name
+            if object_exists(item_runtime.source_root)
+            else "(None)"
+        )
+        if duplicate_obj is None or not object_exists(duplicate_obj) or duplicate_obj.type != 'MESH':
+            print(
+                f"[ExportSets] UV Transform skipped. "
+                f"export_set='{export_set_name}' root='{root_name}' reason='item root is not a runtime mesh'"
+            )
+            continue
+        for rule in rules:
+            applied = _apply_uv_transform_rule_to_mesh(duplicate_obj.data, rule)
+            if not applied:
+                print(
+                    f"[ExportSets] UV Transform skipped. "
+                    f"export_set='{export_set_name}' root='{root_name}' "
+                    f"duplicate='{duplicate_obj.name}' uv_layer='{rule.uv_layer_name}' reason='uv layer not found'"
+                )
+                continue
+            print(
+                f"[ExportSets] UV Transform applied. "
+                f"export_set='{export_set_name}' root='{root_name}' "
+                f"duplicate='{duplicate_obj.name}' uv_layer='{rule.uv_layer_name}' "
+                f"offset={tuple(rule.offset)} scale={tuple(rule.scale)} pivot={tuple(rule.pivot)}"
+            )
 
 
 def _iter_item_root_targets(item):

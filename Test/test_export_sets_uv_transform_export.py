@@ -12,10 +12,7 @@ import export_sets_flow_test_lib as t
 
 def main():
     try:
-        t.validate_export_set_legacy_primary_armature_migration()
-        t.validate_duplicate_objects_preserves_export_set_references()
-        t.validate_export_set_runtime_mapping()
-        t.validate_export_set_uv_transform_runtime()
+        t.validate_export_set_uv_transform_export()
     except Exception as exc:
         traceback.print_exc()
         print(t.format_exception("error", exc))

@@ -246,6 +246,24 @@ def transform_export_set_runtime_for_job(
         format_elapsed_detail(time.perf_counter() - stage_start),
     )
 
+    log_export_set_stage(export_set_name, "uv_transform", "start")
+    stage_start = time.perf_counter()
+    yield build_export_set_progress(
+        export_set_name=export_set_name,
+        stage="uv_transform",
+        set_index=index,
+        total_sets=total_sets,
+        stage_progress=0.30,
+        message=f"Export Set {index + 1}/{total_sets}: apply UV transform rules",
+        object_name=runtime_targets[0].name if runtime_targets else "",
+    )
+    func_export_sets.apply_runtime_uv_transform_rules(runtime)
+    log_export_set_stage(
+        export_set_name,
+        "uv_transform",
+        format_elapsed_detail(time.perf_counter() - stage_start),
+    )
+
     if export_set.merge_armatures:
         log_export_set_stage(export_set_name, "merge_armatures", "start")
         stage_start = time.perf_counter()

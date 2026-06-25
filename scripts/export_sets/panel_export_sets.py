@@ -39,6 +39,24 @@ class MIZORE_UL_export_set_object_replace_rules(bpy.types.UIList):
         row.label(text=replacement_name, icon='DUPLICATE', translate=False)
 
 
+class MIZORE_UL_export_set_uv_transform_rules(bpy.types.UIList):
+    def draw_item(self, _context, layout, _data, item, _icon, _active_data, _active_propname, _index):
+        row = layout.row(align=True)
+        row.prop(item, "enabled", text="")
+        layer_name = item.uv_layer_name if item.uv_layer_name else "(No UV Layer)"
+        row.label(text=layer_name, icon='UV_SYNC_SELECT', translate=False)
+        row.label(text=f"Move {tuple(round(v, 4) for v in item.offset)}", translate=False)
+        row.label(text=f"Scale {tuple(round(v, 4) for v in item.scale)}", translate=False)
+
+
+def item_root_has_uv_layers(item):
+    root_object = item.root_object
+    if root_object is None or root_object.type != 'MESH':
+        return False
+    uv_layers = getattr(root_object.data, "uv_layers", None)
+    return uv_layers is not None and len(uv_layers) > 0
+
+
 def draw_export_sets_editor(layout, context):
     props = context.scene.mizore_export_sets
 
@@ -181,6 +199,48 @@ def draw_export_sets_editor(layout, context):
     col.prop(item, "root_object", text="Root Object")
     col.prop(item, "include_children")
 
+    if item_root_has_uv_layers(item):
+        uv_box = item_box.box()
+        uv_box.label(text="UV Transform", icon='UV_SYNC_SELECT')
+        root_name = item.root_object.name
+        uv_box.label(text=f"Target: {root_name}", icon='OBJECT_DATA', translate=False)
+        row = uv_box.row()
+        row.template_list(
+            "MIZORE_UL_export_set_uv_transform_rules",
+            "",
+            item,
+            "uv_transform_rules",
+            item,
+            "active_uv_transform_rule_index",
+        )
+        col = row.column(align=True)
+        col.operator("scene.mizore_add_export_set_uv_transform_rule", icon='ADD', text="")
+        col.operator("scene.mizore_duplicate_export_set_uv_transform_rule", icon='DUPLICATE', text="")
+        move_up = col.operator("scene.mizore_move_export_set_uv_transform_rule", icon='TRIA_UP', text="")
+        move_up.direction = 'UP'
+        move_down = col.operator("scene.mizore_move_export_set_uv_transform_rule", icon='TRIA_DOWN', text="")
+        move_down.direction = 'DOWN'
+        col.operator("scene.mizore_remove_export_set_uv_transform_rule", icon='REMOVE', text="")
+
+        if item.uv_transform_rules:
+            rule = item.uv_transform_rules[
+                min(
+                    item.active_uv_transform_rule_index,
+                    len(item.uv_transform_rules) - 1,
+                )
+            ]
+            target_col = uv_box.column(align=True)
+            target_col.prop(rule, "uv_layer_name")
+
+            transform_box = uv_box.box()
+            transform_box.label(text="Transform", icon='TRANSFORM_ORIGINS')
+            transform_col = transform_box.column(align=True)
+            transform_col.prop(rule, "offset")
+            transform_col.prop(rule, "scale")
+            transform_col.prop(rule, "pivot")
+        else:
+            uv_box.label(text="No UV transform rules.", icon='INFO')
+
     armature_col = item_box.column(align=True)
     armature_col.enabled = export_set.merge_armatures
     if item.root_object is None or item.root_object.type != 'ARMATURE':
@@ -212,6 +272,7 @@ classes = [
     MIZORE_UL_export_set_items,
     MIZORE_UL_export_set_vertex_color_replace_rules,
     MIZORE_UL_export_set_object_replace_rules,
+    MIZORE_UL_export_set_uv_transform_rules,
     VIEW3D_PT_mizore_export_sets,
 ]
 
